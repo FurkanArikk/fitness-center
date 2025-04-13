@@ -59,14 +59,6 @@ profile.out
 tmp/
 temp/
 
-# Service specific binary files
-backend/*/bin/
-backend/*-service/*/bin/
-backend/member-service/member-service
-backend/payment-service/payment-service
-backend/facility-service/facility-service
-backend/class-service/class-service
-backend/staff-service/staff-service
 
 # Local configuration files
 config.local.yaml
