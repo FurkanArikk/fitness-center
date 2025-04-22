@@ -5,7 +5,8 @@
 *.so
 *.dylib
 *.bin
-member-service
+/backend/*/bin/
+/backend/*/build/
 
 # Test binary, built with `go test -c`
 *.test
@@ -59,6 +60,8 @@ profile.out
 tmp/
 temp/
 
+# Docker data volumes
+postgres_data/
 
 # Local configuration files
 config.local.yaml
