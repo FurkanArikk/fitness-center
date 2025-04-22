@@ -1,0 +1,53 @@
+package service
+
+import (
+	"github.com/fitness-center/staff-service/internal/model"
+)
+
+// QualificationService implements business logic for qualification operations
+type QualificationService struct {
+	repo model.QualificationRepository
+}
+
+// NewQualificationService creates a new QualificationService
+func NewQualificationService(repo model.QualificationRepository) *QualificationService {
+	return &QualificationService{repo: repo}
+}
+
+// GetAll retrieves all qualifications
+func (s *QualificationService) GetAll() ([]model.Qualification, error) {
+	return s.repo.GetAll()
+}
+
+// GetByID retrieves a qualification by ID
+func (s *QualificationService) GetByID(id int64) (*model.Qualification, error) {
+	return s.repo.GetByID(id)
+}
+
+// GetByStaffID retrieves all qualifications for a staff member
+func (s *QualificationService) GetByStaffID(staffID int64) ([]model.Qualification, error) {
+	return s.repo.GetByStaffID(staffID)
+}
+
+// Create adds a new qualification
+func (s *QualificationService) Create(qualification *model.Qualification) (*model.Qualification, error) {
+	// Add any business logic/validation here
+	return s.repo.Create(qualification)
+}
+
+// Update modifies an existing qualification
+func (s *QualificationService) Update(qualification *model.Qualification) (*model.Qualification, error) {
+	// Add any business logic/validation here
+	return s.repo.Update(qualification)
+}
+
+// Delete removes a qualification
+func (s *QualificationService) Delete(id int64) error {
+	// Add any business logic/validation here
+	return s.repo.Delete(id)
+}
+
+// GetExpiringSoon retrieves qualifications expiring within the specified number of days
+func (s *QualificationService) GetExpiringSoon(days int) ([]model.Qualification, error) {
+	return s.repo.GetExpiringSoon(days)
+}

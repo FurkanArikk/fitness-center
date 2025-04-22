@@ -1,0 +1,218 @@
+# STAFF SERVICE API ENDPOINTS
+
+## HEALTH CHECK
+GET /health
+# Check service health
+curl -X GET http://localhost:8002/health
+
+## STAFF ENDPOINTS
+POST /api/v1/staff                             # Create a new staff member
+# Create a new staff member
+curl -X POST http://localhost:8002/api/v1/staff \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "john.smith@fitness.com",
+    "phone": "+1-555-1234",
+    "address": "123 Main St, New York, NY",
+    "position": "Manager",
+    "hire_date": "2020-01-15",
+    "salary": 65000.00,
+    "status": "Active"
+  }'
+
+GET /api/v1/staff                              # List all staff members
+# List all staff members
+curl -X GET http://localhost:8002/api/v1/staff
+
+GET /api/v1/staff/{id}                         # Get a specific staff member
+# Get a specific staff member
+curl -X GET http://localhost:8002/api/v1/staff/1
+
+PUT /api/v1/staff/{id}                         # Update a staff member
+# Update a staff member
+curl -X PUT http://localhost:8002/api/v1/staff/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "Johnny",
+    "last_name": "Smith",
+    "email": "johnny.smith@fitness.com",
+    "phone": "+1-555-9876",
+    "address": "456 New St, New York, NY",
+    "position": "Senior Manager",
+    "hire_date": "2020-01-15",
+    "salary": 70000.00,
+    "status": "Active"
+  }'
+
+DELETE /api/v1/staff/{id}                      # Delete a staff member
+# Delete a staff member
+curl -X DELETE http://localhost:8002/api/v1/staff/1
+
+## QUALIFICATION ENDPOINTS
+POST /api/v1/qualifications                    # Create a new qualification
+# Create a new qualification
+curl -X POST http://localhost:8002/api/v1/qualifications \
+  -H "Content-Type: application/json" \
+  -d '{
+    "staff_id": 2,
+    "qualification_name": "First Aid & CPR",
+    "issue_date": "2020-01-10",
+    "expiry_date": "2022-01-10",
+    "issuing_authority": "American Red Cross"
+  }'
+
+GET /api/v1/qualifications                     # Get all qualifications
+# Get all qualifications
+curl -X GET http://localhost:8002/api/v1/qualifications
+
+GET /api/v1/qualifications/{id}                # Get a specific qualification
+# Get a specific qualification
+curl -X GET http://localhost:8002/api/v1/qualifications/1
+
+GET /api/v1/staff/{id}/qualifications          # Get qualifications for a staff member
+# Get qualifications for a staff member
+curl -X GET http://localhost:8002/api/v1/staff/2/qualifications
+
+PUT /api/v1/qualifications/{id}                # Update a qualification
+# Update a qualification
+curl -X PUT http://localhost:8002/api/v1/qualifications/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "staff_id": 2,
+    "qualification_name": "First Aid & CPR",
+    "issue_date": "2020-01-10",
+    "expiry_date": "2022-01-10",
+    "issuing_authority": "American Red Cross Updated"
+  }'
+
+DELETE /api/v1/qualifications/{id}             # Delete a qualification
+# Delete a qualification
+curl -X DELETE http://localhost:8002/api/v1/qualifications/1
+
+## TRAINER ENDPOINTS
+POST /api/v1/trainers                          # Create a new trainer
+# Create a new trainer
+curl -X POST http://localhost:8002/api/v1/trainers \
+  -H "Content-Type: application/json" \
+  -d '{
+    "staff_id": 2,
+    "specialization": "Weight Loss",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 5,
+    "rating": 4.7
+  }'
+
+GET /api/v1/trainers                           # Get all trainers
+# Get all trainers
+curl -X GET http://localhost:8002/api/v1/trainers
+
+GET /api/v1/trainers/{id}                      # Get a specific trainer
+# Get a specific trainer
+curl -X GET http://localhost:8002/api/v1/trainers/1
+
+GET /api/v1/staff/{id}/trainer                 # Get trainer info for a staff member
+# Get trainer info for a staff member
+curl -X GET http://localhost:8002/api/v1/staff/2/trainer
+
+GET /api/v1/trainers/specialization/{spec}     # Get trainers by specialization
+# Get trainers by specialization
+curl -X GET http://localhost:8002/api/v1/trainers/specialization/Weight%20Loss
+
+GET /api/v1/trainers/top/{limit}               # Get top rated trainers
+# Get top 3 rated trainers
+curl -X GET http://localhost:8002/api/v1/trainers/top/3
+
+PUT /api/v1/trainers/{id}                      # Update a trainer
+# Update a trainer
+curl -X PUT http://localhost:8002/api/v1/trainers/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "staff_id": 2,
+    "specialization": "Weight Loss and Nutrition",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 6,
+    "rating": 4.8
+  }'
+
+DELETE /api/v1/trainers/{id}                   # Delete a trainer
+# Delete a trainer
+curl -X DELETE http://localhost:8002/api/v1/trainers/1
+
+## PERSONAL TRAINING ENDPOINTS
+POST /api/v1/trainings                         # Create a new training session
+# Create a new training session
+curl -X POST http://localhost:8002/api/v1/trainings \
+  -H "Content-Type: application/json" \
+  -d '{
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-25",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "Focus on cardio and core strength",
+    "status": "Scheduled",
+    "price": 75.00
+  }'
+
+GET /api/v1/trainings                          # Get all training sessions
+# Get all training sessions
+curl -X GET http://localhost:8002/api/v1/trainings
+
+GET /api/v1/trainings/{id}                     # Get a specific training session
+# Get a specific training session
+curl -X GET http://localhost:8002/api/v1/trainings/1
+
+GET /api/v1/members/{id}/trainings             # Get training sessions for a member
+# Get training sessions for a member
+curl -X GET http://localhost:8002/api/v1/members/1/trainings
+
+GET /api/v1/trainers/{id}/trainings            # Get training sessions for a trainer
+# Get training sessions for a trainer
+curl -X GET http://localhost:8002/api/v1/trainers/1/trainings
+
+GET /api/v1/trainings/date                     # Get training sessions by date range
+# Get training sessions between specific dates
+curl -X GET "http://localhost:8002/api/v1/trainings/date?start=2023-07-01&end=2023-07-31"
+
+POST /api/v1/trainings/schedule                # Schedule a new training session
+# Schedule a new training session
+curl -X POST http://localhost:8002/api/v1/trainings/schedule \
+  -H "Content-Type: application/json" \
+  -d '{
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-08-01",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "New client onboarding",
+    "price": 75.00
+  }'
+
+PUT /api/v1/trainings/{id}                     # Update a training session
+# Update a training session
+curl -X PUT http://localhost:8002/api/v1/trainings/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-25",
+    "start_time": "10:00:00",
+    "end_time": "11:00:00",
+    "notes": "Updated: Focus on cardio and core strength",
+    "status": "Scheduled",
+    "price": 75.00
+  }'
+
+PUT /api/v1/trainings/{id}/cancel              # Cancel a training session
+# Cancel a training session
+curl -X PUT http://localhost:8002/api/v1/trainings/1/cancel
+
+PUT /api/v1/trainings/{id}/complete            # Complete a training session
+# Mark a training session as completed
+curl -X PUT http://localhost:8002/api/v1/trainings/1/complete
+
+DELETE /api/v1/trainings/{id}                  # Delete a training session
+# Delete a training session
+curl -X DELETE http://localhost:8002/api/v1/trainings/1

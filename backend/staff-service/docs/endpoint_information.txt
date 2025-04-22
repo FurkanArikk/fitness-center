@@ -1,0 +1,810 @@
+# STAFF SERVICE API ENDPOINT DOCUMENTATION
+
+Base URL: http://localhost:8002/api/v1
+
+## HEALTH CHECK ENDPOINT
+
+### Check Service Health
+Endpoint: GET /health
+Description: Verifies the service is running properly
+Response: 
+- 200 OK with text "OK"
+
+-----------------------------------------------------------
+
+## STAFF ENDPOINTS
+
+### 1. Get All Staff
+Endpoint: GET /staff
+Description: Retrieves all staff members
+Response:
+```json
+[
+  {
+    "id": 1,
+    "first_name": "John",
+    "last_name": "Smith",
+    "email": "john.smith@fitness.com",
+    "phone": "+1-555-1234",
+    "address": "123 Main St, New York, NY",
+    "position": "Manager",
+    "hire_date": "2020-01-15",
+    "salary": 65000.00,
+    "status": "Active",
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 2. Get a Staff Member
+Endpoint: GET /staff/{id}
+Description: Retrieves a specific staff member's information
+Path Parameters:
+- id: Staff ID (integer)
+Response:
+```json
+{
+  "id": 1,
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "john.smith@fitness.com",
+  "phone": "+1-555-1234",
+  "address": "123 Main St, New York, NY",
+  "position": "Manager",
+  "hire_date": "2020-01-15",
+  "salary": 65000.00,
+  "status": "Active",
+  "created_at": "2023-06-01T09:00:00Z",
+  "updated_at": "2023-06-01T09:00:00Z"
+}
+```
+Error Responses:
+- 400: Invalid staff ID
+- 404: Staff not found
+- 500: Internal server error
+
+### 3. Create a Staff Member
+Endpoint: POST /staff
+Description: Creates a new staff member
+Request Body:
+```json
+{
+  "first_name": "John",
+  "last_name": "Smith",
+  "email": "john.smith@fitness.com",
+  "phone": "+1-555-1234",
+  "address": "123 Main St, New York, NY",
+  "position": "Manager",
+  "hire_date": "2020-01-15",
+  "salary": 65000.00,
+  "status": "Active"
+}
+```
+Response:
+- 201 Created with the newly created staff member including ID and timestamps
+Error Responses:
+- 400: Invalid request body or validation error
+- 500: Internal server error
+
+### 4. Update a Staff Member
+Endpoint: PUT /staff/{id}
+Description: Updates an existing staff member
+Path Parameters:
+- id: Staff ID (integer)
+Request Body:
+```json
+{
+  "first_name": "Johnny",
+  "last_name": "Smith",
+  "email": "johnny.smith@fitness.com",
+  "phone": "+1-555-9876",
+  "address": "456 New St, New York, NY",
+  "position": "Senior Manager",
+  "hire_date": "2020-01-15",
+  "salary": 70000.00,
+  "status": "Active"
+}
+```
+Response:
+- 200 OK with the updated staff data
+Error Responses:
+- 400: Invalid staff ID or request body
+- 404: Staff not found
+- 500: Internal server error
+
+### 5. Delete a Staff Member
+Endpoint: DELETE /staff/{id}
+Description: Deletes a staff member
+Path Parameters:
+- id: Staff ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid staff ID
+- 404: Staff not found
+- 500: Internal server error
+
+-----------------------------------------------------------
+
+## QUALIFICATION ENDPOINTS
+
+### 1. Get All Qualifications
+Endpoint: GET /qualifications
+Description: Retrieves all staff qualifications
+Response:
+```json
+[
+  {
+    "id": 1,
+    "staff_id": 2,
+    "qualification_name": "Personal Trainer Certification",
+    "issue_date": "2019-05-15",
+    "expiry_date": "2023-05-15",
+    "issuing_authority": "National Academy of Sports Medicine",
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 2. Get a Qualification
+Endpoint: GET /qualifications/{id}
+Description: Retrieves a specific qualification
+Path Parameters:
+- id: Qualification ID (integer)
+Response:
+```json
+{
+  "id": 1,
+  "staff_id": 2,
+  "qualification_name": "Personal Trainer Certification",
+  "issue_date": "2019-05-15",
+  "expiry_date": "2023-05-15",
+  "issuing_authority": "National Academy of Sports Medicine",
+  "created_at": "2023-06-01T09:00:00Z",
+  "updated_at": "2023-06-01T09:00:00Z"
+}
+```
+Error Responses:
+- 400: Invalid qualification ID
+- 404: Qualification not found
+- 500: Internal server error
+
+### 3. Get Staff Qualifications
+Endpoint: GET /staff/{id}/qualifications
+Description: Retrieves all qualifications for a specific staff member
+Path Parameters:
+- id: Staff ID (integer)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "staff_id": 2,
+    "qualification_name": "Personal Trainer Certification",
+    "issue_date": "2019-05-15",
+    "expiry_date": "2023-05-15",
+    "issuing_authority": "National Academy of Sports Medicine",
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 400: Invalid staff ID
+- 500: Internal server error
+
+### 4. Create a Qualification
+Endpoint: POST /qualifications
+Description: Creates a new qualification
+Request Body:
+```json
+{
+  "staff_id": 2,
+  "qualification_name": "First Aid & CPR",
+  "issue_date": "2020-01-10",
+  "expiry_date": "2022-01-10",
+  "issuing_authority": "American Red Cross"
+}
+```
+Response:
+- 201 Created with the newly created qualification including ID and timestamps
+Error Responses:
+- 400: Invalid request body or validation error
+- 500: Internal server error
+
+### 5. Update a Qualification
+Endpoint: PUT /qualifications/{id}
+Description: Updates an existing qualification
+Path Parameters:
+- id: Qualification ID (integer)
+Request Body:
+```json
+{
+  "staff_id": 2,
+  "qualification_name": "First Aid & CPR",
+  "issue_date": "2020-01-10",
+  "expiry_date": "2022-01-10",
+  "issuing_authority": "American Red Cross Updated"
+}
+```
+Response:
+- 200 OK with the updated qualification data
+Error Responses:
+- 400: Invalid qualification ID or request body
+- 404: Qualification not found
+- 500: Internal server error
+
+### 6. Delete a Qualification
+Endpoint: DELETE /qualifications/{id}
+Description: Deletes a qualification
+Path Parameters:
+- id: Qualification ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid qualification ID
+- 404: Qualification not found
+- 500: Internal server error
+
+-----------------------------------------------------------
+
+## TRAINER ENDPOINTS
+
+### 1. Get All Trainers
+Endpoint: GET /trainers
+Description: Retrieves all trainers
+Response:
+```json
+[
+  {
+    "id": 1,
+    "staff_id": 2,
+    "specialization": "Weight Loss",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 5,
+    "rating": 4.7,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z",
+    "staff": {
+      "id": 2,
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "email": "sarah.johnson@fitness.com",
+      "phone": "+1-555-2345",
+      "position": "Trainer"
+    }
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 2. Get a Trainer
+Endpoint: GET /trainers/{id}
+Description: Retrieves a specific trainer
+Path Parameters:
+- id: Trainer ID (integer)
+Response:
+```json
+{
+  "id": 1,
+  "staff_id": 2,
+  "specialization": "Weight Loss",
+  "certification": "NASM Certified Personal Trainer",
+  "experience": 5,
+  "rating": 4.7,
+  "created_at": "2023-06-01T09:00:00Z",
+  "updated_at": "2023-06-01T09:00:00Z",
+  "staff": {
+    "id": 2,
+    "first_name": "Sarah",
+    "last_name": "Johnson",
+    "email": "sarah.johnson@fitness.com",
+    "phone": "+1-555-2345",
+    "position": "Trainer"
+  }
+}
+```
+Error Responses:
+- 400: Invalid trainer ID
+- 404: Trainer not found
+- 500: Internal server error
+
+### 3. Get a Staff Member's Trainer Profile
+Endpoint: GET /staff/{id}/trainer
+Description: Retrieves trainer information for a specific staff member
+Path Parameters:
+- id: Staff ID (integer)
+Response:
+```json
+{
+  "id": 1,
+  "staff_id": 2,
+  "specialization": "Weight Loss",
+  "certification": "NASM Certified Personal Trainer",
+  "experience": 5,
+  "rating": 4.7,
+  "created_at": "2023-06-01T09:00:00Z",
+  "updated_at": "2023-06-01T09:00:00Z",
+  "staff": {
+    "id": 2,
+    "first_name": "Sarah",
+    "last_name": "Johnson",
+    "email": "sarah.johnson@fitness.com",
+    "phone": "+1-555-2345",
+    "position": "Trainer"
+  }
+}
+```
+Error Responses:
+- 400: Invalid staff ID
+- 404: Trainer not found
+- 500: Internal server error
+
+### 4. Get Trainers by Specialization
+Endpoint: GET /trainers/specialization/{spec}
+Description: Retrieves trainers with a specific specialization
+Path Parameters:
+- spec: Specialization (string)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "staff_id": 2,
+    "specialization": "Weight Loss",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 5,
+    "rating": 4.7,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z",
+    "staff": {
+      "id": 2,
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "email": "sarah.johnson@fitness.com",
+      "phone": "+1-555-2345",
+      "position": "Trainer"
+    }
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 5. Get Top Rated Trainers
+Endpoint: GET /trainers/top/{limit}
+Description: Retrieves the top rated trainers
+Path Parameters:
+- limit: Number of trainers to return (integer, optional, default: 5)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "staff_id": 2,
+    "specialization": "Weight Loss",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 5,
+    "rating": 4.7,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z",
+    "staff": {
+      "id": 2,
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "email": "sarah.johnson@fitness.com",
+      "phone": "+1-555-2345",
+      "position": "Trainer"
+    }
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 6. Create a Trainer
+Endpoint: POST /trainers
+Description: Creates a new trainer
+Request Body:
+```json
+{
+  "staff_id": 2,
+  "specialization": "Weight Loss",
+  "certification": "NASM Certified Personal Trainer",
+  "experience": 5,
+  "rating": 4.7
+}
+```
+Response:
+- 201 Created with the newly created trainer including ID and timestamps
+Error Responses:
+- 400: Invalid request body or validation error
+- 500: Internal server error
+
+### 7. Update a Trainer
+Endpoint: PUT /trainers/{id}
+Description: Updates an existing trainer
+Path Parameters:
+- id: Trainer ID (integer)
+Request Body:
+```json
+{
+  "staff_id": 2,
+  "specialization": "Weight Loss and Nutrition",
+  "certification": "NASM Certified Personal Trainer",
+  "experience": 6,
+  "rating": 4.8
+}
+```
+Response:
+- 200 OK with the updated trainer data
+Error Responses:
+- 400: Invalid trainer ID or request body
+- 404: Trainer not found
+- 500: Internal server error
+
+### 8. Delete a Trainer
+Endpoint: DELETE /trainers/{id}
+Description: Deletes a trainer
+Path Parameters:
+- id: Trainer ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid trainer ID
+- 404: Trainer not found
+- 500: Internal server error
+
+-----------------------------------------------------------
+
+## PERSONAL TRAINING ENDPOINTS
+
+### 1. Get All Training Sessions
+Endpoint: GET /trainings
+Description: Retrieves all personal training sessions
+Response:
+```json
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-10",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "Focus on cardio and core strength",
+    "status": "Completed",
+    "price": 75.00,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 500: Internal server error
+
+### 2. Get a Training Session
+Endpoint: GET /trainings/{id}
+Description: Retrieves a specific training session
+Path Parameters:
+- id: Training Session ID (integer)
+Response:
+```json
+{
+  "id": 1,
+  "member_id": 1,
+  "trainer_id": 1,
+  "session_date": "2023-07-10",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "notes": "Focus on cardio and core strength",
+  "status": "Completed",
+  "price": 75.00,
+  "created_at": "2023-06-01T09:00:00Z",
+  "updated_at": "2023-06-01T09:00:00Z",
+  "trainer": {
+    "id": 1,
+    "staff_id": 2,
+    "specialization": "Weight Loss",
+    "certification": "NASM Certified Personal Trainer",
+    "experience": 5,
+    "rating": 4.7,
+    "staff": {
+      "id": 2,
+      "first_name": "Sarah",
+      "last_name": "Johnson",
+      "email": "sarah.johnson@fitness.com",
+      "phone": "+1-555-2345"
+    }
+  }
+}
+```
+Error Responses:
+- 400: Invalid training session ID
+- 404: Training session not found
+- 500: Internal server error
+
+### 3. Get Member's Training Sessions
+Endpoint: GET /members/{id}/trainings
+Description: Retrieves all training sessions for a specific member
+Path Parameters:
+- id: Member ID (integer)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-10",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "Focus on cardio and core strength",
+    "status": "Completed",
+    "price": 75.00,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 400: Invalid member ID
+- 500: Internal server error
+
+### 4. Get Trainer's Training Sessions
+Endpoint: GET /trainers/{id}/trainings
+Description: Retrieves all training sessions for a specific trainer
+Path Parameters:
+- id: Trainer ID (integer)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-10",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "Focus on cardio and core strength",
+    "status": "Completed",
+    "price": 75.00,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 400: Invalid trainer ID
+- 500: Internal server error
+
+### 5. Get Training Sessions by Date Range
+Endpoint: GET /trainings/date
+Description: Retrieves training sessions within a date range
+Query Parameters:
+- start: Start date (format: YYYY-MM-DD, optional, default: today)
+- end: End date (format: YYYY-MM-DD, optional, default: start + 7 days)
+Response:
+```json
+[
+  {
+    "id": 1,
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-07-10",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "Focus on cardio and core strength",
+    "status": "Completed",
+    "price": 75.00,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+Error Responses:
+- 400: Invalid date format
+- 500: Internal server error
+
+### 6. Create a Training Session
+Endpoint: POST /trainings
+Description: Creates a new training session
+Request Body:
+```json
+{
+  "member_id": 1,
+  "trainer_id": 1,
+  "session_date": "2023-07-25",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "notes": "Focus on cardio and core strength",
+  "status": "Scheduled",
+  "price": 75.00
+}
+```
+Response:
+- 201 Created with the newly created training session including ID and timestamps
+Error Responses:
+- 400: Invalid request body or validation error
+- 500: Internal server error
+
+### 7. Schedule a Training Session
+Endpoint: POST /trainings/schedule
+Description: Schedules a new training session (convenience endpoint - sets status to "Scheduled")
+Request Body:
+```json
+{
+  "member_id": 1,
+  "trainer_id": 1,
+  "session_date": "2023-07-25",
+  "start_time": "09:00:00",
+  "end_time": "10:00:00",
+  "notes": "Focus on cardio and core strength",
+  "price": 75.00
+}
+```
+Response:
+- 201 Created with the newly created training session including ID and timestamps
+Error Responses:
+- 400: Invalid request body or validation error
+- 500: Internal server error
+
+### 8. Update a Training Session
+Endpoint: PUT /trainings/{id}
+Description: Updates an existing training session
+Path Parameters:
+- id: Training Session ID (integer)
+Request Body:
+```json
+{
+  "member_id": 1,
+  "trainer_id": 1,
+  "session_date": "2023-07-25",
+  "start_time": "10:00:00",
+  "end_time": "11:00:00",
+  "notes": "Updated: Focus on cardio and core strength",
+  "status": "Scheduled",
+  "price": 75.00
+}
+```
+Response:
+- 200 OK with the updated training session data
+Error Responses:
+- 400: Invalid training session ID or request body
+- 404: Training session not found
+- 500: Internal server error
+
+### 9. Cancel a Training Session
+Endpoint: PUT /trainings/{id}/cancel
+Description: Cancels a training session (sets status to "Cancelled")
+Path Parameters:
+- id: Training Session ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid training session ID
+- 404: Training session not found
+- 500: Internal server error
+
+### 10. Complete a Training Session
+Endpoint: PUT /trainings/{id}/complete
+Description: Marks a training session as completed (sets status to "Completed")
+Path Parameters:
+- id: Training Session ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid training session ID
+- 404: Training session not found
+- 500: Internal server error
+
+### 11. Delete a Training Session
+Endpoint: DELETE /trainings/{id}
+Description: Deletes a training session
+Path Parameters:
+- id: Training Session ID (integer)
+Response:
+- 204 No Content if successful
+Error Responses:
+- 400: Invalid training session ID
+- 404: Training session not found
+- 500: Internal server error
+
+-----------------------------------------------------------
+
+## TESTING WITH CURL
+
+### Health Check
+```bash
+curl -X GET http://localhost:8002/health
+```
+
+### Get all staff
+```bash
+curl -X GET http://localhost:8002/api/v1/staff
+```
+
+### Get a specific staff member
+```bash
+curl -X GET http://localhost:8002/api/v1/staff/1
+```
+
+### Create a staff member
+```bash
+curl -X POST \
+  http://localhost:8002/api/v1/staff \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "first_name": "New",
+    "last_name": "Staff",
+    "email": "new.staff@fitness.com",
+    "phone": "+1-555-9876",
+    "address": "789 New Street, Anytown, USA",
+    "position": "Assistant",
+    "hire_date": "2023-07-01",
+    "salary": 40000.00,
+    "status": "Active"
+  }'
+```
+
+### Get all trainers
+```bash
+curl -X GET http://localhost:8002/api/v1/trainers
+```
+
+### Get top 3 rated trainers
+```bash
+curl -X GET http://localhost:8002/api/v1/trainers/top/3
+```
+
+### Schedule a training session
+```bash
+curl -X POST \
+  http://localhost:8002/api/v1/trainings/schedule \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "member_id": 1,
+    "trainer_id": 1,
+    "session_date": "2023-08-01",
+    "start_time": "09:00:00",
+    "end_time": "10:00:00",
+    "notes": "New client onboarding",
+    "price": 75.00
+  }'
+```
+
+### Get training sessions for a date range
+```bash
+curl -X GET "http://localhost:8002/api/v1/trainings/date?start=2023-07-01&end=2023-07-31"
+```
+
+### Cancel a training session
+```bash
+curl -X PUT http://localhost:8002/api/v1/trainings/1/cancel
+```
+
+### Get qualifications for a staff member
+```bash
+curl -X GET http://localhost:8002/api/v1/staff/2/qualifications
+```
+
+### Add a qualification to a staff member
+```bash
+curl -X POST \
+  http://localhost:8002/api/v1/qualifications \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "staff_id": 2,
+    "qualification_name": "Advanced Nutrition Certificate",
+    "issue_date": "2023-01-15",
+    "expiry_date": "2025-01-15",
+    "issuing_authority": "Nutrition Academy"
+  }'
+```
