@@ -1,0 +1,13 @@
+server:
+  port: "8001"
+  readTimeout: 15s
+  writeTimeout: 15s
+  idleTimeout: 60s
+
+database:
+  host: "localhost"
+  port: "5432"
+  user: "fitness_user"
+  password: "admin"
+  dbname: "fitness_member_db"
+  sslmode: "disable"
