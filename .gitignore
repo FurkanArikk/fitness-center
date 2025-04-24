@@ -65,3 +65,12 @@ postgres_data/
 
 # Local configuration files
 config.local.yaml
+
+# Service binaries (generated after running run.sh)
+/backend/class-service/class-service
+/backend/member-service/member-service
+/backend/staff-service/staff-service 
+/backend/auth-service/auth-service
+/backend/payment-service/payment-service
+/backend/notification-service/notification-service
+/backend/scheduler-service/scheduler-service

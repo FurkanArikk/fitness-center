@@ -179,15 +179,6 @@ echo -e "${MAGENTA}==========================================${NC}"
 echo -e "${MAGENTA}      FITNESS CENTER CLASS SERVICE       ${NC}"
 echo -e "${MAGENTA}==========================================${NC}"
 
-# Load environment from root .env file
-ROOT_ENV_PATH="/home/furkan/work/fitness-center/.env"
-if [ -f "$ROOT_ENV_PATH" ]; then
-    print_info "Loading environment from: $ROOT_ENV_PATH"
-    source "$ROOT_ENV_PATH"
-else
-    print_warning "Root .env file not found, using default environment variables"
-fi
-
 # Check docker is available
 check_docker
 
