@@ -29,7 +29,7 @@ func main() {
 
 	// Initialize and start the server
 	srv := server.NewServer(db, server.Config{
-		Port:         cfg.Server.Port,
+		Port:         fmt.Sprintf("%d", cfg.Server.Port),
 		ReadTimeout:  cfg.Server.ReadTimeout,
 		WriteTimeout: cfg.Server.WriteTimeout,
 		IdleTimeout:  cfg.Server.IdleTimeout,

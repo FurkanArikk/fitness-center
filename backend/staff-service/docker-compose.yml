@@ -11,7 +11,8 @@ services:
       - "${STAFF_SERVICE_DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d:ro
+      # Comment out this line to avoid the mount issues in WSL
+      # - ./migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:

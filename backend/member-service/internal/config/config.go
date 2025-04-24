@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -17,7 +18,10 @@ type Config struct {
 
 // ServerConfig holds HTTP server configuration
 type ServerConfig struct {
-	Port int
+	Port         int
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 }
 
 // DatabaseConfig holds database configuration
@@ -38,15 +42,18 @@ func (dc DatabaseConfig) GetDSN() string {
 	)
 }
 
-// LoadConfig loads configuration from environment variables
-func LoadConfig() Config {
+// Load loads configuration from environment variables
+func Load() (*Config, error) {
 	// Load .env file from project root
 	rootEnvPath := findRootEnvFile()
 	godotenv.Load(rootEnvPath)
 
-	return Config{
+	config := &Config{
 		Server: ServerConfig{
-			Port: getEnvAsInt("MEMBER_SERVICE_PORT", 8001),
+			Port:         getEnvAsInt("MEMBER_SERVICE_PORT", 8001),
+			ReadTimeout:  getEnvAsDuration("SERVER_READ_TIMEOUT", 5*time.Second),
+			WriteTimeout: getEnvAsDuration("SERVER_WRITE_TIMEOUT", 10*time.Second),
+			IdleTimeout:  getEnvAsDuration("SERVER_IDLE_TIMEOUT", 15*time.Second),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -57,6 +64,14 @@ func LoadConfig() Config {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 	}
+
+	return config, nil
+}
+
+// LoadConfig is an alias for Load to maintain backwards compatibility
+func LoadConfig() Config {
+	config, _ := Load()
+	return *config
 }
 
 // findRootEnvFile locates the .env file in the project root
@@ -94,6 +109,15 @@ func getEnvAsInt(key string, defaultValue int) int {
 	valueStr := getEnv(key, "")
 	if value, err := strconv.Atoi(valueStr); err == nil {
 		return value
+	}
+	return defaultValue
+}
+
+// Helper function to get environment variables as durations
+func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
+	valueStr := getEnv(key, "")
+	if value, err := strconv.Atoi(valueStr); err == nil {
+		return time.Duration(value) * time.Second
 	}
 	return defaultValue
 }
