@@ -138,14 +138,87 @@ ask_load_sample_data() {
     choice=${choice:-2}
     
     if [ "$choice" = "1" ]; then
-        print_info "Loading sample data..."
-        if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000004_sample_data.sql; then
-            print_success "Sample data loaded successfully"
+        print_info "Resetting database and running migrations first..."
+        
+        # Check if golang-migrate is installed
+        if command -v migrate &> /dev/null; then
+            # Use migrate command if available
+            if USE_DOCKER=true ./scripts/migrate.sh down && USE_DOCKER=true ./scripts/migrate.sh up; then
+                print_success "Database schema reset successfully"
+                # Load sample data after successful migration
+                load_sample_data
+            else
+                print_error "Failed to reset database schema using migrate command"
+                use_docker_postgres_for_reset
+            fi
         else
-            print_error "Failed to load sample data"
+            print_warning "Migrate komutuna erişilemiyor, Docker üzerinden işlem deneniyor..."
+            use_docker_postgres_for_reset
         fi
     else
         print_info "Skipping sample data loading"
+    fi
+}
+
+# Helper function to load sample data
+load_sample_data() {
+    print_info "Örnek verileri yükleniyor..."
+    if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000004_sample_data.sql; then
+        print_success "Örnek veriler başarıyla yüklendi"
+    else
+        print_error "Örnek veriler yüklenemedi"
+    fi
+}
+
+# Helper function to reset database using Docker PostgreSQL commands
+use_docker_postgres_for_reset() {
+    print_info "Docker üzerinden veritabanı sıfırlama deneniyor..."
+    
+    # Mevcut docker-db.sh script'ini kullan
+    print_info "Veritabanı konteynerini sıfırlama..."
+    if ./scripts/docker-db.sh stop && ./scripts/docker-db.sh start; then
+        print_success "Veritabanı konteyner yeniden başlatıldı"
+        
+        print_info "Veritabanı şemasını ve tabloları oluşturma..."
+        # Veritabanı bağlantısını bekleyelim
+        sleep 5
+        
+        # Migrasyonları uygula - doğrudan SQL dosyalarını kullan
+        DB_HOST=${DB_HOST:-localhost}
+        DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
+        DB_USER=${DB_USER:-fitness_user}
+        DB_PASSWORD=${DB_PASSWORD:-admin}
+        DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+        
+        # Veritabanını temizle ve yeniden oluştur
+        print_info "Veritabanını temizleme ve yeniden oluşturma..."
+        if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" && \
+           PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;"; then
+            print_success "Veritabanı yeniden oluşturuldu"
+            
+            # SQL migrasyonlarını uygula
+            for migration in ./migrations/000*.up.sql; do
+                if [ -f "$migration" ]; then
+                    print_info "Migrasyon dosyası uygulanıyor: $(basename $migration)"
+                    if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$migration"; then
+                        print_success "Migrasyon başarılı: $(basename $migration)"
+                    else
+                        print_error "Migrasyon başarısız: $(basename $migration)"
+                        return 1
+                    fi
+                fi
+            done
+            
+            # Örnek verileri yükle
+            load_sample_data
+            return 0
+        else
+            print_error "Veritabanı yeniden oluşturulamadı"
+            return 1
+        fi
+    else
+        print_error "Veritabanı konteyner yeniden başlatılamadı"
+        return 1
     fi
 }
 

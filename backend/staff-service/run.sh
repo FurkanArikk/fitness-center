@@ -133,14 +133,53 @@ ask_load_sample_data() {
     choice=${choice:-2}
     
     if [ "$choice" = "1" ]; then
-        print_info "Loading sample data..."
-        if DB_HOST=localhost DB_PORT=5433 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/002_sample_data.sql; then
-            print_success "Sample data loaded successfully"
+        print_info "Veritabanı sıfırlanıyor ve migrasyon işlemleri gerçekleştiriliyor..."
+        
+        # use_docker_postgres_for_reset fonksiyonunu çağır
+        use_docker_postgres_for_reset
+    else
+        print_info "Örnek veri yükleme işlemi atlanıyor"
+    fi
+}
+
+# Helper function to load sample data
+load_sample_data() {
+    print_info "Örnek verileri yükleniyor..."
+    if DB_HOST=localhost DB_PORT=5433 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/002_sample_data.sql; then
+        print_success "Örnek veriler başarıyla yüklendi"
+    else
+        print_error "Örnek veriler yüklenemedi"
+    fi
+}
+
+# Helper function to reset database using Docker PostgreSQL commands
+use_docker_postgres_for_reset() {
+    print_info "Docker üzerinden veritabanı sıfırlama deneniyor..."
+    
+    # Veritabanı konteynerini yeniden başlat
+    print_info "Veritabanı konteynerini sıfırlama..."
+    if ./scripts/docker-db.sh stop && ./scripts/docker-db.sh start; then
+        print_success "Veritabanı konteyner yeniden başlatıldı"
+        
+        print_info "Veritabanı şemasını ve tabloları oluşturma..."
+        # Veritabanı bağlantısını bekleyelim
+        sleep 5
+        
+        # Setup DB script'ini çağır
+        print_info "Veritabanı şemasını oluşturma..."
+        if USE_DOCKER=true ./scripts/setup-db.sh; then
+            print_success "Veritabanı şeması başarıyla oluşturuldu"
+            
+            # Örnek verileri yükle
+            load_sample_data
+            return 0
         else
-            print_error "Failed to load sample data"
+            print_error "Veritabanı şeması oluşturulamadı"
+            return 1
         fi
     else
-        print_info "Skipping sample data loading"
+        print_error "Veritabanı konteyner yeniden başlatılamadı"
+        return 1
     fi
 }
 
