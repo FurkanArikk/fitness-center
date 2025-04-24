@@ -45,6 +45,23 @@ check_docker() {
     print_success "Docker is available"
 }
 
+# Function to ensure Docker network exists
+ensure_docker_network() {
+    print_header "Checking Docker Network"
+    
+    if docker network inspect fitness-network &> /dev/null; then
+        print_success "Docker network 'fitness-network' already exists"
+    else
+        print_info "Creating Docker network 'fitness-network'..."
+        if docker network create fitness-network &> /dev/null; then
+            print_success "Docker network created successfully"
+        else
+            print_error "Failed to create Docker network"
+            exit 1
+        fi
+    fi
+}
+
 # Function to start the database
 start_database() {
     print_header "Starting PostgreSQL Database (Docker)"
@@ -101,7 +118,7 @@ initialize_database() {
             print_error "Failed to initialize database schema"
             exit 1
         fi
-    fi
+    }
 }
 
 # Function to ask about loading sample data
@@ -176,6 +193,9 @@ echo -e "${MAGENTA}==========================================${NC}"
 
 # Check docker is available
 check_docker
+
+# Ensure Docker network exists
+ensure_docker_network
 
 # Start the database
 start_database
