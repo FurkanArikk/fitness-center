@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:14
+    container_name: class-service-fitness_class_db
+    environment:
+      POSTGRES_USER: ${DB_USER:-fitness_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${CLASS_SERVICE_DB_PORT:-5436}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+networks:
+  fitness-network:
+    external: true
+    name: ${DOCKER_NETWORK_NAME:-fitness-network}
+
+volumes:
+  postgres_data:
+    driver: local

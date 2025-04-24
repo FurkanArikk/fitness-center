@@ -1,0 +1,13 @@
+server:
+  port: "8002"
+  readTimeout: 15s
+  writeTimeout: 15s
+  idleTimeout: 60s
+
+database:
+  host: "localhost"
+  port: "5433"  # Updated to match the staff-service port
+  user: "fitness_user"
+  password: "admin"
+  dbname: "fitness_staff_db"
+  sslmode: "disable"
