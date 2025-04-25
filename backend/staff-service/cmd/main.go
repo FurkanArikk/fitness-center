@@ -10,7 +10,9 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/config"
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/db"
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/repository"
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/server"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/service"
 )
 
 func main() {
@@ -30,8 +32,14 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
+	// Initialize repositories
+	repos := repository.NewRepository(database.DB)
+
+	// Initialize services
+	services := service.NewService(repos)
+
 	// Create handlers
-	h := handler.NewHandler(database)
+	h := handler.NewHandler(database, services)
 
 	// Setup HTTP server
 	srv := server.NewServer(h, strconv.Itoa(cfg.Server.Port))

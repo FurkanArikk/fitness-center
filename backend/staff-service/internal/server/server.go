@@ -18,78 +18,15 @@ type Server struct {
 
 // NewServer creates a new server instance
 func NewServer(h *handler.Handler, port string) *Server {
-	// Initialize router without registering the health endpoint
-	router := gin.New()
+	router := gin.Default()
 
 	// Add middleware
-	router.Use(gin.Logger())
-	router.Use(gin.Recovery())
 	router.Use(corsMiddleware())
 	router.Use(contentTypeMiddleware())
+	router.Use(loggingMiddleware())
 
-	// Health check endpoint with standardized response format
-	// Registered only once here
-	router.GET("/health", h.HealthCheck)
-
-	// API routes
-	api := router.Group("/api/v1")
-	{
-		// Staff routes
-		staff := api.Group("/staff")
-		{
-			staff.GET("", h.StaffHandler.GetAll)
-			staff.GET("/:id", h.StaffHandler.GetByID)
-			staff.POST("", h.StaffHandler.Create)
-			staff.PUT("/:id", h.StaffHandler.Update)
-			staff.DELETE("/:id", h.StaffHandler.Delete)
-		}
-
-		// Separate route group for staff relationships to avoid path conflicts
-		api.GET("/staff/:id/qualifications", h.QualificationHandler.GetByStaffID)
-		api.GET("/staff/:id/trainer", h.TrainerHandler.GetByStaffID)
-
-		// Qualification routes
-		qualifications := api.Group("/qualifications")
-		{
-			qualifications.GET("", h.QualificationHandler.GetAll)
-			qualifications.GET("/:id", h.QualificationHandler.GetByID)
-			qualifications.POST("", h.QualificationHandler.Create)
-			qualifications.PUT("/:id", h.QualificationHandler.Update)
-			qualifications.DELETE("/:id", h.QualificationHandler.Delete)
-		}
-
-		// Trainer routes
-		trainers := api.Group("/trainers")
-		{
-			trainers.GET("", h.TrainerHandler.GetAll)
-			trainers.GET("/:id", h.TrainerHandler.GetByID)
-			trainers.POST("", h.TrainerHandler.Create)
-			trainers.PUT("/:id", h.TrainerHandler.Update)
-			trainers.DELETE("/:id", h.TrainerHandler.Delete)
-		}
-
-		// Separate routes to avoid path conflicts
-		api.GET("/trainers/specialization/:spec", h.TrainerHandler.GetBySpecialization)
-		api.GET("/trainers/top/:limit", h.TrainerHandler.GetTopRated)
-		api.GET("/trainers/:id/trainings", h.TrainingHandler.GetByTrainerID)
-
-		// Training session routes
-		trainings := api.Group("/trainings")
-		{
-			trainings.GET("", h.TrainingHandler.GetAll)
-			trainings.GET("/:id", h.TrainingHandler.GetByID)
-			trainings.POST("", h.TrainingHandler.Create)
-			trainings.PUT("/:id", h.TrainingHandler.Update)
-			trainings.DELETE("/:id", h.TrainingHandler.Delete)
-		}
-
-		// Separate routes to avoid path conflicts
-		api.GET("/members/:id/trainings", h.TrainingHandler.GetByMemberID)
-		api.GET("/trainings/date", h.TrainingHandler.GetByDateRange)
-		api.POST("/trainings/schedule", h.TrainingHandler.ScheduleSession)
-		api.PUT("/trainings/:id/cancel", h.TrainingHandler.CancelSession)
-		api.PUT("/trainings/:id/complete", h.TrainingHandler.CompleteSession)
-	}
+	// Set up routes using the function from router.go
+	setupRoutes(router, h)
 
 	srv := &Server{
 		router: router,
@@ -113,4 +50,46 @@ func (s *Server) Shutdown() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	return s.httpServer.Shutdown(ctx)
+}
+
+// corsMiddleware adds CORS headers to responses
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+
+		c.Next()
+	}
+}
+
+// contentTypeMiddleware sets the default content type for API responses
+func contentTypeMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Next()
+	}
+}
+
+// loggingMiddleware logs requests with timing information
+func loggingMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		// Process request
+		c.Next()
+
+		// Log after request is processed
+		duration := time.Since(start)
+		method := c.Request.Method
+		path := c.Request.URL.Path
+		statusCode := c.Writer.Status()
+
+		log.Printf("%s %s %d completed in %v", method, path, statusCode, duration)
+	}
 }
