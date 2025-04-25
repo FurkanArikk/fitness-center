@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/fitness-center/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
 )
 
 // PersonalTrainingService implements business logic for personal training operations

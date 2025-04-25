@@ -4,9 +4,6 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/handler"
@@ -21,21 +18,77 @@ type Server struct {
 
 // NewServer creates a new server instance
 func NewServer(h *handler.Handler, port string) *Server {
-	router := gin.Default()
+	// Initialize router without registering the health endpoint
+	router := gin.New()
+
+	// Add middleware
+	router.Use(gin.Logger())
+	router.Use(gin.Recovery())
+	router.Use(corsMiddleware())
+	router.Use(contentTypeMiddleware())
 
 	// Health check endpoint with standardized response format
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"service": "staff-service",
-			"status":  "up",
-			"time":    time.Now().Format(time.RFC3339),
-		})
-	})
+	// Registered only once here
+	router.GET("/health", h.HealthCheck)
 
 	// API routes
 	api := router.Group("/api/v1")
 	{
-		// ...existing code...
+		// Staff routes
+		staff := api.Group("/staff")
+		{
+			staff.GET("", h.StaffHandler.GetAll)
+			staff.GET("/:id", h.StaffHandler.GetByID)
+			staff.POST("", h.StaffHandler.Create)
+			staff.PUT("/:id", h.StaffHandler.Update)
+			staff.DELETE("/:id", h.StaffHandler.Delete)
+		}
+
+		// Separate route group for staff relationships to avoid path conflicts
+		api.GET("/staff/:id/qualifications", h.QualificationHandler.GetByStaffID)
+		api.GET("/staff/:id/trainer", h.TrainerHandler.GetByStaffID)
+
+		// Qualification routes
+		qualifications := api.Group("/qualifications")
+		{
+			qualifications.GET("", h.QualificationHandler.GetAll)
+			qualifications.GET("/:id", h.QualificationHandler.GetByID)
+			qualifications.POST("", h.QualificationHandler.Create)
+			qualifications.PUT("/:id", h.QualificationHandler.Update)
+			qualifications.DELETE("/:id", h.QualificationHandler.Delete)
+		}
+
+		// Trainer routes
+		trainers := api.Group("/trainers")
+		{
+			trainers.GET("", h.TrainerHandler.GetAll)
+			trainers.GET("/:id", h.TrainerHandler.GetByID)
+			trainers.POST("", h.TrainerHandler.Create)
+			trainers.PUT("/:id", h.TrainerHandler.Update)
+			trainers.DELETE("/:id", h.TrainerHandler.Delete)
+		}
+
+		// Separate routes to avoid path conflicts
+		api.GET("/trainers/specialization/:spec", h.TrainerHandler.GetBySpecialization)
+		api.GET("/trainers/top/:limit", h.TrainerHandler.GetTopRated)
+		api.GET("/trainers/:id/trainings", h.TrainingHandler.GetByTrainerID)
+
+		// Training session routes
+		trainings := api.Group("/trainings")
+		{
+			trainings.GET("", h.TrainingHandler.GetAll)
+			trainings.GET("/:id", h.TrainingHandler.GetByID)
+			trainings.POST("", h.TrainingHandler.Create)
+			trainings.PUT("/:id", h.TrainingHandler.Update)
+			trainings.DELETE("/:id", h.TrainingHandler.Delete)
+		}
+
+		// Separate routes to avoid path conflicts
+		api.GET("/members/:id/trainings", h.TrainingHandler.GetByMemberID)
+		api.GET("/trainings/date", h.TrainingHandler.GetByDateRange)
+		api.POST("/trainings/schedule", h.TrainingHandler.ScheduleSession)
+		api.PUT("/trainings/:id/cancel", h.TrainingHandler.CancelSession)
+		api.PUT("/trainings/:id/complete", h.TrainingHandler.CompleteSession)
 	}
 
 	srv := &Server{
@@ -46,51 +99,18 @@ func NewServer(h *handler.Handler, port string) *Server {
 		},
 	}
 
-	log.Printf("Server listening on port %s", port)
 	return srv
 }
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
-	// Start the server in a goroutine so that it doesn't block
-	go func() {
-		if err := s.httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Could not listen on %s: %v", s.httpServer.Addr, err)
-		}
-	}()
-
-	return nil
+	log.Printf("Server listening on port %s", s.httpServer.Addr[1:])
+	return s.httpServer.ListenAndServe()
 }
 
 // Shutdown gracefully shuts down the server
-func (s *Server) Shutdown(ctx context.Context) error {
-	log.Println("Server is shutting down...")
-
-	// Shutdown the server with the given context
-	if err := s.httpServer.Shutdown(ctx); err != nil {
-		return err
-	}
-
-	log.Println("Server stopped")
-	return nil
-}
-
-// WaitForShutdown waits for a signal to shutdown the server
-func (s *Server) WaitForShutdown() {
-	// Create a channel to receive OS signals
-	sig := make(chan os.Signal, 1)
-	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-
-	// Block until a signal is received
-	received := <-sig
-	log.Printf("Received signal %s, initiating shutdown", received)
-
-	// Create a context with a timeout for the shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+func (s *Server) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	// Shutdown the server
-	if err := s.Shutdown(ctx); err != nil {
-		log.Fatalf("Error during shutdown: %v", err)
-	}
+	return s.httpServer.Shutdown(ctx)
 }
