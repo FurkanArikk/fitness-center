@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -46,7 +47,10 @@ func (dc DatabaseConfig) GetDSN() string {
 func Load() (*Config, error) {
 	// Load .env file from project root
 	rootEnvPath := findRootEnvFile()
-	godotenv.Load(rootEnvPath)
+	if rootEnvPath != "" {
+		log.Printf("Loading environment variables from: %s", rootEnvPath)
+		godotenv.Load(rootEnvPath)
+	}
 
 	config := &Config{
 		Server: ServerConfig{
@@ -64,6 +68,10 @@ func Load() (*Config, error) {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 	}
+
+	log.Printf("Server configuration: port=%d", config.Server.Port)
+	log.Printf("Database configuration: host=%s, port=%d, dbname=%s",
+		config.Database.Host, config.Database.Port, config.Database.DBName)
 
 	return config, nil
 }

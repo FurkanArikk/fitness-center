@@ -3,8 +3,8 @@ package repository
 import (
 	"database/sql"
 
-	"github.com/fitness-center/staff-service/internal/model"
-	"github.com/fitness-center/staff-service/internal/repository/postgres"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/repository/postgres"
 )
 
 // Repository is a factory for all repositories

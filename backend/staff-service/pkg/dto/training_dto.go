@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/fitness-center/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
 )
 
 // TrainingResponse represents a personal training session response to the client

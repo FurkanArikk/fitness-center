@@ -2,129 +2,103 @@ package server
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/handler"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository/postgres"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/service"
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 )
 
-// Server represents the HTTP server for the member service
+// Server represents the HTTP server
 type Server struct {
-	router  *mux.Router
-	server  *http.Server
-	handler *handler.Handler
-}
-
-// Config contains the server configuration
-type Config struct {
-	Port         string
-	ReadTimeout  time.Duration
-	WriteTimeout time.Duration
-	IdleTimeout  time.Duration
+	router     *gin.Engine
+	httpServer *http.Server
 }
 
 // NewServer creates a new server instance
-func NewServer(db *sql.DB, config Config) *Server {
-	// Create repositories
-	memberRepo := postgres.NewMemberRepository(db)
-	membershipRepo := postgres.NewMembershipRepository(db)
-	benefitRepo := postgres.NewBenefitRepo(db)
-	memberMembershipRepo := postgres.NewMemberMembershipRepo(db)
-	assessmentRepo := postgres.NewFitnessAssessmentRepo(db)
+func NewServer(h *handler.Handler, port string) *Server {
+	router := gin.Default()
 
-	// Create services
-	memberService := service.NewMemberService(memberRepo)
-	membershipService := service.NewMembershipService(membershipRepo)
-	benefitService := service.NewBenefitService(benefitRepo)
-	memberMembershipService := service.NewMemberMembershipService(memberMembershipRepo)
-	assessmentService := service.NewAssessmentService(assessmentRepo)
+	// Health check endpoint with standardized response format
+	router.GET("/health", h.HealthCheck)
 
-	// Create handler
-	h := handler.NewHandler(
-		memberService,
-		membershipService,
-		memberMembershipService,
-		benefitService,
-		assessmentService,
-	)
+	// API routes
+	api := router.Group("/api/v1")
+	{
+		members := api.Group("/members")
+		{
+			members.GET("", h.MemberHandler.GetMembers)
+			members.GET("/:id", h.MemberHandler.GetMemberByID)
+			members.POST("", h.MemberHandler.CreateMember)
+			members.PUT("/:id", h.MemberHandler.UpdateMember)
+			members.DELETE("/:id", h.MemberHandler.DeleteMember)
+		}
 
-	// Setup router with routes
-	router := SetupRoutes(h)
+		// Move these routes outside of the members group to avoid conflicts
+		api.GET("/members/:id/memberships", h.MemberMembershipHandler.GetMemberMemberships)
+		api.GET("/members/:id/active-membership", h.MemberMembershipHandler.GetActiveMembership)
+		api.GET("/members/:id/assessments", h.AssessmentHandler.GetMemberAssessments)
 
-	// Add middleware
-	router.Use(requestLoggingMiddleware)
+		memberships := api.Group("/memberships")
+		{
+			memberships.GET("", h.MembershipHandler.GetMemberships)
+			memberships.GET("/:id", h.MembershipHandler.GetMembershipByID)
+			memberships.POST("", h.MembershipHandler.CreateMembership)
+			memberships.PUT("/:id", h.MembershipHandler.UpdateMembership)
+			memberships.DELETE("/:id", h.MembershipHandler.DeleteMembership)
+			memberships.PUT("/:id/status", h.MembershipHandler.ToggleMembershipStatus)
+		}
 
-	// Create HTTP server
-	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%s", config.Port),
-		Handler:      router,
-		ReadTimeout:  config.ReadTimeout,
-		WriteTimeout: config.WriteTimeout,
-		IdleTimeout:  config.IdleTimeout,
+		// Move this route outside of the memberships group to avoid parameter conflicts
+		api.GET("/memberships/:id/benefits", h.MembershipHandler.GetMembershipBenefits)
+
+		benefits := api.Group("/benefits")
+		{
+			benefits.GET("", h.BenefitHandler.GetBenefits)
+			benefits.GET("/:id", h.BenefitHandler.GetBenefitByID)
+			benefits.POST("", h.BenefitHandler.CreateBenefit)
+			benefits.PUT("/:id", h.BenefitHandler.UpdateBenefit)
+			benefits.DELETE("/:id", h.BenefitHandler.DeleteBenefit)
+		}
+
+		assessments := api.Group("/assessments")
+		{
+			assessments.GET("/:id", h.AssessmentHandler.GetAssessmentByID)
+			assessments.POST("", h.AssessmentHandler.CreateAssessment)
+			assessments.PUT("/:id", h.AssessmentHandler.UpdateAssessment)
+			assessments.DELETE("/:id", h.AssessmentHandler.DeleteAssessment)
+		}
+
+		memberMemberships := api.Group("/member-memberships")
+		{
+			memberMemberships.GET("/:id", h.MemberMembershipHandler.GetMemberMembershipByID)
+			memberMemberships.POST("", h.MemberMembershipHandler.CreateMemberMembership)
+			memberMemberships.PUT("/:id", h.MemberMembershipHandler.UpdateMemberMembership)
+			memberMemberships.DELETE("/:id", h.MemberMembershipHandler.DeleteMemberMembership)
+		}
 	}
 
-	return &Server{
-		router:  router,
-		server:  srv,
-		handler: h,
+	srv := &Server{
+		router: router,
+		httpServer: &http.Server{
+			Addr:    ":" + port,
+			Handler: router,
+		},
 	}
+
+	return srv
 }
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
-	// Start server in a goroutine to not block
-	go func() {
-		log.Printf("Starting server on %s", s.server.Addr)
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Error starting server: %v", err)
-		}
-	}()
-
-	return s.waitForShutdown()
+	log.Printf("Server listening on port %s", s.httpServer.Addr[1:])
+	return s.httpServer.ListenAndServe()
 }
 
-// waitForShutdown waits for a signal to gracefully shutdown the server
-func (s *Server) waitForShutdown() error {
-	// Create channel to listen for signals
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
-
-	// Block until a signal is received
-	<-stop
-
-	// Create a deadline for server shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-
-	log.Println("Shutting down server...")
-	if err := s.server.Shutdown(ctx); err != nil {
-		return fmt.Errorf("error shutting down server: %w", err)
-	}
-
-	log.Println("Server gracefully stopped")
-	return nil
-}
-
-// requestLoggingMiddleware logs HTTP requests
-func requestLoggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		startTime := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf(
-			"%s %s %s %s",
-			r.Method,
-			r.RequestURI,
-			r.RemoteAddr,
-			time.Since(startTime),
-		)
-	})
+	return s.httpServer.Shutdown(ctx)
 }

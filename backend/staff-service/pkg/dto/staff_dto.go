@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/fitness-center/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
 )
 
 // StaffResponse represents a staff response to the client
