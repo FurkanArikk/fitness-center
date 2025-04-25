@@ -8,6 +8,7 @@ DB_PORT="${DB_PORT:-5432}"
 DB_USER="${DB_USER:-fitness_user}"
 DB_PASSWORD="${DB_PASSWORD:-admin}"
 DB_NAME="${DB_NAME:-fitness_member_db}"
+LOAD_SAMPLE_DATA="${LOAD_SAMPLE_DATA:-true}"
 
 # Set PGPASSWORD environment variable to avoid password prompt
 export PGPASSWORD="${DB_PASSWORD}"
@@ -37,8 +38,13 @@ fi
 echo "Running database schema migration..."
 psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f ./migrations/001_initial_schema.sql
 
-echo "Running sample data migration..."
-psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f ./migrations/002_sample_data.sql
+# Only load sample data if LOAD_SAMPLE_DATA is true
+if [ "$LOAD_SAMPLE_DATA" = "true" ]; then
+    echo "Running sample data migration..."
+    psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f ./migrations/002_sample_data.sql
+else
+    echo "Skipping sample data migration as per configuration."
+fi
 
 echo "Database setup complete!"
 

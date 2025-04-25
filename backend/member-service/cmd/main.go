@@ -10,7 +10,9 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/config"
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/db"
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository/postgres"
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/server"
+	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/service"
 )
 
 func main() {
@@ -30,8 +32,29 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 
-	// Create handlers
-	h := handler.NewHandler(database)
+	// Initialize repositories
+	memberRepo := postgres.NewMemberRepository(database.DB)
+	membershipRepo := postgres.NewMembershipRepository(database.DB)
+	benefitRepo := postgres.NewBenefitRepo(database.DB)
+	memberMembershipRepo := postgres.NewMemberMembershipRepo(database.DB)
+	assessmentRepo := postgres.NewFitnessAssessmentRepo(database.DB)
+
+	// Initialize services
+	memberService := service.NewMemberService(memberRepo)
+	membershipService := service.NewMembershipService(membershipRepo)
+	benefitService := service.NewBenefitService(benefitRepo)
+	memberMembershipService := service.NewMemberMembershipService(memberMembershipRepo)
+	assessmentService := service.NewAssessmentService(assessmentRepo)
+
+	// Create handlers with services
+	h := handler.NewHandler(
+		database,
+		memberService,
+		membershipService,
+		memberMembershipService,
+		assessmentService,
+		benefitService,
+	)
 
 	// Setup HTTP server
 	srv := server.NewServer(h, strconv.Itoa(cfg.Server.Port))

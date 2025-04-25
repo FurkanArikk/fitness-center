@@ -154,7 +154,14 @@ reset_db() {
     read -p "Are you sure you want to continue? (y/n): " confirm
     if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
         echo "Stopping and removing PostgreSQL container and volume..."
+        # Use docker-compose down with -v flag to ensure volumes are removed
         docker-compose down -v --remove-orphans
+        
+        # For extra safety, remove any dangling container with the same name
+        if docker ps -a | grep -q fitness-member-db; then
+            docker rm -f fitness-member-db
+        fi
+        
         echo "Starting fresh PostgreSQL container..."
         docker-compose up -d postgres
         
