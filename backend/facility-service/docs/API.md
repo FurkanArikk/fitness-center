@@ -1,0 +1,719 @@
+# Facility Service API Documentation
+
+This document outlines all the API endpoints provided by the Facility Service.
+
+Base URL: `http://localhost:8004/api/v1`
+
+## Facilities
+
+### Get All Facilities
+
+Returns a list of all facilities, with optional pagination.
+
+**Endpoint:** `GET /facilities`
+
+**Query Parameters:**
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+- `status` (optional): Filter by status (active, maintenance, closed)
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "facility_id": 1,
+      "name": "Main Gym",
+      "description": "Primary workout area with cardio and strength equipment",
+      "capacity": 100,
+      "status": "active",
+      "opening_hour": "06:00:00",
+      "closing_hour": "22:00:00",
+      "created_at": "2023-07-01T10:00:00Z",
+      "updated_at": "2023-07-01T10:00:00Z"
+    },
+    {
+      "facility_id": 2,
+      "name": "Yoga Studio",
+      "description": "Dedicated space for yoga and pilates classes",
+      "capacity": 30,
+      "status": "active",
+      "opening_hour": "07:00:00",
+      "closing_hour": "21:00:00",
+      "created_at": "2023-07-02T11:00:00Z",
+      "updated_at": "2023-07-02T11:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 2,
+  "totalPages": 1
+}
+```
+
+### Get Facility by ID
+
+Returns a specific facility by its ID.
+
+**Endpoint:** `GET /facilities/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "facility_id": 1,
+  "name": "Main Gym",
+  "description": "Primary workout area with cardio and strength equipment",
+  "capacity": 100,
+  "status": "active",
+  "opening_hour": "06:00:00",
+  "closing_hour": "22:00:00",
+  "created_at": "2023-07-01T10:00:00Z",
+  "updated_at": "2023-07-01T10:00:00Z"
+}
+```
+
+### Create Facility
+
+Creates a new facility.
+
+**Endpoint:** `POST /facilities`
+
+**Request Body:**
+```json
+{
+  "name": "Swimming Pool",
+  "description": "Indoor swimming pool with lap lanes",
+  "capacity": 40,
+  "status": "active",
+  "opening_hour": "07:00:00",
+  "closing_hour": "20:00:00"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "facility_id": 3,
+  "name": "Swimming Pool",
+  "description": "Indoor swimming pool with lap lanes",
+  "capacity": 40,
+  "status": "active",
+  "opening_hour": "07:00:00",
+  "closing_hour": "20:00:00",
+  "created_at": "2023-07-15T10:00:00Z",
+  "updated_at": "2023-07-15T10:00:00Z"
+}
+```
+
+### Update Facility
+
+Updates an existing facility.
+
+**Endpoint:** `PUT /facilities/{id}`
+
+**Request Body:**
+```json
+{
+  "name": "Swimming Pool",
+  "description": "Indoor heated swimming pool with lap lanes",
+  "capacity": 45,
+  "status": "active",
+  "opening_hour": "06:30:00",
+  "closing_hour": "20:30:00"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "facility_id": 3,
+  "name": "Swimming Pool",
+  "description": "Indoor heated swimming pool with lap lanes",
+  "capacity": 45,
+  "status": "active",
+  "opening_hour": "06:30:00",
+  "closing_hour": "20:30:00",
+  "created_at": "2023-07-15T10:00:00Z",
+  "updated_at": "2023-07-15T11:30:00Z"
+}
+```
+
+### Delete Facility
+
+Deletes a facility. This will fail if there are active attendance records for the facility.
+
+**Endpoint:** `DELETE /facilities/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "message": "Facility deleted successfully"
+}
+```
+
+### List Facilities By Status
+
+Returns facilities filtered by status.
+
+**Endpoint:** `GET /facilities/status/{status}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "facility_id": 1,
+      "name": "Main Gym",
+      "description": "Primary workout area with cardio and strength equipment",
+      "capacity": 100,
+      "status": "active",
+      "opening_hour": "06:00:00",
+      "closing_hour": "22:00:00",
+      "created_at": "2023-07-01T10:00:00Z",
+      "updated_at": "2023-07-01T10:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+## Equipment
+
+### Get All Equipment
+
+Returns a list of all equipment, with optional pagination.
+
+**Endpoint:** `GET /equipment`
+
+**Query Parameters:**
+- `page` (optional): Page number for pagination
+- `size` (optional): Number of items per page
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "equipment_id": 1,
+      "name": "Treadmill",
+      "description": "Commercial grade treadmill",
+      "category": "cardio",
+      "purchase_date": "2023-01-15T00:00:00Z",
+      "purchase_price": 2999.99,
+      "manufacturer": "LifeFitness",
+      "model_number": "LF-TR1000",
+      "status": "active",
+      "last_maintenance_date": "2023-06-15T00:00:00Z",
+      "next_maintenance_date": "2023-09-15T00:00:00Z",
+      "created_at": "2023-01-15T10:00:00Z",
+      "updated_at": "2023-06-15T10:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### Get Equipment by ID
+
+Returns specific equipment by its ID.
+
+**Endpoint:** `GET /equipment/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "equipment_id": 1,
+  "name": "Treadmill",
+  "description": "Commercial grade treadmill",
+  "category": "cardio",
+  "purchase_date": "2023-01-15T00:00:00Z",
+  "purchase_price": 2999.99,
+  "manufacturer": "LifeFitness",
+  "model_number": "LF-TR1000",
+  "status": "active",
+  "last_maintenance_date": "2023-06-15T00:00:00Z",
+  "next_maintenance_date": "2023-09-15T00:00:00Z",
+  "created_at": "2023-01-15T10:00:00Z",
+  "updated_at": "2023-06-15T10:00:00Z"
+}
+```
+
+### Create Equipment
+
+Creates new equipment.
+
+**Endpoint:** `POST /equipment`
+
+**Request Body:**
+```json
+{
+  "name": "Elliptical",
+  "description": "Low impact cardio machine",
+  "category": "cardio",
+  "purchase_date": "2023-07-01T00:00:00Z",
+  "purchase_price": 2499.99,
+  "manufacturer": "Precor",
+  "model_number": "EFX-835",
+  "status": "active",
+  "last_maintenance_date": "2023-07-01T00:00:00Z",
+  "next_maintenance_date": "2023-10-01T00:00:00Z"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "equipment_id": 2,
+  "name": "Elliptical",
+  "description": "Low impact cardio machine",
+  "category": "cardio",
+  "purchase_date": "2023-07-01T00:00:00Z",
+  "purchase_price": 2499.99,
+  "manufacturer": "Precor",
+  "model_number": "EFX-835",
+  "status": "active",
+  "last_maintenance_date": "2023-07-01T00:00:00Z",
+  "next_maintenance_date": "2023-10-01T00:00:00Z",
+  "created_at": "2023-07-15T12:00:00Z",
+  "updated_at": "2023-07-15T12:00:00Z"
+}
+```
+
+### Update Equipment
+
+Updates existing equipment.
+
+**Endpoint:** `PUT /equipment/{id}`
+
+**Request Body:**
+```json
+{
+  "name": "Elliptical",
+  "description": "Low impact cardio machine",
+  "category": "cardio",
+  "purchase_date": "2023-07-01T00:00:00Z",
+  "purchase_price": 2499.99,
+  "manufacturer": "Precor",
+  "model_number": "EFX-835",
+  "status": "maintenance",
+  "last_maintenance_date": "2023-07-15T00:00:00Z",
+  "next_maintenance_date": "2023-10-15T00:00:00Z"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "equipment_id": 2,
+  "name": "Elliptical",
+  "description": "Low impact cardio machine",
+  "category": "cardio",
+  "purchase_date": "2023-07-01T00:00:00Z",
+  "purchase_price": 2499.99,
+  "manufacturer": "Precor",
+  "model_number": "EFX-835",
+  "status": "maintenance",
+  "last_maintenance_date": "2023-07-15T00:00:00Z",
+  "next_maintenance_date": "2023-10-15T00:00:00Z",
+  "created_at": "2023-07-15T12:00:00Z",
+  "updated_at": "2023-07-15T14:30:00Z"
+}
+```
+
+### Delete Equipment
+
+Deletes equipment.
+
+**Endpoint:** `DELETE /equipment/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "message": "Equipment deleted successfully"
+}
+```
+
+### List Equipment By Category
+
+Returns equipment filtered by category.
+
+**Endpoint:** `GET /equipment/category/{category}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "equipment_id": 1,
+      "name": "Treadmill",
+      "description": "Commercial grade treadmill",
+      "category": "cardio",
+      "purchase_date": "2023-01-15T00:00:00Z",
+      "purchase_price": 2999.99,
+      "manufacturer": "LifeFitness",
+      "model_number": "LF-TR1000",
+      "status": "active",
+      "last_maintenance_date": "2023-06-15T00:00:00Z",
+      "next_maintenance_date": "2023-09-15T00:00:00Z",
+      "created_at": "2023-01-15T10:00:00Z",
+      "updated_at": "2023-06-15T10:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### List Equipment By Status
+
+Returns equipment filtered by status.
+
+**Endpoint:** `GET /equipment/status/{status}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "equipment_id": 2,
+      "name": "Elliptical",
+      "description": "Low impact cardio machine",
+      "category": "cardio",
+      "purchase_date": "2023-07-01T00:00:00Z",
+      "purchase_price": 2499.99,
+      "manufacturer": "Precor",
+      "model_number": "EFX-835",
+      "status": "maintenance",
+      "last_maintenance_date": "2023-07-15T00:00:00Z",
+      "next_maintenance_date": "2023-10-15T00:00:00Z",
+      "created_at": "2023-07-15T12:00:00Z",
+      "updated_at": "2023-07-15T14:30:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### List Equipment Due For Maintenance
+
+Returns equipment that needs maintenance.
+
+**Endpoint:** `GET /equipment/maintenance`
+
+**Query Parameters:**
+- `date` (optional): Reference date for maintenance check (defaults to current date)
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "equipment_id": 1,
+      "name": "Treadmill",
+      "description": "Commercial grade treadmill",
+      "category": "cardio",
+      "purchase_date": "2023-01-15T00:00:00Z",
+      "purchase_price": 2999.99,
+      "manufacturer": "LifeFitness",
+      "model_number": "LF-TR1000",
+      "status": "active",
+      "last_maintenance_date": "2023-06-15T00:00:00Z",
+      "next_maintenance_date": "2023-09-15T00:00:00Z",
+      "created_at": "2023-01-15T10:00:00Z",
+      "updated_at": "2023-06-15T10:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+## Attendance
+
+### Create Attendance Record
+
+Creates a new attendance record (check-in).
+
+**Endpoint:** `POST /attendance`
+
+**Request Body:**
+```json
+{
+  "member_id": 123,
+  "facility_id": 1,
+  "check_in_time": "2023-07-15T08:00:00Z"
+}
+```
+
+**Response (201 Created):**
+```json
+{
+  "attendance_id": 1,
+  "member_id": 123,
+  "check_in_time": "2023-07-15T08:00:00Z",
+  "check_out_time": null,
+  "date": "2023-07-15T00:00:00Z",
+  "facility_id": 1,
+  "created_at": "2023-07-15T08:00:00Z",
+  "updated_at": "2023-07-15T08:00:00Z"
+}
+```
+
+### Get Attendance by ID
+
+Returns a specific attendance record.
+
+**Endpoint:** `GET /attendance/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "attendance_id": 1,
+  "member_id": 123,
+  "check_in_time": "2023-07-15T08:00:00Z",
+  "check_out_time": "2023-07-15T10:30:00Z",
+  "date": "2023-07-15T00:00:00Z",
+  "facility_id": 1,
+  "created_at": "2023-07-15T08:00:00Z",
+  "updated_at": "2023-07-15T10:30:00Z"
+}
+```
+
+### Update Attendance
+
+Updates an existing attendance record.
+
+**Endpoint:** `PUT /attendance/{id}`
+
+**Request Body:**
+```json
+{
+  "member_id": 123,
+  "check_in_time": "2023-07-15T08:15:00Z",
+  "check_out_time": "2023-07-15T10:45:00Z",
+  "facility_id": 1
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "attendance_id": 1,
+  "member_id": 123,
+  "check_in_time": "2023-07-15T08:15:00Z",
+  "check_out_time": "2023-07-15T10:45:00Z",
+  "date": "2023-07-15T00:00:00Z",
+  "facility_id": 1,
+  "created_at": "2023-07-15T08:00:00Z",
+  "updated_at": "2023-07-15T11:00:00Z"
+}
+```
+
+### Delete Attendance
+
+Deletes an attendance record.
+
+**Endpoint:** `DELETE /attendance/{id}`
+
+**Response (200 OK):**
+```json
+{
+  "message": "Attendance record deleted successfully"
+}
+```
+
+### Check Out
+
+Records a check-out time for an attendance record.
+
+**Endpoint:** `POST /attendance/{id}/checkout`
+
+**Response (200 OK):**
+```json
+{
+  "message": "Member checked out successfully",
+  "check_out_time": "2023-07-15T10:30:00Z"
+}
+```
+
+### List All Attendance
+
+Lists all attendance records with pagination.
+
+**Endpoint:** `GET /attendance`
+
+**Query Parameters:**
+- `page` (optional): Page number for pagination
+- `size` (optional): Number of items per page
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "attendance_id": 1,
+      "member_id": 123,
+      "check_in_time": "2023-07-15T08:00:00Z",
+      "check_out_time": "2023-07-15T10:30:00Z",
+      "date": "2023-07-15T00:00:00Z",
+      "facility_id": 1,
+      "created_at": "2023-07-15T08:00:00Z",
+      "updated_at": "2023-07-15T10:30:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### List Attendance By Member
+
+Returns attendance records for a specific member.
+
+**Endpoint:** `GET /attendance/member/{memberID}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "attendance_id": 1,
+      "member_id": 123,
+      "check_in_time": "2023-07-15T08:00:00Z",
+      "check_out_time": "2023-07-15T10:30:00Z",
+      "date": "2023-07-15T00:00:00Z",
+      "facility_id": 1,
+      "created_at": "2023-07-15T08:00:00Z",
+      "updated_at": "2023-07-15T10:30:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### List Attendance By Facility
+
+Returns attendance records for a specific facility.
+
+**Endpoint:** `GET /attendance/facility/{facilityID}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "attendance_id": 1,
+      "member_id": 123,
+      "check_in_time": "2023-07-15T08:00:00Z",
+      "check_out_time": "2023-07-15T10:30:00Z",
+      "date": "2023-07-15T00:00:00Z",
+      "facility_id": 1,
+      "created_at": "2023-07-15T08:00:00Z",
+      "updated_at": "2023-07-15T10:30:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+### List Attendance By Date
+
+Returns attendance records for a specific date.
+
+**Endpoint:** `GET /attendance/date/{date}`
+
+**Response (200 OK):**
+```json
+{
+  "data": [
+    {
+      "attendance_id": 1,
+      "member_id": 123,
+      "check_in_time": "2023-07-15T08:00:00Z",
+      "check_out_time": "2023-07-15T10:30:00Z",
+      "date": "2023-07-15T00:00:00Z",
+      "facility_id": 1,
+      "created_at": "2023-07-15T08:00:00Z",
+      "updated_at": "2023-07-15T10:30:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 1,
+  "totalPages": 1
+}
+```
+
+## Error Responses
+
+All endpoints may return the following errors:
+
+### 400 Bad Request
+
+Returned when the request contains invalid parameters or malformed JSON.
+
+```json
+{
+  "error": "Invalid request: field X is required"
+}
+```
+
+### 404 Not Found
+
+Returned when the requested resource doesn't exist.
+
+```json
+{
+  "error": "Resource not found"
+}
+```
+
+### 500 Internal Server Error
+
+Returned when an unexpected error occurs on the server.
+
+```json
+{
+  "error": "An internal server error occurred"
+}
+```
+
+## Pagination
+
+Most list endpoints support pagination with the following query parameters:
+
+- `page`: Page number (default: 1)
+- `pageSize`: Number of items per page (default: 10)
+
+Pagination responses include metadata:
+
+```json
+{
+  "data": [...],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 100,
+  "totalPages": 10
+}
+```
