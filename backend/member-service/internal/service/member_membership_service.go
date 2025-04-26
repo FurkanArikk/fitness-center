@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
@@ -112,5 +113,14 @@ func (s *MemberMembershipServiceImpl) GetActiveMembership(ctx context.Context, m
 		return nil, ErrInvalidMemberMembership
 	}
 
-	return s.repo.GetActiveMembership(ctx, memberID)
+	membership, err := s.repo.GetActiveMembership(ctx, memberID)
+	if err != nil {
+		// Check if this is a "no rows" error
+		if strings.Contains(err.Error(), "sql: no rows") {
+			return nil, ErrMemberMembershipNotFound
+		}
+		return nil, err
+	}
+
+	return membership, nil
 }

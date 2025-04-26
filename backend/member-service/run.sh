@@ -112,8 +112,8 @@ initialize_database() {
         print_success "Database schema already exists"
     else
         print_info "Database schema does not exist, initializing..."
-        if USE_DOCKER=true ./scripts/setup-db.sh; then
-            print_success "Database schema initialized"
+        if USE_DOCKER=true LOAD_SAMPLE_DATA=false ./scripts/setup-db.sh; then
+            print_success "Database schema initialized (without sample data)"
         else
             print_error "Failed to initialize database schema"
             exit 1
@@ -126,19 +126,117 @@ ask_load_sample_data() {
     print_header "Sample Data"
     
     echo -e "${YELLOW}Would you like to load sample data?${NC}"
-    echo -e "${CYAN}1)${NC} Yes - Reset the database and load fresh sample data"
-    echo -e "${CYAN}2)${NC} No - Keep existing data (default)"
+    echo -e "${CYAN}1)${NC} Reset the database and load fresh sample data"
+    echo -e "${CYAN}2)${NC} Start database without sample data"
+    echo -e "${CYAN}3)${NC} Keep existing data (default)"
     
-    read -p "Enter your choice [2]: " choice
-    choice=${choice:-2}
+    read -p "Enter your choice [3]: " choice
+    choice=${choice:-3}
     
     if [ "$choice" = "1" ]; then
-        print_info "Veritabanı sıfırlanıyor ve migrasyon işlemleri gerçekleştiriliyor..."
+        print_info "Veritabanı sıfırlanıyor ve örnek veriler yükleniyor..."
         
-        # use_docker_postgres_for_reset fonksiyonunu çağır
-        use_docker_postgres_for_reset
+        # Reset database and load sample data
+        if use_docker_postgres_for_reset_with_sample; then
+            print_success "Veritabanı sıfırlandı ve örnek veriler yüklendi"
+        else
+            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
+        fi
+    elif [ "$choice" = "2" ]; then
+        print_info "Veritabanı sıfırlanıyor, örnek veri YÜKLENMİYOR..."
+        
+        # Reset database without loading sample data
+        if use_docker_postgres_for_reset_no_sample; then
+            print_success "Veritabanı sıfırlandı, örnek veriler yüklenmedi"
+        else
+            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
+        fi
     else
-        print_info "Örnek veri yükleme işlemi atlanıyor"
+        print_info "Mevcut veriler korunuyor"
+    fi
+}
+
+# Helper function to reset database and load sample data
+use_docker_postgres_for_reset_with_sample() {
+    print_info "Docker üzerinden veritabanı sıfırlama ve örnek veri yükleme işlemi başlatılıyor..."
+    
+    # Completely reset the database container
+    print_info "Veritabanı konteynerini sıfırlama..."
+    if ./scripts/docker-db.sh reset; then
+        print_success "Veritabanı konteyner sıfırlandı"
+        
+        print_info "Veritabanı şemasını ve tabloları oluşturma..."
+        # Veritabanı bağlantısını bekleyelim
+        sleep 5
+        
+        # First drop all tables to ensure a clean slate
+        print_info "Mevcut tabloları temizleme..."
+        if DB_HOST=localhost DB_PORT=5432 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
+            print_success "Tüm tablolar başarıyla silindi"
+            
+            # Şimdi şemayı oluşturalım
+            print_info "Veritabanı şemasını oluşturma..."
+            if DB_HOST=localhost DB_PORT=5432 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/001_initial_schema.sql; then
+                print_success "Veritabanı şeması başarıyla oluşturuldu"
+                
+                # Örnek verileri yükle
+                print_info "Örnek verileri yükleniyor..."
+                if DB_HOST=localhost DB_PORT=5432 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/002_sample_data.sql; then
+                    print_success "Örnek veriler başarıyla yüklendi"
+                    return 0
+                else
+                    print_error "Örnek veriler yüklenemedi"
+                    return 1
+                fi
+            else
+                print_error "Veritabanı şeması oluşturulamadı"
+                return 1
+            fi
+        else
+            print_error "Tablolar silinemedi"
+            return 1
+        fi
+    else
+        print_error "Veritabanı konteyner sıfırlanamadı"
+        return 1
+    fi
+}
+
+# Helper function to reset database without loading sample data
+use_docker_postgres_for_reset_no_sample() {
+    print_info "Docker üzerinden veritabanı sıfırlama işlemi başlatılıyor (örnek veri olmadan)..."
+    
+    # Completely reset the database container
+    print_info "Veritabanı konteynerini sıfırlama..."
+    if ./scripts/docker-db.sh reset; then
+        print_success "Veritabanı konteyner sıfırlandı"
+        
+        print_info "Sadece veritabanı şemasını oluşturma..."
+        # Veritabanı bağlantısını bekleyelim
+        sleep 5
+        
+        # First drop all tables to ensure a clean slate
+        print_info "Mevcut tabloları temizleme..."
+        if DB_HOST=localhost DB_PORT=5432 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
+            print_success "Tüm tablolar başarıyla silindi"
+            
+            # Sadece schema oluştur, sample data yükleme
+            print_info "Veritabanı şemasını oluşturma..."
+            if DB_HOST=localhost DB_PORT=5432 DB_USER=fitness_user DB_PASSWORD=admin ./scripts/db-connect.sh -f ./migrations/001_initial_schema.sql; then
+                print_success "Veritabanı şeması başarıyla oluşturuldu"
+                print_info "Kullanıcı, API endpointleri aracılığıyla veri ekleyebilir"
+                return 0
+            else
+                print_error "Veritabanı şeması oluşturulamadı"
+                return 1
+            fi
+        else
+            print_error "Tablolar silinemedi"
+            return 1
+        fi
+    else
+        print_error "Veritabanı konteyner sıfırlanamadı"
+        return 1
     fi
 }
 
@@ -149,37 +247,6 @@ load_sample_data() {
         print_success "Örnek veriler başarıyla yüklendi"
     else
         print_error "Örnek veriler yüklenemedi"
-    fi
-}
-
-# Helper function to reset database using Docker PostgreSQL commands
-use_docker_postgres_for_reset() {
-    print_info "Docker üzerinden veritabanı sıfırlama deneniyor..."
-    
-    # Veritabanı konteynerini yeniden başlat
-    print_info "Veritabanı konteynerini sıfırlama..."
-    if ./scripts/docker-db.sh stop && ./scripts/docker-db.sh start; then
-        print_success "Veritabanı konteyner yeniden başlatıldı"
-        
-        print_info "Veritabanı şemasını ve tabloları oluşturma..."
-        # Veritabanı bağlantısını bekleyelim
-        sleep 5
-        
-        # Setup DB script'ini çağır
-        print_info "Veritabanı şemasını oluşturma..."
-        if USE_DOCKER=true ./scripts/setup-db.sh; then
-            print_success "Veritabanı şeması başarıyla oluşturuldu"
-            
-            # Örnek verileri yükle
-            load_sample_data
-            return 0
-        else
-            print_error "Veritabanı şeması oluşturulamadı"
-            return 1
-        fi
-    else
-        print_error "Veritabanı konteyner yeniden başlatılamadı"
-        return 1
     fi
 }
 

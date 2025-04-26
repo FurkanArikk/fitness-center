@@ -131,93 +131,128 @@ ask_load_sample_data() {
     print_header "Sample Data"
     
     echo -e "${YELLOW}Would you like to load sample data?${NC}"
-    echo -e "${CYAN}1)${NC} Yes - Reset the database and load fresh sample data"
-    echo -e "${CYAN}2)${NC} No - Keep existing data (default)"
+    echo -e "${CYAN}1)${NC} Reset the database and load fresh sample data"
+    echo -e "${CYAN}2)${NC} Start database without sample data"
+    echo -e "${CYAN}3)${NC} Keep existing data (default)"
     
-    read -p "Enter your choice [2]: " choice
-    choice=${choice:-2}
+    read -p "Enter your choice [3]: " choice
+    choice=${choice:-3}
     
     if [ "$choice" = "1" ]; then
-        print_info "Resetting database and running migrations first..."
+        print_info "Veritabanı sıfırlanıyor ve örnek veriler yükleniyor..."
         
-        # Check if golang-migrate is installed
-        if command -v migrate &> /dev/null; then
-            # Use migrate command if available
-            if USE_DOCKER=true ./scripts/migrate.sh down && USE_DOCKER=true ./scripts/migrate.sh up; then
-                print_success "Database schema reset successfully"
-                # Load sample data after successful migration
-                load_sample_data
-            else
-                print_error "Failed to reset database schema using migrate command"
-                use_docker_postgres_for_reset
-            fi
+        # Reset database and load sample data
+        if use_docker_postgres_for_reset_with_sample; then
+            print_success "Veritabanı sıfırlandı ve örnek veriler yüklendi"
         else
-            print_warning "Migrate komutuna erişilemiyor, Docker üzerinden işlem deneniyor..."
-            use_docker_postgres_for_reset
+            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
+        fi
+    elif [ "$choice" = "2" ]; then
+        print_info "Veritabanı sıfırlanıyor, örnek veri YÜKLENMİYOR..."
+        
+        # Reset database without loading sample data
+        if use_docker_postgres_for_reset_no_sample; then
+            print_success "Veritabanı sıfırlandı, örnek veriler yüklenmedi"
+        else
+            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
         fi
     else
-        print_info "Skipping sample data loading"
+        print_info "Mevcut veriler korunuyor"
     fi
 }
 
-# Helper function to load sample data
-load_sample_data() {
-    print_info "Örnek verileri yükleniyor..."
-    if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000004_sample_data.sql; then
-        print_success "Örnek veriler başarıyla yüklendi"
-    else
-        print_error "Örnek veriler yüklenemedi"
-    fi
-}
-
-# Helper function to reset database using Docker PostgreSQL commands
-use_docker_postgres_for_reset() {
-    print_info "Docker üzerinden veritabanı sıfırlama deneniyor..."
+# Helper function to reset database and load sample data
+use_docker_postgres_for_reset_with_sample() {
+    print_info "Docker üzerinden veritabanı sıfırlama ve örnek veri yükleme işlemi başlatılıyor..."
     
-    # Mevcut docker-db.sh script'ini kullan
+    # Completely reset the database container
     print_info "Veritabanı konteynerini sıfırlama..."
-    if ./scripts/docker-db.sh stop && ./scripts/docker-db.sh start; then
-        print_success "Veritabanı konteyner yeniden başlatıldı"
+    if ./scripts/docker-db.sh reset; then
+        print_success "Veritabanı konteyner sıfırlandı"
         
         print_info "Veritabanı şemasını ve tabloları oluşturma..."
         # Veritabanı bağlantısını bekleyelim
         sleep 5
         
-        # Migrasyonları uygula - doğrudan SQL dosyalarını kullan
-        DB_HOST=${DB_HOST:-localhost}
-        DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
-        DB_USER=${DB_USER:-fitness_user}
-        DB_PASSWORD=${DB_PASSWORD:-admin}
-        DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
-        
-        # Veritabanını temizle ve yeniden oluştur
-        print_info "Veritabanını temizleme ve yeniden oluşturma..."
-        if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "DROP DATABASE IF EXISTS $DB_NAME;" && \
-           PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME;"; then
-            print_success "Veritabanı yeniden oluşturuldu"
+        # First drop all tables to ensure a clean slate
+        print_info "Mevcut tabloları temizleme..."
+        if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
+            print_success "Tüm tablolar başarıyla silindi"
             
-            # SQL migrasyonlarını uygula
-            for migration in ./migrations/000*.up.sql; do
-                if [ -f "$migration" ]; then
-                    print_info "Migrasyon dosyası uygulanıyor: $(basename $migration)"
-                    if PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$migration"; then
-                        print_success "Migrasyon başarılı: $(basename $migration)"
-                    else
-                        print_error "Migrasyon başarısız: $(basename $migration)"
-                        return 1
-                    fi
+            # Apply all migration scripts in sequence
+            print_info "Veritabanı şemasını oluşturma..."
+            if USE_DOCKER=true ./scripts/migrate.sh up; then
+                print_success "Veritabanı şeması başarıyla oluşturuldu"
+                
+                # Örnek verileri yükle
+                print_info "Örnek verileri yükleniyor..."
+                if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000004_sample_data.sql; then
+                    print_success "Örnek veriler başarıyla yüklendi"
+                    return 0
+                else
+                    print_error "Örnek veriler yüklenemedi"
+                    return 1
                 fi
-            done
-            
-            # Örnek verileri yükle
-            load_sample_data
-            return 0
+            else
+                print_error "Veritabanı şeması oluşturulamadı"
+                return 1
+            fi
         else
-            print_error "Veritabanı yeniden oluşturulamadı"
+            print_error "Tablolar silinemedi"
             return 1
         fi
     else
-        print_error "Veritabanı konteyner yeniden başlatılamadı"
+        print_error "Veritabanı konteyner sıfırlanamadı"
+        return 1
+    fi
+}
+
+# Helper function to reset database without loading sample data
+use_docker_postgres_for_reset_no_sample() {
+    print_info "Docker üzerinden veritabanı sıfırlama işlemi başlatılıyor (örnek veri olmadan)..."
+    
+    # Completely reset the database container
+    print_info "Veritabanı konteynerini sıfırlama..."
+    if ./scripts/docker-db.sh reset; then
+        print_success "Veritabanı konteyner sıfırlandı"
+        
+        print_info "Sadece veritabanı şemasını oluşturma..."
+        # Veritabanı bağlantısını bekleyelim
+        sleep 5
+        
+        # First drop all tables to ensure a clean slate
+        print_info "Mevcut tabloları temizleme..."
+        if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
+            print_success "Tüm tablolar başarıyla silindi"
+            
+            # Apply all migration scripts except sample data
+            print_info "Veritabanı şemasını oluşturma..."
+            # Get all migration files except the sample data file
+            migrations=($(ls -1 ./migrations/0*.up.sql | grep -v "_sample_data.sql"))
+            success=true
+            
+            for migration in "${migrations[@]}"; do
+                print_info "Migrasyon uygulanıyor: $(basename "$migration")"
+                if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
+                    print_error "Migrasyon başarısız oldu: $(basename "$migration")"
+                    success=false
+                    break
+                fi
+            done
+            
+            if [ "$success" = true ]; then
+                print_success "Veritabanı şeması başarıyla oluşturuldu"
+                print_info "Kullanıcı, API endpointleri aracılığıyla veri ekleyebilir"
+                return 0
+            else
+                return 1
+            fi
+        else
+            print_error "Tablolar silinemedi"
+            return 1
+        fi
+    else
+        print_error "Veritabanı konteyner sıfırlanamadı"
         return 1
     fi
 }

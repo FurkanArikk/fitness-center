@@ -21,9 +21,10 @@ func setupRoutes(router *gin.Engine, handler *handler.Handler) {
 			members.POST("", handler.MemberHandler.CreateMember)
 			members.PUT("/:id", handler.MemberHandler.UpdateMember)
 			members.DELETE("/:id", handler.MemberHandler.DeleteMember)
-			members.GET("/:memberID/memberships", handler.MemberMembershipHandler.GetMemberMemberships)
-			members.GET("/:memberID/active-membership", handler.MemberMembershipHandler.GetActiveMembership)
-			members.GET("/:memberID/assessments", handler.AssessmentHandler.GetMemberAssessments)
+			// Use :id instead of :memberID to avoid param conflicts
+			members.GET("/:id/memberships", handler.MemberMembershipHandler.GetMemberMemberships)
+			members.GET("/:id/active-membership", handler.MemberMembershipHandler.GetActiveMembership)
+			members.GET("/:id/assessments", handler.AssessmentHandler.GetMemberAssessments)
 		}
 
 		// Membership routes
@@ -35,7 +36,8 @@ func setupRoutes(router *gin.Engine, handler *handler.Handler) {
 			memberships.PUT("/:id", handler.MembershipHandler.UpdateMembership)
 			memberships.DELETE("/:id", handler.MembershipHandler.DeleteMembership)
 			memberships.PUT("/:id/status", handler.MembershipHandler.ToggleMembershipStatus)
-			memberships.GET("/:membershipID/benefits", handler.MembershipHandler.GetMembershipBenefits)
+			// Use :id to be consistent with other routes
+			memberships.GET("/:id/benefits", handler.MembershipHandler.GetMembershipBenefits)
 		}
 
 		// Benefit routes

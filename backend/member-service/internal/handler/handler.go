@@ -5,32 +5,39 @@ import (
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/db"
+	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
 // MemberHandler handles member-related requests
 type MemberHandler struct {
-	db *db.PostgresDB
+	db      *db.PostgresDB
+	service service.MemberService
 }
 
 // MembershipHandler handles membership-related requests
 type MembershipHandler struct {
-	db *db.PostgresDB
+	db             *db.PostgresDB
+	service        service.MembershipService
+	benefitService service.BenefitService // Add this field
 }
 
 // MemberMembershipHandler handles member-membership-related requests
 type MemberMembershipHandler struct {
-	db *db.PostgresDB
+	db      *db.PostgresDB
+	service service.MemberMembershipService
 }
 
 // AssessmentHandler handles assessment-related requests
 type AssessmentHandler struct {
-	db *db.PostgresDB
+	db      *db.PostgresDB
+	service service.FitnessAssessmentService
 }
 
 // BenefitHandler handles benefit-related requests
 type BenefitHandler struct {
-	db *db.PostgresDB
+	db      *db.PostgresDB
+	service service.BenefitService
 }
 
 // Handler provides the interface to the handler functions
@@ -43,18 +50,29 @@ type Handler struct {
 	BenefitHandler          *BenefitHandler
 }
 
-// NewHandler creates a new handler instance with the given database connection
-func NewHandler(db *db.PostgresDB) *Handler {
+// NewHandler creates a new handler instance with the given database connection and services
+func NewHandler(
+	db *db.PostgresDB,
+	memberService service.MemberService,
+	membershipService service.MembershipService,
+	memberMembershipService service.MemberMembershipService,
+	assessmentService service.FitnessAssessmentService,
+	benefitService service.BenefitService,
+) *Handler {
 	handler := &Handler{
 		db: db,
 	}
 
-	// Initialize sub-handlers
-	handler.MemberHandler = &MemberHandler{db: db}
-	handler.MembershipHandler = &MembershipHandler{db: db}
-	handler.MemberMembershipHandler = &MemberMembershipHandler{db: db}
-	handler.AssessmentHandler = &AssessmentHandler{db: db}
-	handler.BenefitHandler = &BenefitHandler{db: db}
+	// Initialize sub-handlers with services
+	handler.MemberHandler = &MemberHandler{db: db, service: memberService}
+	handler.MembershipHandler = &MembershipHandler{
+		db:             db,
+		service:        membershipService,
+		benefitService: benefitService, // Pass the benefit service
+	}
+	handler.MemberMembershipHandler = &MemberMembershipHandler{db: db, service: memberMembershipService}
+	handler.AssessmentHandler = &AssessmentHandler{db: db, service: assessmentService}
+	handler.BenefitHandler = &BenefitHandler{db: db, service: benefitService}
 
 	return handler
 }

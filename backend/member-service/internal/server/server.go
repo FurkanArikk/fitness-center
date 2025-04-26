@@ -33,12 +33,13 @@ func NewServer(h *handler.Handler, port string) *Server {
 			members.POST("", h.MemberHandler.CreateMember)
 			members.PUT("/:id", h.MemberHandler.UpdateMember)
 			members.DELETE("/:id", h.MemberHandler.DeleteMember)
-		}
 
-		// Move these routes outside of the members group to avoid conflicts
-		api.GET("/members/:id/memberships", h.MemberMembershipHandler.GetMemberMemberships)
-		api.GET("/members/:id/active-membership", h.MemberMembershipHandler.GetActiveMembership)
-		api.GET("/members/:id/assessments", h.AssessmentHandler.GetMemberAssessments)
+			// Move these routes inside the members group and use a different param
+			// to avoid conflict with the :id param
+			members.GET("/:id/memberships", h.MemberMembershipHandler.GetMemberMemberships)
+			members.GET("/:id/active-membership", h.MemberMembershipHandler.GetActiveMembership)
+			members.GET("/:id/assessments", h.AssessmentHandler.GetMemberAssessments)
+		}
 
 		memberships := api.Group("/memberships")
 		{
@@ -48,10 +49,9 @@ func NewServer(h *handler.Handler, port string) *Server {
 			memberships.PUT("/:id", h.MembershipHandler.UpdateMembership)
 			memberships.DELETE("/:id", h.MembershipHandler.DeleteMembership)
 			memberships.PUT("/:id/status", h.MembershipHandler.ToggleMembershipStatus)
+			// Move this under the memberships group and use :id
+			memberships.GET("/:id/benefits", h.MembershipHandler.GetMembershipBenefits)
 		}
-
-		// Move this route outside of the memberships group to avoid parameter conflicts
-		api.GET("/memberships/:id/benefits", h.MembershipHandler.GetMembershipBenefits)
 
 		benefits := api.Group("/benefits")
 		{

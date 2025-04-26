@@ -2,31 +2,195 @@ package handler
 
 import (
 	"net/http"
+	"strconv"
 
+	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
 	"github.com/gin-gonic/gin"
 )
 
 // GetMembers returns all members
 func (h *MemberHandler) GetMembers(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Get all members endpoint"})
+	// Parse query parameters for pagination
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+
+	members, err := h.service.List(c.Request.Context(), page, pageSize)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, members)
 }
 
 // GetMemberByID returns a specific member
 func (h *MemberHandler) GetMemberByID(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Get member by ID endpoint"})
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid member ID"})
+		return
+	}
+
+	member, err := h.service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, member)
 }
 
 // CreateMember creates a new member
 func (h *MemberHandler) CreateMember(c *gin.Context) {
-	c.JSON(http.StatusCreated, gin.H{"message": "Create member endpoint"})
+	var request struct {
+		FirstName             string `json:"firstName" binding:"required"`
+		LastName              string `json:"lastName" binding:"required"`
+		Email                 string `json:"email" binding:"required,email"`
+		Phone                 string `json:"phone" binding:"required"`
+		Address               string `json:"address"`
+		DateOfBirth           string `json:"dateOfBirth"`
+		EmergencyContactName  string `json:"emergencyContactName"`
+		EmergencyContactPhone string `json:"emergencyContactPhone"`
+		Status                string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert the request to member model
+	member := convertRequestToMember(request)
+
+	if err := h.service.Create(c.Request.Context(), member); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, member)
 }
 
 // UpdateMember updates an existing member
 func (h *MemberHandler) UpdateMember(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Update member endpoint"})
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid member ID"})
+		return
+	}
+
+	var request struct {
+		FirstName             string `json:"firstName"`
+		LastName              string `json:"lastName"`
+		Email                 string `json:"email"`
+		Phone                 string `json:"phone"`
+		Address               string `json:"address"`
+		DateOfBirth           string `json:"dateOfBirth"`
+		EmergencyContactName  string `json:"emergencyContactName"`
+		EmergencyContactPhone string `json:"emergencyContactPhone"`
+		Status                string `json:"status"`
+	}
+
+	if err := c.ShouldBindJSON(&request); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Get existing member
+	member, err := h.service.GetByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Update member fields from request
+	updateMemberFromRequest(member, request)
+
+	if err := h.service.Update(c.Request.Context(), member); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, member)
 }
 
 // DeleteMember deletes a member
 func (h *MemberHandler) DeleteMember(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"message": "Delete member endpoint"})
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid member ID"})
+		return
+	}
+
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Member deleted successfully"})
+}
+
+// Helper functions to convert between request and model
+func convertRequestToMember(request struct {
+	FirstName             string `json:"firstName" binding:"required"`
+	LastName              string `json:"lastName" binding:"required"`
+	Email                 string `json:"email" binding:"required,email"`
+	Phone                 string `json:"phone" binding:"required"`
+	Address               string `json:"address"`
+	DateOfBirth           string `json:"dateOfBirth"`
+	EmergencyContactName  string `json:"emergencyContactName"`
+	EmergencyContactPhone string `json:"emergencyContactPhone"`
+	Status                string `json:"status"`
+}) *model.Member {
+	// Implementation details for converting request to model
+	// This would need to be implemented based on your model structure
+	// For now, returning a simplified version
+	return &model.Member{
+		FirstName:             request.FirstName,
+		LastName:              request.LastName,
+		Email:                 request.Email,
+		Phone:                 request.Phone,
+		Address:               request.Address,
+		EmergencyContactName:  request.EmergencyContactName,
+		EmergencyContactPhone: request.EmergencyContactPhone,
+		Status:                request.Status,
+	}
+}
+
+func updateMemberFromRequest(member *model.Member, request struct {
+	FirstName             string `json:"firstName"`
+	LastName              string `json:"lastName"`
+	Email                 string `json:"email"`
+	Phone                 string `json:"phone"`
+	Address               string `json:"address"`
+	DateOfBirth           string `json:"dateOfBirth"`
+	EmergencyContactName  string `json:"emergencyContactName"`
+	EmergencyContactPhone string `json:"emergencyContactPhone"`
+	Status                string `json:"status"`
+}) {
+	// Implementation details for updating model from request
+	// For brevity, only showing a few fields
+	if request.FirstName != "" {
+		member.FirstName = request.FirstName
+	}
+	if request.LastName != "" {
+		member.LastName = request.LastName
+	}
+	if request.Email != "" {
+		member.Email = request.Email
+	}
+	if request.Phone != "" {
+		member.Phone = request.Phone
+	}
+	if request.Address != "" {
+		member.Address = request.Address
+	}
+	if request.EmergencyContactName != "" {
+		member.EmergencyContactName = request.EmergencyContactName
+	}
+	if request.EmergencyContactPhone != "" {
+		member.EmergencyContactPhone = request.EmergencyContactPhone
+	}
+	if request.Status != "" {
+		member.Status = request.Status
+	}
 }
