@@ -296,28 +296,63 @@ display_sample_data_instructions() {
 }
 
 # Main execution starts here
-clear
-echo -e "${MAGENTA}==========================================${NC}"
-echo -e "${MAGENTA}      FITNESS CENTER FACILITY SERVICE     ${NC}"
-echo -e "${MAGENTA}==========================================${NC}"
+main() {
+    # Check for special execution modes
+    local SETUP_ONLY=false
+    local START_ONLY=false
 
-# Check docker is available
-check_docker
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --setup-only)
+                SETUP_ONLY=true
+                shift
+                ;;
+            --start-only)
+                START_ONLY=true
+                shift
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
 
-# Ensure Docker network exists
-ensure_docker_network
+    if [ "$START_ONLY" = false ]; then
+        clear
+        echo -e "${MAGENTA}==========================================${NC}"
+        echo -e "${MAGENTA}      FITNESS CENTER FACILITY SERVICE     ${NC}"
+        echo -e "${MAGENTA}==========================================${NC}"
 
-# Start the database
-start_database
+        # Check docker is available
+        check_docker
 
-# Check and initialize database schema if needed
-initialize_database
+        # Ensure Docker network exists
+        ensure_docker_network
 
-# Ask about loading sample data
-ask_load_sample_data
+        # Start the database
+        start_database
 
-# Show instructions for manually loading sample data
-display_sample_data_instructions
+        # Check and initialize database schema if needed
+        initialize_database
 
-# Build and start the service
-build_and_start_service
+        # If not in setup-only mode, ask about sample data
+        if [ "$SETUP_ONLY" = false ]; then
+            ask_load_sample_data
+        fi
+
+        # Show instructions for manually loading sample data
+        display_sample_data_instructions
+
+        # If in setup-only mode, exit after setup
+        if [ "$SETUP_ONLY" = true ]; then
+            print_success "Kurulum başarıyla tamamlandı"
+            exit 0
+        fi
+    fi
+
+    # Build and start the service
+    build_and_start_service
+}
+
+# Run the main function with all arguments passed to the script
+main "$@"
