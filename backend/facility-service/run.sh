@@ -267,7 +267,7 @@ build_and_start_service() {
     fi
     
     print_header "Starting Facility Service"
-    print_info "The service is starting on http://localhost:8080"
+    print_info "The service is starting on http://localhost:8004"
     print_info "Press Ctrl+C to stop the service"
     
     # Start the service
