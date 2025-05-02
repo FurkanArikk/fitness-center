@@ -70,7 +70,5 @@ config.local.yaml
 /backend/class-service/class-service
 /backend/member-service/member-service
 /backend/staff-service/staff-service 
-/backend/auth-service/auth-service
 /backend/payment-service/payment-service
-/backend/notification-service/notification-service
-/backend/scheduler-service/scheduler-service
+/backend/facility-service/facility-service
