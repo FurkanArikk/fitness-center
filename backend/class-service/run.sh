@@ -139,120 +139,120 @@ ask_load_sample_data() {
     choice=${choice:-3}
     
     if [ "$choice" = "1" ]; then
-        print_info "Veritabanı sıfırlanıyor ve örnek veriler yükleniyor..."
+        print_info "Resetting database and loading sample data..."
         
         # Reset database and load sample data
         if use_docker_postgres_for_reset_with_sample; then
-            print_success "Veritabanı sıfırlandı ve örnek veriler yüklendi"
+            print_success "Database reset and sample data loaded successfully"
         else
-            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
+            print_error "Database reset operation failed"
         fi
     elif [ "$choice" = "2" ]; then
-        print_info "Veritabanı sıfırlanıyor, örnek veri YÜKLENMİYOR..."
+        print_info "Resetting database, NO sample data will be loaded..."
         
         # Reset database without loading sample data
         if use_docker_postgres_for_reset_no_sample; then
-            print_success "Veritabanı sıfırlandı, örnek veriler yüklenmedi"
+            print_success "Database reset successfully, no sample data loaded"
         else
-            print_error "Veritabanı sıfırlama işlemi başarısız oldu"
+            print_error "Database reset operation failed"
         fi
     else
-        print_info "Mevcut veriler korunuyor"
+        print_info "Keeping existing data"
     fi
 }
 
 # Helper function to reset database and load sample data
 use_docker_postgres_for_reset_with_sample() {
-    print_info "Docker üzerinden veritabanı sıfırlama ve örnek veri yükleme işlemi başlatılıyor..."
+    print_info "Starting database reset and sample data loading via Docker..."
     
     # Completely reset the database container
-    print_info "Veritabanı konteynerini sıfırlama..."
+    print_info "Resetting database container..."
     if ./scripts/docker-db.sh reset; then
-        print_success "Veritabanı konteyner sıfırlandı"
+        print_success "Database container reset"
         
-        print_info "Veritabanı şemasını ve tabloları oluşturma..."
-        # Veritabanı bağlantısını bekleyelim
+        print_info "Creating database schema and tables..."
+        # Wait for database connection
         sleep 5
         
         # First drop all tables to ensure a clean slate
-        print_info "Mevcut tabloları temizleme..."
+        print_info "Cleaning existing tables..."
         if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
-            print_success "Tüm tablolar başarıyla silindi"
+            print_success "All tables dropped successfully"
             
             # Apply all migration scripts in sequence
-            print_info "Veritabanı şemasını oluşturma..."
+            print_info "Creating database schema..."
             if USE_DOCKER=true ./scripts/migrate.sh up; then
-                print_success "Veritabanı şeması başarıyla oluşturuldu"
+                print_success "Database schema created successfully"
                 
-                # Örnek verileri yükle
-                print_info "Örnek verileri yükleniyor..."
+                # Load sample data
+                print_info "Loading sample data..."
                 if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000004_sample_data.sql; then
-                    print_success "Örnek veriler başarıyla yüklendi"
+                    print_success "Sample data loaded successfully"
                     return 0
                 else
-                    print_error "Örnek veriler yüklenemedi"
+                    print_error "Failed to load sample data"
                     return 1
                 fi
             else
-                print_error "Veritabanı şeması oluşturulamadı"
+                print_error "Failed to create database schema"
                 return 1
             fi
         else
-            print_error "Tablolar silinemedi"
+            print_error "Failed to drop tables"
             return 1
         fi
     else
-        print_error "Veritabanı konteyner sıfırlanamadı"
+        print_error "Failed to reset database container"
         return 1
     fi
 }
 
 # Helper function to reset database without loading sample data
 use_docker_postgres_for_reset_no_sample() {
-    print_info "Docker üzerinden veritabanı sıfırlama işlemi başlatılıyor (örnek veri olmadan)..."
+    print_info "Starting database reset without sample data via Docker..."
     
     # Completely reset the database container
-    print_info "Veritabanı konteynerini sıfırlama..."
+    print_info "Resetting database container..."
     if ./scripts/docker-db.sh reset; then
-        print_success "Veritabanı konteyner sıfırlandı"
+        print_success "Database container reset"
         
-        print_info "Sadece veritabanı şemasını oluşturma..."
-        # Veritabanı bağlantısını bekleyelim
+        print_info "Creating only the database schema..."
+        # Wait for database connection
         sleep 5
         
         # First drop all tables to ensure a clean slate
-        print_info "Mevcut tabloları temizleme..."
+        print_info "Cleaning existing tables..."
         if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
-            print_success "Tüm tablolar başarıyla silindi"
+            print_success "All tables dropped successfully"
             
             # Apply all migration scripts except sample data
-            print_info "Veritabanı şemasını oluşturma..."
+            print_info "Creating database schema..."
             # Get all migration files except the sample data file
             migrations=($(ls -1 ./migrations/0*.up.sql | grep -v "_sample_data.sql"))
             success=true
             
             for migration in "${migrations[@]}"; do
-                print_info "Migrasyon uygulanıyor: $(basename "$migration")"
+                print_info "Applying migration: $(basename "$migration")"
                 if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
-                    print_error "Migrasyon başarısız oldu: $(basename "$migration")"
+                    print_error "Migration failed: $(basename "$migration")"
                     success=false
                     break
                 fi
             done
             
             if [ "$success" = true ]; then
-                print_success "Veritabanı şeması başarıyla oluşturuldu"
-                print_info "Kullanıcı, API endpointleri aracılığıyla veri ekleyebilir"
+                print_success "Database schema created successfully"
+                print_info "User can add data via API endpoints"
                 return 0
             else
                 return 1
             fi
         else
-            print_error "Tablolar silinemedi"
+            print_error "Failed to drop tables"
             return 1
         fi
     else
-        print_error "Veritabanı konteyner sıfırlanamadı"
+        print_error "Failed to reset database container"
         return 1
     fi
 }
@@ -346,11 +346,11 @@ main() {
 
         # If setup with data flag is set, automatically load sample data
         if [ "$SETUP_WITH_DATA" = true ]; then
-            print_info "Örnek veri otomatik olarak yükleniyor..."
+            print_info "Automatically loading sample data..."
             if use_docker_postgres_for_reset_with_sample; then
-                print_success "Örnek veriler başarıyla yüklendi"
+                print_success "Sample data loaded successfully"
             else
-                print_error "Örnek veri yükleme başarısız oldu"
+                print_error "Failed to load sample data"
             fi
         # If not in setup-only mode or setup with data, ask about sample data
         elif [ "$SETUP_ONLY" = false ]; then
@@ -364,7 +364,7 @@ main() {
 
         # If in setup-only mode, exit after setup
         if [ "$SETUP_ONLY" = true ]; then
-            print_success "Kurulum başarıyla tamamlandı"
+            print_success "Setup completed successfully"
             exit 0
         fi
     fi

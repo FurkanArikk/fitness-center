@@ -19,11 +19,11 @@ declare -A SERVICE_DIRS=(
 )
 
 declare -A SERVICE_NAMES=(
-    ["member"]="Üye Yönetim Servisi"
-    ["staff"]="Personel Yönetim Servisi"
-    ["facility"]="Tesis Yönetim Servisi"
-    ["payment"]="Ödeme Yönetim Servisi"
-    ["class"]="Sınıf Yönetim Servisi"
+    ["member"]="Member Management Service"
+    ["staff"]="Staff Management Service"
+    ["facility"]="Facility Management Service"
+    ["payment"]="Payment Management Service"
+    ["class"]="Class Management Service"
 )
 
 declare -A SERVICE_PORTS=(
@@ -70,32 +70,32 @@ print_warning() {
 
 # Function to check if Docker is available
 check_docker() {
-    print_header "Docker Kontrol Ediliyor"
+    print_header "Checking Docker"
     if ! command -v docker &> /dev/null; then
-        print_error "Docker kurulu değil veya PATH değişkeninde bulunamıyor"
+        print_error "Docker is not installed or not in PATH"
         exit 1
     fi
     
     if ! docker info &> /dev/null; then
-        print_error "Docker daemon çalışmıyor"
+        print_error "Docker daemon is not running"
         exit 1
     fi
     
-    print_success "Docker kullanıma hazır"
+    print_success "Docker is ready"
 }
 
 # Function to ensure Docker network exists
 ensure_docker_network() {
-    print_header "Docker Ağı Kontrol Ediliyor"
+    print_header "Checking Docker Network"
     
     if docker network inspect fitness-network &> /dev/null; then
-        print_success "Docker ağı 'fitness-network' zaten mevcut"
+        print_success "Docker network 'fitness-network' already exists"
     else
-        print_info "Docker ağı 'fitness-network' oluşturuluyor..."
+        print_info "Creating Docker network 'fitness-network'..."
         if docker network create fitness-network &> /dev/null; then
-            print_success "Docker ağı başarıyla oluşturuldu"
+            print_success "Docker network created successfully"
         else
-            print_error "Docker ağı oluşturulamadı"
+            print_error "Failed to create Docker network"
             exit 1
         fi
     fi
@@ -106,28 +106,28 @@ check_port_available() {
     local port=$1
     local service_name=$2
 
-    print_info "Port $port kontrol ediliyor..."
+    print_info "Checking port $port..."
     if nc -z localhost $port > /dev/null 2>&1 || lsof -ti:$port &>/dev/null; then
-        print_warning "Port $port zaten kullanımda! $service_name başlatılamıyor."
+        print_warning "Port $port is already in use! Cannot start $service_name."
         
         # List processes using this port
         local pid=$(lsof -ti:$port)
         if [ -n "$pid" ]; then
-            print_info "Bu portu kullanan işlem: PID=$pid ($(ps -p $pid -o comm=))"
+            print_info "Process using this port: PID=$pid ($(ps -p $pid -o comm=))"
             
             # Ask if user wants to kill the process and retry
-            read -p "Bu işlemi sonlandırmak ve servisi başlatmayı denemek istiyor musunuz? (e/h): " kill_choice
-            if [[ $kill_choice =~ ^[Ee]$ ]]; then
-                print_info "İşlem sonlandırılıyor (PID=$pid)..."
+            read -p "Do you want to terminate this process and try starting the service? (y/n): " kill_choice
+            if [[ $kill_choice =~ ^[Yy]$ ]]; then
+                print_info "Terminating process (PID=$pid)..."
                 kill -9 $pid
                 sleep 2
                 
-                # Portu tekrar kontrol et
+                # Check port again
                 if nc -z localhost $port > /dev/null 2>&1 || lsof -ti:$port &>/dev/null; then
-                    print_error "İşlem sonlandırıldı ancak port $port hala kullanımda!"
+                    print_error "Process terminated but port $port is still in use!"
                     return 1
                 else
-                    print_success "İşlem sonlandırıldı, port $port artık kullanılabilir"
+                    print_success "Process terminated, port $port is now available"
                     return 0
                 fi
             fi
@@ -135,43 +135,43 @@ check_port_available() {
         return 1
     fi
     
-    print_success "Port $port kullanılabilir"
+    print_success "Port $port is available"
     return 0
 }
 
 # Function to show service selection menu
 select_services() {
     local mode=$1
-    local menu_title="Fitness Center Servis Seçimi"
-    local menu_prompt="Hangi servisleri kurmak istiyorsunuz?"
-    local confirm_option="Kurulumu başlat"
+    local menu_title="Fitness Center Service Selection"
+    local menu_prompt="Which services would you like to select?"
+    local confirm_option="Start Installation"
     
-    # Moda göre menü metinlerini ayarla
+    # Set menu texts according to mode
     case "$mode" in
         "install")
-            menu_title="Fitness Center Servis Kurulumu"
-            menu_prompt="Hangi servisleri kurmak istiyorsunuz?"
-            confirm_option="Kurulumu başlat"
+            menu_title="Fitness Center Service Installation"
+            menu_prompt="Which services would you like to install?"
+            confirm_option="Start Installation"
             ;;
         "start")
-            menu_title="Fitness Center Servis Başlatma"
-            menu_prompt="Hangi servisleri başlatmak istiyorsunuz?"
-            confirm_option="Servisleri başlat"
+            menu_title="Fitness Center Service Start"
+            menu_prompt="Which services would you like to start?"
+            confirm_option="Start Services"
             ;;
         "stop")
-            menu_title="Fitness Center Servis Durdurma"
-            menu_prompt="Hangi servisleri durdurmak istiyorsunuz?"
-            confirm_option="Servisleri durdur"
+            menu_title="Fitness Center Service Stop"
+            menu_prompt="Which services would you like to stop?"
+            confirm_option="Stop Services"
             ;;
         "restart")
-            menu_title="Fitness Center Servis Yeniden Başlatma"
-            menu_prompt="Hangi servisleri yeniden başlatmak istiyorsunuz?"
-            confirm_option="Servisleri yeniden başlat"
+            menu_title="Fitness Center Service Restart"
+            menu_prompt="Which services would you like to restart?"
+            confirm_option="Restart Services"
             ;;
         "status")
-            menu_title="Fitness Center Servis Durumu"
-            menu_prompt="Hangi servislerin durumunu görmek istiyorsunuz?"
-            confirm_option="Durum göster"
+            menu_title="Fitness Center Service Status"
+            menu_prompt="Which services would you like to see the status of?"
+            confirm_option="Show Status"
             ;;
     esac
     
@@ -179,7 +179,7 @@ select_services() {
     print_header "$menu_title"
     
     echo -e "${YELLOW}$menu_prompt${NC}"
-    echo -e "${CYAN}0)${NC} Tüm servisleri seç (varsayılan)"
+    echo -e "${CYAN}0)${NC} Select all services (default)"
     local i=1
     for service in "${!SERVICE_NAMES[@]}"; do
         local status="[ ]"
@@ -190,9 +190,9 @@ select_services() {
         i=$((i+1))
     done
     echo -e "${CYAN}6)${NC} $confirm_option"
-    echo -e "${CYAN}7)${NC} Çıkış"
+    echo -e "${CYAN}7)${NC} Exit"
     
-    read -p "Seçiminizi yapın (0-7): " choice
+    read -p "Enter your choice (0-7): " choice
     
     case $choice in
         0)
@@ -216,11 +216,11 @@ select_services() {
             return 0
             ;;
         7)
-            echo -e "${YELLOW}İşlem iptal edildi.${NC}"
+            echo -e "${YELLOW}Operation cancelled.${NC}"
             exit 0
             ;;
         *)
-            print_error "Geçersiz seçim"
+            print_error "Invalid choice"
             select_services "$mode"
             ;;
     esac
@@ -245,10 +245,10 @@ install_service() {
     local service=$1
     local service_dir=${SERVICE_DIRS[$service]}
     
-    print_header "${SERVICE_NAMES[$service]} Kuruluyor"
+    print_header "Installing ${SERVICE_NAMES[$service]}"
     
     if [ ! -d "$service_dir" ]; then
-        print_error "Servis dizini bulunamadı: $service_dir"
+        print_error "Service directory not found: $service_dir"
         return 1
     fi
     
@@ -256,35 +256,35 @@ install_service() {
     cd "$service_dir" || return 1
     
     if [ ! -f "run.sh" ]; then
-        print_error "Bu servis için run.sh dosyası bulunamadı"
+        print_error "run.sh file not found for this service"
         cd - > /dev/null
         return 1
     fi
     
-    print_info "Servis kurulum betiğini çalıştırılıyor..."
+    print_info "Executing service installation script..."
     
     # Make sure run.sh is executable
     chmod +x run.sh
     
     # Ask if sample data should be loaded
     echo
-    read -p "Bu servis için örnek veri yüklensin mi? (e/h): " load_sample_data
+    read -p "Do you want to load sample data for this service? (y/n): " load_sample_data
     
-    if [[ $load_sample_data =~ ^[Ee]$ ]]; then
+    if [[ $load_sample_data =~ ^[Yy]$ ]]; then
         # Run with sample data loading option
-        print_info "Servis kurulumu ve örnek veri yükleme başlatılıyor..."
+        print_info "Starting service setup and sample data loading..."
         ./run.sh --setup-with-data
     else
         # Run without sample data
-        print_info "Servis kurulumu başlatılıyor (örnek veri olmadan)..."
+        print_info "Starting service setup (without sample data)..."
         ./run.sh --setup-only
     fi
     
     local result=$?
     if [ $result -eq 0 ]; then
-        print_success "${SERVICE_NAMES[$service]} başarıyla kuruldu"
+        print_success "${SERVICE_NAMES[$service]} installation completed successfully"
     else
-        print_error "${SERVICE_NAMES[$service]} kurulumu başarısız oldu"
+        print_error "${SERVICE_NAMES[$service]} installation failed"
     fi
     
     cd - > /dev/null
@@ -297,14 +297,14 @@ start_service() {
     local service_dir=${SERVICE_DIRS[$service]}
     local port=${SERVICE_PORTS[$service]}
     
-    print_header "${SERVICE_NAMES[$service]} Başlatılıyor"
+    print_header "Starting ${SERVICE_NAMES[$service]}"
     
     if [ ! -d "$service_dir" ]; then
-        print_error "Servis dizini bulunamadı: $service_dir"
-        # Tam yolu göster, hata ayıklama için
+        print_error "Service directory not found: $service_dir"
+        # Show full path for debugging
         local current_dir=$(pwd)
-        print_info "Mevcut dizin: $current_dir"
-        print_info "Aranan dizin: $current_dir/$service_dir"
+        print_info "Current directory: $current_dir"
+        print_info "Looking for: $current_dir/$service_dir"
         return 1
     fi
     
@@ -317,12 +317,12 @@ start_service() {
     cd "$service_dir" || return 1
     
     if [ ! -f "run.sh" ]; then
-        print_error "Bu servis için run.sh dosyası bulunamadı"
+        print_error "run.sh file not found for this service"
         cd - > /dev/null
         return 1
     fi
     
-    print_info "Servis başlatılıyor (arka planda)..."
+    print_info "Starting service (in background)..."
     
     # Make sure run.sh is executable
     chmod +x run.sh
@@ -336,10 +336,10 @@ start_service() {
     # Check if service started successfully (wait a moment)
     sleep 2
     if kill -0 $(cat /tmp/fitness-${service}.pid) 2>/dev/null; then
-        print_success "${SERVICE_NAMES[$service]} başarıyla başlatıldı (PID: $(cat /tmp/fitness-${service}.pid))"
+        print_success "${SERVICE_NAMES[$service]} started successfully (PID: $(cat /tmp/fitness-${service}.pid))"
     else
-        print_error "${SERVICE_NAMES[$service]} başlatılamadı"
-        print_info "Hata ayrıntıları için kontrol et: /tmp/fitness-${service}.log"
+        print_error "Failed to start ${SERVICE_NAMES[$service]}"
+        print_info "Check error details in: /tmp/fitness-${service}.log"
         return 1
     fi
     
@@ -352,111 +352,111 @@ stop_service() {
     local service=$1
     local port=${SERVICE_PORTS[$service]}
     
-    print_header "${SERVICE_NAMES[$service]} Durduruluyor"
+    print_header "Stopping ${SERVICE_NAMES[$service]}"
     
-    # İlk olarak PID dosyası ile deneme
+    # First try with PID file
     if [ -f "/tmp/fitness-${service}.pid" ]; then
         local pid=$(cat "/tmp/fitness-${service}.pid")
         
         if kill -0 $pid 2>/dev/null; then
-            print_info "Servis PID ile durduruluyor (PID: $pid)..."
+            print_info "Stopping service by PID (PID: $pid)..."
             
-            # Önce SIGTERM sinyali ile nazik bir şekilde durdurma deneyelim
+            # First try graceful termination with SIGTERM
             kill $pid
             
             # Wait for service to terminate
             for i in {1..5}; do
                 if ! kill -0 $pid 2>/dev/null; then
-                    print_success "Servis başarıyla durduruldu (PID: $pid)"
+                    print_success "Service stopped successfully (PID: $pid)"
                     break
                 fi
                 sleep 1
             done
             
-            # Hala çalışıyorsa zorla kapatma
+            # If still running, force termination
             if kill -0 $pid 2>/dev/null; then
-                print_warning "Servis yanıt vermiyor, zorla kapatılıyor..."
+                print_warning "Service not responding, force terminating..."
                 kill -9 $pid 2>/dev/null
                 sleep 1
             fi
         else
-            print_warning "PID dosyasındaki işlem ($pid) artık çalışmıyor"
+            print_warning "Process ($pid) from PID file is no longer running"
         fi
     else
-        print_info "PID dosyası bulunamadı, portu kontrol ediyoruz..."
+        print_info "PID file not found, checking port usage..."
     fi
     
-    # Port tabanlı kontrol - PID dosyasından bağımsız olarak port kullanımını kontrol et
+    # Port-based check - independent of PID file
     if [ -n "$port" ]; then
-        # Portu kullanan tüm işlemleri bul
+        # Find all processes using this port
         local port_pids=$(lsof -ti:$port 2>/dev/null)
         
         if [ -n "$port_pids" ]; then
-            print_info "Port $port hala kullanımda. İşlem(ler): $port_pids"
-            print_info "İşlemleri sonlandırma..."
+            print_info "Port $port is still in use. Process(es): $port_pids"
+            print_info "Terminating processes..."
             
-            # Her bir işlemi sonlandır
+            # Terminate each process
             for port_pid in $port_pids; do
-                print_info "İşlem sonlandırılıyor: $port_pid"
+                print_info "Terminating process: $port_pid"
                 kill -15 $port_pid 2>/dev/null
                 sleep 1
                 
-                # Eğer hala çalışıyorsa, zorla sonlandır
+                # If still running, force terminate
                 if kill -0 $port_pid 2>/dev/null; then
-                    print_warning "İşlem yanıt vermiyor, zorla sonlandırılıyor: $port_pid"
+                    print_warning "Process not responding, force terminating: $port_pid"
                     kill -9 $port_pid 2>/dev/null
                 fi
             done
             
-            # Son bir kontrol daha yap
+            # Final check
             if lsof -ti:$port &>/dev/null; then
-                print_error "Port $port hala kullanımda! Servisi tamamen durdurulamadı."
-                print_info "Manuel olarak şu komutu çalıştırmayı deneyin: sudo lsof -ti:$port | xargs kill -9"
+                print_error "Port $port is still in use! Could not fully stop service."
+                print_info "Try manually: sudo lsof -ti:$port | xargs kill -9"
             else
-                print_success "Port $port artık serbest"
+                print_success "Port $port is now free"
             fi
         else
-            print_info "Port $port zaten kullanımda değil"
+            print_info "Port $port is not in use"
         fi
     else
-        print_warning "Servis için port bilgisi yok, port kontrol edilemiyor"
+        print_warning "No port information for service, cannot check port"
     fi
     
-    # PID dosyasını temizle
+    # Clean up PID file
     rm -f "/tmp/fitness-${service}.pid"
     
-    # Servis durumu ile ilgili son durum bilgisi ver
+    # Give final status about service
     if ! lsof -ti:$port &>/dev/null; then
-        print_success "${SERVICE_NAMES[$service]} başarıyla durduruldu"
+        print_success "${SERVICE_NAMES[$service]} stopped successfully"
     else
-        print_warning "${SERVICE_NAMES[$service]} durumu belirsiz (port $port hala kullanımda)"
+        print_warning "${SERVICE_NAMES[$service]} status uncertain (port $port still in use)"
     fi
 }
 
 # Function to display a summary of services
 display_service_summary() {
     local mode=$1
-    local action="kurmak"
+    local action="install"
     
     case "$mode" in
         "install")
-            action="kurmak"
+            action="install"
             ;;
         "start")
-            action="başlatmak"
+            action="start"
             ;;
         "stop")
-            action="durdurmak"
+            action="stop"
             ;;
         "restart")
-            action="yeniden başlatmak"
+            action="restart"
             ;;
         "status")
-            action="durumunu görmek"
+            action="check the status of"
             ;;
     esac
     
-    print_header "Seçilen Servisler"
+    print_header "Selected Services"
     
     local selected_count=0
     for service in "${!SELECTED_SERVICES[@]}"; do
@@ -467,15 +467,15 @@ display_service_summary() {
     done
     
     if [ $selected_count -eq 0 ]; then
-        print_warning "Hiçbir servis seçilmedi! İşlem yapılmayacak."
+        print_warning "No services selected! Nothing to do."
         exit 0
     fi
     
     echo
-    read -p "Seçilen servisleri ${action} istiyor musunuz? (e/h): " confirm
+    read -p "Do you want to $action the selected services? (y/n): " confirm
     
-    if [[ ! $confirm =~ ^[Ee]$ ]]; then
-        echo -e "${YELLOW}İşlem iptal edildi.${NC}"
+    if [[ ! $confirm =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}Operation cancelled.${NC}"
         exit 0
     fi
 }
@@ -511,23 +511,23 @@ main() {
     
     clear
     echo -e "${MAGENTA}==========================================${NC}"
-    echo -e "${MAGENTA}      FITNESS CENTER KURULUM SİSTEMİ      ${NC}"
+    echo -e "${MAGENTA}      FITNESS CENTER SETUP SYSTEM         ${NC}"
     echo -e "${MAGENTA}==========================================${NC}"
     
     # Check if services exist
     local missing_services=()
     for service in "${!SERVICE_DIRS[@]}"; do
-        # Tam yolları kontrol et ve göster
+        # Check full paths and display them
         if [ ! -d "${SERVICE_DIRS[$service]}" ]; then
             local current_dir=$(pwd)
-            print_warning "Dizin kontrolü: $current_dir/${SERVICE_DIRS[$service]}"
+            print_warning "Directory check: $current_dir/${SERVICE_DIRS[$service]}"
             missing_services+=("${SERVICE_NAMES[$service]}")
             SELECTED_SERVICES[$service]=false
         fi
     done
     
     if [ ${#missing_services[@]} -gt 0 ]; then
-        print_warning "Bazı servis dizinleri bulunamadı:"
+        print_warning "Some service directories were not found:"
         for missing in "${missing_services[@]}"; do
             print_warning "  - $missing"
         done
@@ -554,11 +554,11 @@ main() {
                 fi
             done
             
-            print_header "Kurulum Tamamlandı"
+            print_header "Installation Complete"
             
-            echo -e "${GREEN}Fitness Center servisleri kurulumu tamamlandı.${NC}"
-            echo -e "${YELLOW}Servisleri başlatmak için:${NC} $0 --start"
-            echo -e "${YELLOW}Çalışan servisleri kontrol etmek için:${NC} $0 --status"
+            echo -e "${GREEN}Fitness Center services installation completed.${NC}"
+            echo -e "${YELLOW}To start services:${NC} $0 --start"
+            echo -e "${YELLOW}To check running services:${NC} $0 --status"
             ;;
             
         "start")
@@ -575,13 +575,13 @@ main() {
                 fi
             done
             
-            print_header "Servis Başlatma İşlemi Tamamlandı"
+            print_header "Service Start Complete"
             
-            echo -e "${GREEN}Seçilen servisler başlatıldı.${NC}"
-            echo -e "${YELLOW}Aktif servisleri görmek için:${NC} $0 --status"
-            echo -e "${YELLOW}Servisleri durdurmak için:${NC} $0 --stop"
+            echo -e "${GREEN}Selected services have been started.${NC}"
+            echo -e "${YELLOW}To see active services:${NC} $0 --status"
+            echo -e "${YELLOW}To stop services:${NC} $0 --stop"
             echo
-            echo -e "${CYAN}Aktif Servisler:${NC}"
+            echo -e "${CYAN}Active Services:${NC}"
             for service in "${!SELECTED_SERVICES[@]}"; do
                 if [ "${SELECTED_SERVICES[$service]}" = true ]; then
                     if [ -f "/tmp/fitness-${service}.pid" ] && kill -0 $(cat "/tmp/fitness-${service}.pid") 2>/dev/null; then
@@ -605,7 +605,7 @@ main() {
                 fi
             done
             
-            print_header "Servis Durdurma İşlemi Tamamlandı"
+            print_header "Service Stop Complete"
             ;;
             
         "restart")
@@ -623,17 +623,17 @@ main() {
                 fi
             done
             
-            print_header "Servis Yeniden Başlatma İşlemi Tamamlandı"
+            print_header "Service Restart Complete"
             ;;
             
         "status")
-            print_header "Servis Durumları"
+            print_header "Service Status"
             
             for service in "${!SERVICE_NAMES[@]}"; do
                 if [ -f "/tmp/fitness-${service}.pid" ] && kill -0 $(cat "/tmp/fitness-${service}.pid") 2>/dev/null; then
-                    echo -e "${GREEN}● ${SERVICE_NAMES[$service]}${NC} - Çalışıyor (PID: $(cat "/tmp/fitness-${service}.pid")) - http://localhost:${SERVICE_PORTS[$service]}"
+                    echo -e "${GREEN}● ${SERVICE_NAMES[$service]}${NC} - Running (PID: $(cat "/tmp/fitness-${service}.pid")) - http://localhost:${SERVICE_PORTS[$service]}"
                 else
-                    echo -e "${RED}○ ${SERVICE_NAMES[$service]}${NC} - Çalışmıyor"
+                    echo -e "${RED}○ ${SERVICE_NAMES[$service]}${NC} - Not running"
                 fi
             done
             ;;
