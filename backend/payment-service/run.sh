@@ -290,11 +290,17 @@ main() {
     # Check for special execution modes
     local SETUP_ONLY=false
     local START_ONLY=false
+    local SETUP_WITH_DATA=false
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
             --setup-only)
                 SETUP_ONLY=true
+                shift
+                ;;
+            --setup-with-data)
+                SETUP_ONLY=true
+                SETUP_WITH_DATA=true
                 shift
                 ;;
             --start-only)
@@ -325,13 +331,23 @@ main() {
         # Check and initialize database schema if needed
         initialize_database
 
-        # If not in setup-only mode, ask about sample data
-        if [ "$SETUP_ONLY" = false ]; then
+        # If setup with data flag is set, automatically load sample data
+        if [ "$SETUP_WITH_DATA" = true ]; then
+            print_info "Örnek veri otomatik olarak yükleniyor..."
+            if use_docker_postgres_for_reset_with_sample; then
+                print_success "Örnek veriler başarıyla yüklendi"
+            else
+                print_error "Örnek veri yükleme başarısız oldu"
+            fi
+        # If not in setup-only mode or setup with data, ask about sample data
+        elif [ "$SETUP_ONLY" = false ]; then
             ask_load_sample_data
         fi
 
-        # Show instructions for manually loading sample data
-        display_sample_data_instructions
+        # Only show manual instructions if not loading data automatically
+        if [ "$SETUP_WITH_DATA" = false ]; then
+            display_sample_data_instructions
+        fi
 
         # If in setup-only mode, exit after setup
         if [ "$SETUP_ONLY" = true ]; then

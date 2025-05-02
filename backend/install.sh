@@ -266,8 +266,19 @@ install_service() {
     # Make sure run.sh is executable
     chmod +x run.sh
     
-    # Run the script with --setup-only flag to just do the setup without starting the service
-    ./run.sh --setup-only
+    # Ask if sample data should be loaded
+    echo
+    read -p "Bu servis için örnek veri yüklensin mi? (e/h): " load_sample_data
+    
+    if [[ $load_sample_data =~ ^[Ee]$ ]]; then
+        # Run with sample data loading option
+        print_info "Servis kurulumu ve örnek veri yükleme başlatılıyor..."
+        ./run.sh --setup-with-data
+    else
+        # Run without sample data
+        print_info "Servis kurulumu başlatılıyor (örnek veri olmadan)..."
+        ./run.sh --setup-only
+    fi
     
     local result=$?
     if [ $result -eq 0 ]; then
