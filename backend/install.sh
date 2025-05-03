@@ -16,6 +16,7 @@ declare -A SERVICE_DIRS=(
     ["facility"]="facility-service"
     ["payment"]="payment-service"
     ["class"]="class-service"
+    ["gateway"]="api-gateway"
 )
 
 declare -A SERVICE_NAMES=(
@@ -24,6 +25,7 @@ declare -A SERVICE_NAMES=(
     ["facility"]="Facility Management Service"
     ["payment"]="Payment Management Service"
     ["class"]="Class Management Service"
+    ["gateway"]="API Gateway Service"
 )
 
 declare -A SERVICE_PORTS=(
@@ -32,6 +34,7 @@ declare -A SERVICE_PORTS=(
     ["payment"]="8003"
     ["facility"]="8004"
     ["class"]="8005"
+    ["gateway"]="8000"
 )
 
 # Default all services selected
@@ -41,6 +44,7 @@ declare -A SELECTED_SERVICES=(
     ["facility"]=true
     ["payment"]=true
     ["class"]=true
+    ["gateway"]=true
 )
 
 # Function to print colored section headers
@@ -189,10 +193,10 @@ select_services() {
         echo -e "${CYAN}$i)${NC} $status ${SERVICE_NAMES[$service]} (port: ${SERVICE_PORTS[$service]})"
         i=$((i+1))
     done
-    echo -e "${CYAN}6)${NC} $confirm_option"
-    echo -e "${CYAN}7)${NC} Exit"
+    echo -e "${CYAN}7)${NC} $confirm_option"
+    echo -e "${CYAN}8)${NC} Exit"
     
-    read -p "Enter your choice (0-7): " choice
+    read -p "Enter your choice (0-8): " choice
     
     case $choice in
         0)
@@ -202,7 +206,7 @@ select_services() {
             done
             select_services "$mode"
             ;;
-        1|2|3|4|5)
+        1|2|3|4|5|6)
             local selected_service=$(get_service_by_index $choice)
             if [ "${SELECTED_SERVICES[$selected_service]}" = true ]; then
                 SELECTED_SERVICES[$selected_service]=false
@@ -211,11 +215,11 @@ select_services() {
             fi
             select_services "$mode"
             ;;
-        6)
+        7)
             # Proceed with operation
             return 0
             ;;
-        7)
+        8)
             echo -e "${YELLOW}Operation cancelled.${NC}"
             exit 0
             ;;
@@ -266,18 +270,24 @@ install_service() {
     # Make sure run.sh is executable
     chmod +x run.sh
     
-    # Ask if sample data should be loaded
-    echo
-    read -p "Do you want to load sample data for this service? (y/n): " load_sample_data
-    
-    if [[ $load_sample_data =~ ^[Yy]$ ]]; then
-        # Run with sample data loading option
-        print_info "Starting service setup and sample data loading..."
-        ./run.sh --setup-with-data
-    else
-        # Run without sample data
-        print_info "Starting service setup (without sample data)..."
+    # Check if this is API Gateway (no need for sample data)
+    if [ "$service" = "gateway" ]; then
+        print_info "Setting up API Gateway..."
         ./run.sh --setup-only
+    else
+        # Ask if sample data should be loaded
+        echo
+        read -p "Do you want to load sample data for this service? (y/n): " load_sample_data
+        
+        if [[ $load_sample_data =~ ^[Yy]$ ]]; then
+            # Run with sample data loading option
+            print_info "Starting service setup and sample data loading..."
+            ./run.sh --setup-with-data
+        else
+            # Run without sample data
+            print_info "Starting service setup (without sample data)..."
+            ./run.sh --setup-only
+        fi
     fi
     
     local result=$?
@@ -568,12 +578,27 @@ main() {
             # Show summary and confirmation
             display_service_summary "$mode"
             
+            # Determine startup order (API Gateway should start last)
+            # First start all services except API Gateway
+            local gateway_selected=false
+            if [ "${SELECTED_SERVICES[gateway]}" = true ]; then
+                gateway_selected=true
+                SELECTED_SERVICES[gateway]=false
+            fi
+            
             # Start each selected service
             for service in "${!SELECTED_SERVICES[@]}"; do
                 if [ "${SELECTED_SERVICES[$service]}" = true ]; then
                     start_service "$service"
                 fi
             done
+            
+            # If API Gateway was selected, start it last
+            if [ "$gateway_selected" = true ]; then
+                print_info "Starting API Gateway after other services..."
+                SELECTED_SERVICES[gateway]=true
+                start_service "gateway"
+            fi
             
             print_header "Service Start Complete"
             
@@ -598,7 +623,14 @@ main() {
             # Show summary and confirmation
             display_service_summary "$mode"
             
-            # Stop each selected service
+            # Determine shutdown order (API Gateway should stop first)
+            # First stop API Gateway if selected
+            if [ "${SELECTED_SERVICES[gateway]}" = true ]; then
+                stop_service "gateway"
+                SELECTED_SERVICES[gateway]=false
+            fi
+            
+            # Stop each remaining selected service
             for service in "${!SELECTED_SERVICES[@]}"; do
                 if [ "${SELECTED_SERVICES[$service]}" = true ]; then
                     stop_service "$service"
@@ -615,13 +647,29 @@ main() {
             # Show summary and confirmation
             display_service_summary "$mode"
             
-            # Restart each selected service
+            # Determine restart order (stop API Gateway first, then start it last)
+            # First stop API Gateway if selected
+            local gateway_selected=false
+            if [ "${SELECTED_SERVICES[gateway]}" = true ]; then
+                gateway_selected=true
+                stop_service "gateway"
+                SELECTED_SERVICES[gateway]=false
+            fi
+            
+            # Restart each remaining selected service
             for service in "${!SELECTED_SERVICES[@]}"; do
                 if [ "${SELECTED_SERVICES[$service]}" = true ]; then
                     stop_service "$service"
                     start_service "$service"
                 fi
             done
+            
+            # If API Gateway was selected, restart it last
+            if [ "$gateway_selected" = true ]; then
+                print_info "Starting API Gateway after other services..."
+                SELECTED_SERVICES[gateway]=true
+                start_service "gateway"
+            fi
             
             print_header "Service Restart Complete"
             ;;
