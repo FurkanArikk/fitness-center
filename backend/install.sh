@@ -1,42 +1,42 @@
 #!/bin/bash
 
-# Renkler - daha iyi görünüm için
+# Colors - for better output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
-NC='\033[0m' # Renk Yok
+NC='\033[0m' # No Color
 
-# Başlık yazdırmak için fonksiyon
+# Function to print headers
 print_header() {
     echo -e "\n${MAGENTA}====================================================${NC}"
     echo -e "${MAGENTA}      $1${NC}"
     echo -e "${MAGENTA}====================================================${NC}"
 }
 
-# Başarı mesajları yazdırmak için fonksiyon
+# Function to print success messages
 print_success() {
     echo -e "${GREEN}✓ $1${NC}"
 }
 
-# Hata mesajları yazdırmak için fonksiyon
+# Function to print error messages
 print_error() {
     echo -e "${RED}✗ $1${NC}"
 }
 
-# Bilgi mesajları yazdırmak için fonksiyon
+# Function to print info messages
 print_info() {
     echo -e "${YELLOW}→ $1${NC}"
 }
 
-# Uyarı mesajları yazdırmak için fonksiyon
+# Function to print warning messages
 print_warning() {
     echo -e "${CYAN}⚠ $1${NC}"
 }
 
-# Servislerin listesi
+# List of services
 SERVICES=(
     "api-gateway"
     "member-service"
@@ -46,56 +46,56 @@ SERVICES=(
     "payment-service"
 )
 
-# Servis durumlarını tutacak dizi
+# Array to store service states
 declare -A service_selected
 
-# Varsayılan olarak tüm servisler seçili
+# All services selected by default
 for service in "${SERVICES[@]}"; do
     service_selected["$service"]=true
 done
 
-# Docker kurulumunu kontrol et
+# Check Docker installation
 check_docker() {
-    print_info "Docker kontrol ediliyor..."
+    print_info "Checking Docker..."
     if ! command -v docker &> /dev/null; then
-        print_error "Docker yüklü değil veya PATH içinde değil"
-        print_info "Lütfen Docker'ı yükleyin: https://docs.docker.com/get-docker/"
+        print_error "Docker is not installed or not in PATH"
+        print_info "Please install Docker: https://docs.docker.com/get-docker/"
         exit 1
     fi
     
     if ! docker info &> /dev/null; then
-        print_error "Docker daemon çalışmıyor"
-        print_info "Lütfen Docker servisini başlatın"
+        print_error "Docker daemon is not running"
+        print_info "Please start the Docker service"
         exit 1
     fi
     
-    print_success "Docker hazır"
+    print_success "Docker is ready"
 }
 
-# Docker ağı var mı kontrol et, yoksa oluştur
+# Check if Docker network exists, create if not
 ensure_docker_network() {
-    print_info "Docker ağı kontrol ediliyor..."
+    print_info "Checking Docker network..."
     
     if docker network inspect fitness-network &> /dev/null; then
-        print_success "Docker ağı 'fitness-network' zaten var"
+        print_success "Docker network 'fitness-network' already exists"
     else
-        print_info "Docker ağı 'fitness-network' oluşturuluyor..."
+        print_info "Creating Docker network 'fitness-network'..."
         if docker network create fitness-network &> /dev/null; then
-            print_success "Docker ağı başarıyla oluşturuldu"
+            print_success "Docker network created successfully"
         else
-            print_error "Docker ağı oluşturulamadı"
+            print_error "Failed to create Docker network"
             exit 1
         fi
     fi
 }
 
-# Servis seçim menüsü
+# Service selection menu
 select_services() {
     clear
-    print_header "FİTNESS CENTER SERVİSLERİ SEÇİMİ"
+    print_header "FITNESS CENTER SERVICES SELECTION"
     
-    echo -e "\nHangi servisleri yönetmek istiyorsunuz?"
-    echo -e "(${GREEN}✓${NC} = Seçili, ${RED}✗${NC} = Seçili değil)\n"
+    echo -e "\nWhich services would you like to manage?"
+    echo -e "(${GREEN}✓${NC} = Selected, ${RED}✗${NC} = Not selected)\n"
     
     local counter=1
     for service in "${SERVICES[@]}"; do
@@ -107,93 +107,93 @@ select_services() {
         counter=$((counter+1))
     done
     
-    echo -e "\n${CYAN}Seçenekler:${NC}"
-    echo -e "  ${YELLOW}Servis numarasını${NC} girerek seçiminizi değiştirebilirsiniz"
-    echo -e "  ${YELLOW}a${NC} - Tümünü seç"
-    echo -e "  ${YELLOW}n${NC} - Tümünü seçme"
-    echo -e "  ${YELLOW}c${NC} - Devam et"
-    echo -e "  ${YELLOW}q${NC} - Çıkış\n"
+    echo -e "\n${CYAN}Options:${NC}"
+    echo -e "  ${YELLOW}Service number${NC} to toggle selection"
+    echo -e "  ${YELLOW}a${NC} - Select all"
+    echo -e "  ${YELLOW}n${NC} - Select none"
+    echo -e "  ${YELLOW}c${NC} - Continue"
+    echo -e "  ${YELLOW}q${NC} - Quit\n"
     
-    read -p "Seçiminiz: " choice
+    read -p "Your choice: " choice
     
     case "$choice" in
         [1-9]*)
-            # Servis indeksini ayarla (0-tabanlı)
+            # Set service index (0-based)
             local index=$((choice-1))
             if [ $index -lt ${#SERVICES[@]} ]; then
                 local selected_service=${SERVICES[$index]}
-                # Seçimi tersine çevir
+                # Toggle selection
                 if [[ ${service_selected["$selected_service"]} == true ]]; then
                     service_selected["$selected_service"]=false
                 else
                     service_selected["$selected_service"]=true
                 fi
-                select_services  # Menüyü tekrar göster
+                select_services  # Show menu again
             else
-                print_error "Geçersiz seçim"
+                print_error "Invalid selection"
                 sleep 1
                 select_services
             fi
             ;;
         a|A)
-            # Tümünü seç
+            # Select all
             for service in "${SERVICES[@]}"; do
                 service_selected["$service"]=true
             done
             select_services
             ;;
         n|N)
-            # Tümünü seçme
+            # Select none
             for service in "${SERVICES[@]}"; do
                 service_selected["$service"]=false
             done
             select_services
             ;;
         c|C)
-            # Devam et - hiçbir şey yapmadan çık
+            # Continue - do nothing and exit
             ;;
         q|Q)
-            echo -e "\n${YELLOW}Programdan çıkılıyor...${NC}"
+            echo -e "\n${YELLOW}Exiting program...${NC}"
             exit 0
             ;;
         *)
-            print_error "Geçersiz seçim"
+            print_error "Invalid selection"
             sleep 1
             select_services
             ;;
     esac
 }
 
-# Servis başlatma fonksiyonu
+# Service start function
 start_service() {
     local service=$1
     local with_sample_data=$2
     local start_process=$3
     
-    print_info "$service başlatılıyor..."
+    print_info "Starting $service..."
     
-    # Servis dizinine git
+    # Navigate to service directory
     cd "$service" || {
-        print_error "$service dizinine gidilemedi"
+        print_error "Could not change directory to $service"
         return 1
     }
     
     if [ "$start_process" = true ]; then
-        # Sadece servis sürecini başlat
-        print_info "$service sürecini başlatıyorum..."
+        # Only start service process
+        print_info "Starting $service process..."
         
         if [ "$service" = "api-gateway" ]; then
-            # API Gateway için terminal arka planda çalıştır
+            # For API Gateway run terminal in background
             ./run.sh --start-only &
             sleep 2
         else
-            # Diğer servisler için terminal arka planda çalıştır
+            # For other services run terminal in background
             ./run.sh --start-only &
             sleep 2
         fi
     else
-        # Setup işlemleri
-        # Sample data parametresi kontrol et
+        # Setup operations
+        # Check sample data parameter
         if [ "$with_sample_data" = true ]; then
             ./run.sh --setup-with-data
         else
@@ -201,136 +201,136 @@ start_service() {
         fi
     fi
     
-    # Ana dizine geri dön
+    # Return to main directory
     cd ..
     
-    print_success "$service başlatıldı"
+    print_success "$service started"
 }
 
-# Servis durdurma fonksiyonu
+# Service stop function
 stop_service() {
     local service=$1
     
-    print_info "$service durduruluyor..."
+    print_info "Stopping $service..."
     
-    # Servis dizinine git
+    # Navigate to service directory
     cd "$service" || {
-        print_error "$service dizinine gidilemedi"
+        print_error "Could not change directory to $service"
         return 1
     }
     
-    # Docker container adını belirle
+    # Determine Docker container name
     local container_name="fitness-${service%-service}-db"
     
     if [ "$service" = "api-gateway" ]; then
-        # API Gateway için Docker container'ı yok, sadece process'i durdur
+        # For API Gateway, no Docker container, just stop process
         pkill -f "$service"
     else
-        # Docker container'ı durdur
+        # Stop Docker container
         if ./scripts/docker-db.sh stop; then
-            print_success "${service} için veritabanı durduruldu"
+            print_success "Database for ${service} stopped"
         else
-            print_warning "${service} için veritabanı durdurulamadı"
+            print_warning "Could not stop database for ${service}"
         fi
         
-        # Process'i durdur
+        # Stop process
         pkill -f "$service"
     fi
     
-    # Ana dizine geri dön
+    # Return to main directory
     cd ..
     
-    print_success "$service durduruldu"
+    print_success "$service stopped"
 }
 
-# Tüm seçili servisleri başlat
+# Start all selected services
 start_all_services() {
     local with_sample_data=$1
     
-    print_header "SEÇİLİ SERVİSLERİ BAŞLAT"
+    print_header "START SELECTED SERVICES"
     
-    # Docker kontrol et
+    # Check Docker
     check_docker
     
-    # Docker ağını kontrol et
+    # Check Docker network
     ensure_docker_network
     
-    # Önce veritabanlarını başlat
-    print_info "Veritabanları hazırlanıyor..."
+    # Start databases first
+    print_info "Preparing databases..."
     
     for service in "${SERVICES[@]}"; do
         if [[ ${service_selected["$service"]} == true ]] && [[ "$service" != "api-gateway" ]]; then
-            # Önce veritabanı kurulumu
+            # Database setup first
             start_service "$service" "$with_sample_data" false
             
-            # Sonra servisi başlat
+            # Then start service
             start_service "$service" false true
         fi
     done
     
-    # Son olarak API Gateway'i başlat
+    # Finally start API Gateway
     if [[ ${service_selected["api-gateway"]} == true ]]; then
         # API Gateway setup
         start_service "api-gateway" false false
         
-        # API Gateway sürecini başlat
+        # Start API Gateway process
         start_service "api-gateway" false true
     fi
     
-    print_success "Tüm seçili servisler başlatıldı"
+    print_success "All selected services started"
 }
 
-# Tüm seçili servisleri durdur
+# Stop all selected services
 stop_all_services() {
-    print_header "SEÇİLİ SERVİSLERİ DURDUR"
+    print_header "STOP SELECTED SERVICES"
     
-    # Önce API Gateway'i durdur
+    # Stop API Gateway first
     if [[ ${service_selected["api-gateway"]} == true ]]; then
         stop_service "api-gateway"
     fi
     
-    # Sonra diğer servisleri durdur
+    # Then stop other services
     for service in "${SERVICES[@]}"; do
         if [[ ${service_selected["$service"]} == true ]] && [[ "$service" != "api-gateway" ]]; then
             stop_service "$service"
         fi
     done
     
-    print_success "Tüm seçili servisler durduruldu"
+    print_success "All selected services stopped"
 }
 
-# Seçili servislerin durumunu kontrol et
+# Check status of selected services
 check_services_status() {
-    print_header "SERVİS DURUMLARI"
+    print_header "SERVICE STATUS"
     
     for service in "${SERVICES[@]}"; do
         if [[ ${service_selected["$service"]} == true ]]; then
-            echo -e "\n${CYAN}${service}${NC} durumu:"
+            echo -e "\n${CYAN}${service}${NC} status:"
             
-            # Process kontrolü
+            # Process check
             if pgrep -f "$service" > /dev/null; then
-                echo -e "  Process: ${GREEN}Çalışıyor${NC}"
+                echo -e "  Process: ${GREEN}Running${NC}"
             else
-                echo -e "  Process: ${RED}Çalışmıyor${NC}"
+                echo -e "  Process: ${RED}Not running${NC}"
             fi
             
-            # Veritabanı kontrolü (API Gateway hariç)
+            # Database check (except API Gateway)
             if [[ "$service" != "api-gateway" ]]; then
                 local container_name="fitness-${service%-service}-db"
                 if docker ps | grep -q "$container_name"; then
-                    echo -e "  Veritabanı: ${GREEN}Çalışıyor${NC}"
+                    echo -e "  Database: ${GREEN}Running${NC}"
                 else
-                    echo -e "  Veritabanı: ${RED}Çalışmıyor${NC}"
+                    echo -e "  Database: ${RED}Not running${NC}"
                 fi
             fi
         fi
     done
 }
 
-# Ana menüyü göster
+# Show main menu
 show_main_menu() {
     clear
-    print_header "FITNESS CENTER SERVİS YÖNETİCİSİ"
+    print_header "FITNESS CENTER SERVICE MANAGER"
     
     local selected_count=0
     for service in "${SERVICES[@]}"; do
@@ -339,23 +339,23 @@ show_main_menu() {
         fi
     done
     
-    echo -e "\n${CYAN}Seçili servisler:${NC} $selected_count/${#SERVICES[@]}"
+    echo -e "\n${CYAN}Selected services:${NC} $selected_count/${#SERVICES[@]}"
     for service in "${SERVICES[@]}"; do
         if [[ ${service_selected["$service"]} == true ]]; then
             echo -e "  ${GREEN}✓${NC} $service"
         fi
     done
     
-    echo -e "\n${CYAN}İşlemler:${NC}"
-    echo -e "  ${YELLOW}1)${NC} Servisleri seç"
-    echo -e "  ${YELLOW}2)${NC} Seçili servisleri başlat"
-    echo -e "  ${YELLOW}3)${NC} Seçili servisleri örnek veri ile başlat"
-    echo -e "  ${YELLOW}4)${NC} Seçili servisleri durdur"
-    echo -e "  ${YELLOW}5)${NC} Seçili servisleri yeniden başlat"
-    echo -e "  ${YELLOW}6)${NC} Seçili servislerin durumunu kontrol et"
-    echo -e "  ${YELLOW}q)${NC} Çıkış\n"
+    echo -e "\n${CYAN}Actions:${NC}"
+    echo -e "  ${YELLOW}1)${NC} Select services"
+    echo -e "  ${YELLOW}2)${NC} Start selected services"
+    echo -e "  ${YELLOW}3)${NC} Start selected services with sample data"
+    echo -e "  ${YELLOW}4)${NC} Stop selected services"
+    echo -e "  ${YELLOW}5)${NC} Restart selected services"
+    echo -e "  ${YELLOW}6)${NC} Check status of selected services"
+    echo -e "  ${YELLOW}q)${NC} Quit\n"
     
-    read -p "Seçiminiz: " choice
+    read -p "Your choice: " choice
     
     case "$choice" in
         1)
@@ -364,48 +364,48 @@ show_main_menu() {
             ;;
         2)
             start_all_services false
-            read -p "Ana menüye dönmek için Enter'a basın..." 
+            read -p "Press Enter to return to main menu..." 
             show_main_menu
             ;;
         3)
             start_all_services true
-            read -p "Ana menüye dönmek için Enter'a basın..." 
+            read -p "Press Enter to return to main menu..." 
             show_main_menu
             ;;
         4)
             stop_all_services
-            read -p "Ana menüye dönmek için Enter'a basın..." 
+            read -p "Press Enter to return to main menu..." 
             show_main_menu
             ;;
         5)
-            print_info "Servisler yeniden başlatılıyor..."
+            print_info "Restarting services..."
             stop_all_services
             start_all_services false
-            read -p "Ana menüye dönmek için Enter'a basın..." 
+            read -p "Press Enter to return to main menu..." 
             show_main_menu
             ;;
         6)
             check_services_status
-            read -p "Ana menüye dönmek için Enter'a basın..." 
+            read -p "Press Enter to return to main menu..." 
             show_main_menu
             ;;
         q|Q)
-            echo -e "\n${YELLOW}Programdan çıkılıyor...${NC}"
+            echo -e "\n${YELLOW}Exiting program...${NC}"
             exit 0
             ;;
         *)
-            print_error "Geçersiz seçim"
+            print_error "Invalid selection"
             sleep 1
             show_main_menu
             ;;
     esac
 }
 
-# Ana program başlangıcı
+# Main program start
 main() {
     clear
     show_main_menu
 }
 
-# Script'i başlat
+# Start script
 main "$@"
