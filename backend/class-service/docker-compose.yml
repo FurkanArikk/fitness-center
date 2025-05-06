@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:14
-    container_name: class-service-fitness_class_db
+    container_name: ${CLASS_SERVICE_CONTAINER_NAME:-class-service-fitness_class_db}
     environment:
       POSTGRES_USER: ${DB_USER:-fitness_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
@@ -22,6 +22,37 @@ services:
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
+  class-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-class-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fitness_user}
+      DB_PASSWORD: ${DB_PASSWORD:-admin}
+      CLASS_SERVICE_DB_NAME: ${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+      CLASS_SERVICE_PORT: ${CLASS_SERVICE_PORT:-8005}
+      CLASS_SERVICE_HOST: ${CLASS_SERVICE_HOST:-0.0.0.0}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+    ports:
+      - "${CLASS_SERVICE_PORT:-8005}:8005"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   fitness-network:

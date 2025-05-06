@@ -23,6 +23,36 @@ services:
       start_period: 10s
     restart: unless-stopped
 
+  staff-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-staff-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER:-fitness_user}
+      DB_PASSWORD: ${DB_PASSWORD:-admin}
+      STAFF_SERVICE_DB_NAME: ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
+      STAFF_SERVICE_PORT: ${STAFF_SERVICE_PORT:-8002}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+    ports:
+      - "${STAFF_SERVICE_PORT:-8002}:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
 networks:
   fitness-network:
     external: true

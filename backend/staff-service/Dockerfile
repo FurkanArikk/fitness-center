@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -23,7 +23,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o staff-service ./c
 FROM alpine:latest
 
 # Add ca-certificates for secure connections
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata postgresql-client
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Set working directory
 WORKDIR /app
@@ -31,8 +34,19 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /app/staff-service .
 
-# Copy any additional configuration files if needed
-COPY --from=builder /app/configs ./configs
+# Copy migrations, configs and scripts
+COPY --from=builder /app/configs ./configs 2>/dev/null || :
+COPY --from=builder /app/migrations ./migrations 2>/dev/null || :
+COPY --from=builder /app/scripts ./scripts 2>/dev/null || :
+
+# Make scripts executable if they exist
+RUN if [ -d "./scripts" ]; then chmod +x ./scripts/*.sh; fi
+
+# Create directory for app user to write to
+RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
+
+# Use non-root user
+USER appuser
 
 # Expose the application port
 EXPOSE 8002
