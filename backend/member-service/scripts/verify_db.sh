@@ -1,14 +1,24 @@
 #!/bin/bash
 
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/member-service/.env"
+
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
+else
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
+fi
+
 # Verify database structure for fitness_member_db
 echo "Verifying database structure for fitness_member_db..."
 
 # Get DB_HOST from environment or use default
 DB_HOST=${DB_HOST:-localhost}
-DB_PORT=${DB_PORT:-5432}
+DB_PORT=${MEMBER_SERVICE_DB_PORT:-5432}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_NAME=${DB_NAME:-fitness_member_db}
+DB_NAME=${MEMBER_SERVICE_DB_NAME:-fitness_member_db}
 
 # Export PGPASSWORD to avoid password prompt
 export PGPASSWORD=$DB_PASSWORD

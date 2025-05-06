@@ -13,24 +13,14 @@ if ! command -v migrate &> /dev/null; then
     exit 1
 fi
 
-# Load environment variables from the root .env file
-ROOT_ENV_PATH=""
-CURRENT_DIR=$(pwd)
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/class-service/.env"
 
-# Find the root .env file by going up directories
-while [ "$CURRENT_DIR" != "/" ]; do
-    if [ -f "$CURRENT_DIR/.env" ]; then
-        ROOT_ENV_PATH="$CURRENT_DIR/.env"
-        break
-    fi
-    CURRENT_DIR=$(dirname "$CURRENT_DIR")
-done
-
-if [ -f "$ROOT_ENV_PATH" ]; then
-    source "$ROOT_ENV_PATH"
-    echo "Loaded environment from: $ROOT_ENV_PATH"
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
 else
-    echo "Warning: No .env file found in parent directories"
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
 fi
 
 # Set default values if not provided in environment

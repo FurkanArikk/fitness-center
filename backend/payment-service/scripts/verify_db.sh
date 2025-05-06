@@ -1,7 +1,17 @@
 #!/bin/bash
 
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/payment-service/.env"
+
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
+else
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
+fi
+
 # Verify database structure for fitness_payment_db
-echo "Verifying database structure for fitness_payment_db..."
+echo "Verifying database structure for ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}..."
 
 # Get DB_HOST from environment or use default
 DB_HOST=${DB_HOST:-localhost}

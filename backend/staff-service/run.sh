@@ -29,6 +29,26 @@ print_info() {
     echo -e "${YELLOW}→ $1${NC}"
 }
 
+# Function to print warnings
+print_warning() {
+    echo -e "${MAGENTA}⚠ $1${NC}"
+}
+
+# Load environment variables from the service-specific .env file
+load_env_vars() {
+    print_header "Loading Environment Variables"
+    
+    SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/staff-service/.env"
+    
+    if [ -f "$SERVICE_ENV_PATH" ]; then
+        source "$SERVICE_ENV_PATH"
+        print_success "Loaded environment from: $SERVICE_ENV_PATH"
+    else
+        print_warning "No service-specific .env file found at $SERVICE_ENV_PATH"
+        print_info "Using default environment variables"
+    fi
+}
+
 # Function to check if Docker is available
 check_docker() {
     print_header "Checking Docker"
@@ -316,6 +336,9 @@ clear
 echo -e "${MAGENTA}==========================================${NC}"
 echo -e "${MAGENTA}      FITNESS CENTER STAFF SERVICE       ${NC}"
 echo -e "${MAGENTA}==========================================${NC}"
+
+# Load environment variables first
+load_env_vars
 
 # Check docker is available
 check_docker
