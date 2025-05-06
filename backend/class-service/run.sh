@@ -87,11 +87,12 @@ start_database() {
     # Wait for the database to be ready
     print_info "Waiting for database to be ready..."
     attempts=0
-    max_attempts=10
+    max_attempts=30  # Increased from 10 to 30
     
     while [ $attempts -lt $max_attempts ]; do
-        if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/verify_db.sh &> /dev/null; then
-            print_success "Database is ready"
+        # First just check if database accepts connections
+        if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/verify_db.sh --connect-only &> /dev/null; then
+            print_success "Database is accepting connections"
             break
         fi
         
@@ -103,7 +104,7 @@ start_database() {
         fi
         
         echo -n "."
-        sleep 2
+        sleep 3  # Increased from 2 to 3 seconds
     done
     echo ""
 }
@@ -113,15 +114,53 @@ initialize_database() {
     print_header "Checking Database Schema"
 
     # Check if tables exist
-    if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/verify_db.sh &> /dev/null; then
+    if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/verify_db.sh --require-schema &> /dev/null; then
         print_success "Database schema already exists"
     else
-        print_info "Database schema does not exist, initializing..."
-        if USE_DOCKER=true ./scripts/migrate.sh up; then
-            print_success "Database schema initialized"
+        print_info "Database schema does not exist or is incomplete, initializing..."
+        
+        # First check if migration tool is available
+        if ! command -v migrate &> /dev/null; then
+            print_warning "Migration tool not found. Trying direct SQL import instead."
+            
+            # Apply migrations manually in order
+            migrations=($(find ./migrations -name "*.up.sql" | grep -v "_sample_data.sql" | grep -v "reset_schema_migrations" | sort -V))
+            
+            for migration in "${migrations[@]}"; do
+                migration_name=$(basename "$migration")
+                print_info "Applying migration: $migration_name"
+                
+                if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
+                    print_error "Migration failed: $migration_name"
+                    exit 1
+                fi
+            done
+            
+            print_success "Database schema initialized manually"
         else
-            print_error "Failed to initialize database schema"
-            exit 1
+            print_info "Using migration tool..."
+            if USE_DOCKER=true ./scripts/migrate.sh force; then
+                print_success "Database schema initialized with migration tool"
+            else
+                print_error "Failed to initialize database schema with migration tool"
+                
+                print_info "Trying direct SQL import as fallback..."
+                
+                # Apply migrations manually in order as fallback
+                migrations=($(find ./migrations -name "*.up.sql" | grep -v "_sample_data.sql" | grep -v "reset_schema_migrations" | sort -V))
+                
+                for migration in "${migrations[@]}"; do
+                    migration_name=$(basename "$migration")
+                    print_info "Applying migration: $migration_name"
+                    
+                    if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
+                        print_error "Migration failed: $migration_name"
+                        exit 1
+                    fi
+                done
+                
+                print_success "Database schema initialized manually"
+            fi
         fi
     fi
 }
@@ -179,10 +218,33 @@ use_docker_postgres_for_reset_with_sample() {
         if DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f ./migrations/000_drop_tables.sql; then
             print_success "Tüm tablolar başarıyla silindi"
             
-            # Apply all migration scripts in sequence
-            print_info "Veritabanı şemasını oluşturma..."
-            if USE_DOCKER=true ./scripts/migrate.sh up; then
+            # Manually apply all migration scripts in sequence
+            print_info "Veritabanı şemasını oluşturma - her bir migrasyonu manuel uyguluyoruz..."
+            
+            # Apply migrations in correct order, skipping sample data and reset
+            migrations=($(find ./migrations -name "*.up.sql" | grep -v "_sample_data.sql" | grep -v "reset_schema_migrations" | sort -V))
+            success=true
+            
+            for migration in "${migrations[@]}"; do
+                migration_name=$(basename "$migration")
+                print_info "Migrasyon uygulanıyor: $migration_name"
+                
+                if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
+                    print_error "Migrasyon başarısız oldu: $migration_name"
+                    success=false
+                    break
+                fi
+            done
+            
+            if [ "$success" = true ]; then
                 print_success "Veritabanı şeması başarıyla oluşturuldu"
+                
+                # Now verify tables were actually created
+                print_info "Tabloların oluşturulduğunu doğrulama..."
+                if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = 'classes')" | grep -q "t"; then
+                    print_error "Tablolar oluşturulamamış! Migration hatasını kontrol edin."
+                    return 1
+                fi
                 
                 # Örnek verileri yükle
                 print_info "Örnek verileri yükleniyor..."
@@ -207,7 +269,7 @@ use_docker_postgres_for_reset_with_sample() {
     fi
 }
 
-# Helper function to reset database without loading sample data
+# Helper function to reset database without loading sample data 
 use_docker_postgres_for_reset_no_sample() {
     print_info "Docker üzerinden veritabanı sıfırlama işlemi başlatılıyor (örnek veri olmadan)..."
     
@@ -226,25 +288,41 @@ use_docker_postgres_for_reset_no_sample() {
             print_success "Tüm tablolar başarıyla silindi"
             
             # Apply all migration scripts except sample data
-            print_info "Veritabanı şemasını oluşturma..."
-            # Get all migration files except the sample data file
-            migrations=($(ls -1 ./migrations/0*.up.sql | grep -v "_sample_data.sql"))
+            print_info "Veritabanı şemasını manuel olarak oluşturma..."
+            
+            # Get ordered list of migrations, excluding sample data and reset
+            migrations=($(find ./migrations -name "*.up.sql" | grep -v "_sample_data.sql" | grep -v "reset_schema_migrations" | sort -V))
             success=true
             
             for migration in "${migrations[@]}"; do
-                print_info "Migrasyon uygulanıyor: $(basename "$migration")"
+                migration_name=$(basename "$migration")
+                print_info "Migrasyon uygulanıyor: $migration_name"
+                
                 if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -f "$migration"; then
-                    print_error "Migrasyon başarısız oldu: $(basename "$migration")"
+                    print_error "Migrasyon başarısız oldu: $migration_name"
                     success=false
                     break
                 fi
             done
             
             if [ "$success" = true ]; then
+                # Verify tables were actually created
+                print_info "Tabloların oluşturulduğunu doğrulama..."
+                if ! DB_HOST=${DB_HOST:-localhost} DB_PORT=${CLASS_SERVICE_DB_PORT:-5436} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db} ./scripts/db-connect.sh -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = 'classes')" | grep -q "t"; then
+                    print_error "Tablolar oluşturulamamış! Migration hatasını kontrol edin."
+                    return 1
+                fi
+            
                 print_success "Veritabanı şeması başarıyla oluşturuldu"
                 print_info "Kullanıcı, API endpointleri aracılığıyla veri ekleyebilir"
+                
+                # Verify empty tables exist
+                print_info "Veritabanı tabloları kontrol ediliyor..."
+                ./scripts/verify_db.sh
+                
                 return 0
             else
+                print_error "Veritabanı şeması oluşturulamadı"
                 return 1
             fi
         else
