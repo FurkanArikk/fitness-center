@@ -39,11 +39,14 @@ COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/configs ./configs 2>/dev/null || :
 
+# Copy environment files
+COPY --from=builder /app/.env* ./
+
 # Make scripts executable
 RUN chmod +x ./scripts/*.sh
 
 # Create directory for app user to write to
-RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
+RUN mkdir -p /app/tmp /app/logs && chown -R appuser:appgroup /app/tmp /app/logs
 
 # Use non-root user
 USER appuser

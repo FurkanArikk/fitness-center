@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:14
-    container_name: ${CLASS_SERVICE_CONTAINER_NAME:-class-service-fitness_class_db}
+    container_name: ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
     environment:
       POSTGRES_USER: ${DB_USER:-fitness_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
@@ -11,8 +11,7 @@ services:
       - "${CLASS_SERVICE_DB_PORT:-5436}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Comment out this line to avoid the mount issues in WSL
-      # - ./migrations:/docker-entrypoint-initdb.d:ro
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
@@ -28,15 +27,19 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: fitness-class-service
+    env_file:
+      - .env.docker
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: 5432  # Use PostgreSQL's internal port (5432) for Docker networking
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       CLASS_SERVICE_DB_NAME: ${CLASS_SERVICE_DB_NAME:-fitness_class_db}
       CLASS_SERVICE_PORT: ${CLASS_SERVICE_PORT:-8005}
       CLASS_SERVICE_HOST: ${CLASS_SERVICE_HOST:-0.0.0.0}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     ports:
       - "${CLASS_SERVICE_PORT:-8005}:8005"
     depends_on:

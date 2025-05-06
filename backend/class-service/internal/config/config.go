@@ -56,13 +56,20 @@ func LoadConfig() Config {
 		}
 	}
 
+	// Determine database port - different handling for Docker vs local
+	dbPort := getEnvAsInt("DB_PORT", 0)
+	if dbPort == 0 {
+		// If DB_PORT is not set, use CLASS_SERVICE_DB_PORT instead
+		dbPort = getEnvAsInt("CLASS_SERVICE_DB_PORT", 5436)
+	}
+
 	config := Config{
 		Server: ServerConfig{
 			Port: getEnvAsInt("CLASS_SERVICE_PORT", 8005),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("CLASS_SERVICE_DB_PORT", 5436),
+			Port:     dbPort,
 			User:     getEnv("DB_USER", "fitness_user"),
 			Password: getEnv("DB_PASSWORD", "admin"),
 			DBName:   getEnv("CLASS_SERVICE_DB_NAME", "fitness_class_db"),
