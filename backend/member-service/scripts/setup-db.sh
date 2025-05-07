@@ -33,6 +33,7 @@ if [ "$USE_DOCKER" = "true" ]; then
 else
     # Check if database exists, create if it doesn't
     echo "Checking if database exists..."
+    # Connect to postgres database to check if our DB exists
     db_exists=$(psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME}'")
     if [ -z "$db_exists" ]; then
         echo "Database does not exist. Creating database..."
@@ -46,12 +47,41 @@ fi
 
 # Connect to the database and run schema migration
 echo "Running database schema migration..."
-psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f ./migrations/001_initial_schema.sql
+
+# Apply each migration file in order
+for migration_file in ./migrations/0*.up.sql ./migrations/0*.sql; do
+    if [[ -f "$migration_file" && "$migration_file" != *"sample_data.sql"* ]]; then
+        echo "Applying migration: $(basename "$migration_file")"
+        psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f "$migration_file"
+        if [ $? -ne 0 ]; then
+            echo "Error applying migration: $(basename "$migration_file")"
+            exit 1
+        fi
+    fi
+done
 
 # Only load sample data if LOAD_SAMPLE_DATA is true
 if [ "$LOAD_SAMPLE_DATA" = "true" ]; then
     echo "Running sample data migration..."
-    psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f ./migrations/002_sample_data.sql
+    SAMPLE_DATA_FILE=""
+    
+    # Check for different sample data file patterns
+    if [ -f "./migrations/002_sample_data.sql" ]; then
+        SAMPLE_DATA_FILE="./migrations/002_sample_data.sql"
+    elif [ -f "./migrations/sample_data.sql" ]; then
+        SAMPLE_DATA_FILE="./migrations/sample_data.sql"
+    elif [ -f "./migrations/000004_sample_data.sql" ]; then
+        SAMPLE_DATA_FILE="./migrations/000004_sample_data.sql"
+    elif [ -f "./migrations/000004_sample_data.up.sql" ]; then
+        SAMPLE_DATA_FILE="./migrations/000004_sample_data.up.sql"
+    fi
+    
+    if [ -n "$SAMPLE_DATA_FILE" ]; then
+        echo "Loading sample data from $SAMPLE_DATA_FILE"
+        psql -h ${DB_HOST} -p ${DB_PORT} -U ${DB_USER} -d ${DB_NAME} -f "$SAMPLE_DATA_FILE"
+    else
+        echo "No sample data file found. Skipping sample data loading."
+    fi
 else
     echo "Skipping sample data migration as per configuration."
 fi
