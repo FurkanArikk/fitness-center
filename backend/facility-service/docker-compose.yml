@@ -11,6 +11,7 @@ services:
       - "${FACILITY_SERVICE_DB_PORT:-5435}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
@@ -26,22 +27,35 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: fitness-facility-service
+    env_file:
+      - .env.docker
     environment:
       DB_HOST: postgres
       DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
-      DB_NAME: ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
-      DB_SSLMODE: disable
-      SERVER_PORT: 8080
+      FACILITY_SERVICE_DB_NAME: ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
+      FACILITY_SERVICE_PORT: ${FACILITY_SERVICE_PORT:-8004}
+      FACILITY_SERVICE_HOST: ${FACILITY_SERVICE_HOST:-0.0.0.0}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     ports:
-      - "${FACILITY_SERVICE_PORT:-8080}:8080"
+      - "${FACILITY_SERVICE_PORT:-8004}:8004"
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
+    volumes:
+      - ./logs:/app/logs
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8004/health"]
+      interval: 180s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   fitness-network:
