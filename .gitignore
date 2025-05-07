@@ -37,6 +37,7 @@ logs/
 .env.test.local
 .env.production.local
 .env
+.env.docker
 
 # Build outputs
 build/
