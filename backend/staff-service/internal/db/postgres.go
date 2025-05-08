@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -30,6 +31,11 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*PostgresDB, error) {
 	log.Println("Connected to PostgreSQL database")
 
 	return &PostgresDB{DB: db}, nil
+}
+
+// Ping checks if the database connection is active
+func (db *PostgresDB) Ping(ctx context.Context) error {
+	return db.DB.PingContext(ctx)
 }
 
 // Close closes the database connection
