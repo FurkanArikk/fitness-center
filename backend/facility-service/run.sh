@@ -138,24 +138,40 @@ ensure_docker_network() {
     fi
 }
 
+# Function to apply database migrations
+apply_migrations() {
+    print_header "Applying Database Migrations"
+
+    for migration in ./migrations/*.up.sql; do
+        print_info "Applying migration: $(basename "$migration")"
+        if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < "$migration"; then
+            print_error "Failed to apply migration: $(basename "$migration")"
+            exit 1
+        fi
+        print_success "Successfully applied migration: $(basename "$migration")"
+    done
+}
+
 # Function to handle database reset and sample data
 handle_database_setup() {
     print_header "Database Setup"
-    
+
     # Handle based on sample data option
     case "$SAMPLE_DATA_OPTION" in
         "reset")
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
+            apply_migrations
             ;;
         "none")
             print_info "Setting up clean database without sample data"
             reset_database_without_sample_data
+            apply_migrations
             ;;
         "keep")
             print_info "Keeping existing database data"
-            # Just ensure the database is running
             ensure_database_running
+            apply_migrations
             ;;
     esac
 }

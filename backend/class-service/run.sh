@@ -138,26 +138,63 @@ ensure_docker_network() {
     fi
 }
 
+# Function to apply database migrations
+apply_migrations() {
+    print_header "Applying Database Migrations"
+
+    for migration in ./migrations/*.up.sql; do
+        print_info "Applying migration: $(basename "$migration")"
+        if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < "$migration"; then
+            print_error "Failed to apply migration: $(basename "$migration")"
+            exit 1
+        fi
+        print_success "Successfully applied migration: $(basename "$migration")"
+    done
+}
+
+# Function to load sample data
+load_sample_data() {
+    print_header "Loading Sample Data"
+    
+    print_info "Loading sample data into database..."
+    if [ -f "./migrations/000004_sample_data.sql" ]; then
+        if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < ./migrations/000004_sample_data.sql; then
+            print_error "Failed to load sample data"
+            exit 1
+        fi
+        print_success "Sample data loaded successfully"
+    else
+        print_warning "Sample data file not found at ./migrations/000004_sample_data.sql"
+    fi
+}
+
 # Function to handle database reset and sample data
 handle_database_setup() {
     print_header "Database Setup"
-    
+
     # Handle based on sample data option
     case "$SAMPLE_DATA_OPTION" in
         "reset")
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
+            apply_migrations
+            load_sample_data
             ;;
         "none")
             print_info "Setting up clean database without sample data"
             reset_database_without_sample_data
+            apply_migrations
             ;;
         "keep")
             print_info "Keeping existing database data"
-            # Just ensure the database is running
             ensure_database_running
-            # Verify and possibly fix the migrations
-            verify_migrations
+            apply_migrations
+            
+            # Check if tables exist but are empty
+            if docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} -t -c "SELECT EXISTS (SELECT FROM classes)" | grep -q "f"; then
+                print_info "Tables exist but are empty. Loading sample data..."
+                load_sample_data
+            fi
             ;;
     esac
 }
