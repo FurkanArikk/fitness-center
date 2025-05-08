@@ -4,7 +4,7 @@
 # Usage: ./scripts/docker-db.sh [start|stop|restart|status|logs|reset|shell|debug]
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/class-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"

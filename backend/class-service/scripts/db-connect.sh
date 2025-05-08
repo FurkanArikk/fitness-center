@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/class-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"
@@ -30,13 +30,13 @@ echo "Connecting to the class service database..."
 # Process command line options
 if [ "$1" = "-f" ] && [ -n "$2" ]; then
     # Execute SQL file
-    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -f "$2"
+    docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -f "$2"
 elif [ "$1" = "-c" ] && [ -n "$2" ]; then
     # Execute SQL command
-    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "$2"
+    docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -c "$2"
 else
     # Interactive mode
-    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME
+    docker exec -it ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME
 fi
 
 # Unset password for security

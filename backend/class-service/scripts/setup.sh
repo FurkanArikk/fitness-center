@@ -15,7 +15,7 @@ cd ..
 go mod tidy
 
 # Create .env file if it doesn't exist
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/class-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 if [ ! -f "$SERVICE_ENV_PATH" ]; then
     echo "Creating default .env file at $SERVICE_ENV_PATH..."
     cat > "$SERVICE_ENV_PATH" << EOF
@@ -58,5 +58,9 @@ sleep 5
 # Run migrations
 echo "Running migrations..."
 ./scripts/migrate.sh up
+
+# Load sample data
+echo "Loading sample data..."
+./scripts/migrate.sh sample
 
 echo "Environment setup completed successfully."

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/class-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"
@@ -21,7 +21,7 @@ DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
 export PGPASSWORD=$DB_PASSWORD
 
 # First, check if we can connect to PostgreSQL at all - this is the basic check
-if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "SELECT 1" > /dev/null 2>&1; then
+if ! docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -c "SELECT 1" > /dev/null 2>&1; then
     echo "ERROR: Cannot connect to PostgreSQL database at $DB_HOST:$DB_PORT"
     unset PGPASSWORD
     exit 1
@@ -46,7 +46,7 @@ required_tables=("classes" "class_schedule" "class_bookings")
 missing_tables=0
 
 for table in "${required_tables[@]}"; do
-    if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
+    if ! docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
         echo "WARNING: Required table '$table' is missing"
         missing_tables=$((missing_tables + 1))
     else
@@ -62,12 +62,12 @@ fi
 
 # Show all tables in the database
 echo -e "\nAll tables in database:"
-psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "\dt"
+docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -c "\dt"
 
 # Show table counts if tables exist
 if [ $missing_tables -lt 3 ]; then
     echo -e "\nCounting records in tables:"
-    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
+    docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U $DB_USER -d $DB_NAME -c "
     SELECT 'classes' as table_name, COUNT(*) FROM classes UNION ALL
     SELECT 'class_schedule', COUNT(*) FROM class_schedule UNION ALL
     SELECT 'class_bookings', COUNT(*) FROM class_bookings
