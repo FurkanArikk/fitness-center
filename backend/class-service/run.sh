@@ -168,7 +168,7 @@ load_sample_data() {
     fi
 }
 
-# Function to handle database reset and sample data
+# Function to handle database setup and sample data
 handle_database_setup() {
     print_header "Database Setup"
 
@@ -178,7 +178,14 @@ handle_database_setup() {
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
             apply_migrations
-            load_sample_data
+            # Prompt before loading sample data even in reset mode
+            print_info "Do you want to load sample data? (y/n)"
+            read -r load_sample_data
+            if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+                load_sample_data
+            else
+                print_info "Skipping sample data loading"
+            fi
             ;;
         "none")
             print_info "Setting up clean database without sample data"
@@ -192,8 +199,16 @@ handle_database_setup() {
             
             # Check if tables exist but are empty
             if docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} -t -c "SELECT EXISTS (SELECT FROM classes)" | grep -q "f"; then
-                print_info "Tables exist but are empty. Loading sample data..."
-                load_sample_data
+                print_info "Tables exist but are empty."
+                # Prompt before loading sample data
+                print_info "Do you want to load sample data? (y/n)"
+                read -r load_sample_data
+                if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+                    print_info "Loading sample data..."
+                    load_sample_data
+                else
+                    print_info "Skipping sample data loading"
+                fi
             fi
             ;;
     esac
@@ -226,10 +241,14 @@ verify_migrations() {
         read -r load_sample_data
         if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
             print_info "Loading sample data..."
-            if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < ./migrations/000004_sample_data.sql; then
-                print_error "Failed to load sample data"
+            if [ -f "./migrations/000004_sample_data.sql" ]; then
+                if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < "./migrations/000004_sample_data.sql"; then
+                    print_error "Failed to load sample data"
+                else
+                    print_success "Sample data loaded successfully"
+                fi
             else
-                print_success "Sample data loaded successfully"
+                print_warning "Sample data file not found at ./migrations/000004_sample_data.sql"
             fi
         fi
         
@@ -307,7 +326,7 @@ wait_for_database() {
 
 # Function to reset database and load sample data
 reset_database_with_sample_data() {
-    print_info "Resetting database and loading sample data..."
+    print_info "Resetting database..."
     
     # Stop containers if running
     docker-compose down postgres &> /dev/null || true
@@ -343,14 +362,8 @@ reset_database_with_sample_data() {
         done
     fi
     
-    # Apply sample data
-    print_info "Loading sample data..."
-    if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < ./migrations/000004_sample_data.sql; then
-        print_error "Failed to load sample data"
-        exit 1
-    fi
-    
-    print_success "Database reset and sample data loaded successfully"
+    # Sample data will be loaded after this function returns, with a prompt in handle_database_setup
+    print_success "Database reset successfully"
 }
 
 # Function to reset database without sample data

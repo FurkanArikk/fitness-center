@@ -143,13 +143,60 @@ apply_migrations() {
     print_header "Applying Database Migrations"
 
     for migration in ./migrations/*.up.sql; do
-        print_info "Applying migration: $(basename "$migration")"
-        if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < "$migration"; then
-            print_error "Failed to apply migration: $(basename "$migration")"
-            exit 1
+        # Skip sample data migration files
+        if [[ "$migration" != *"sample_data"* && "$migration" != *"reset_schema_migrations"* ]]; then
+            print_info "Applying migration: $(basename "$migration")"
+            if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < "$migration"; then
+                print_error "Failed to apply migration: $(basename "$migration")"
+                exit 1
+            fi
+            print_success "Successfully applied migration: $(basename "$migration")"
         fi
-        print_success "Successfully applied migration: $(basename "$migration")"
     done
+}
+
+# Function to verify if migrations have been properly applied
+verify_migrations() {
+    print_header "Verifying Database Migrations"
+    
+    # Check if the facilities table exists
+    print_info "Checking if database tables exist..."
+    if ! docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'facilities')" | grep -q "t"; then
+        print_warning "Database tables are missing. Applying migrations now..."
+        
+        # Apply migrations
+        print_info "Applying database schema migrations..."
+        for migration in ./migrations/*.up.sql; do
+            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* ]]; then
+                print_info "Applying migration: $(basename "$migration")"
+                if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < "$migration"; then
+                    print_error "Failed to apply migration: $(basename "$migration")"
+                    exit 1
+                fi
+                print_success "Successfully applied migration: $(basename "$migration")"
+            fi
+        done
+        
+        # Ask if sample data should be loaded
+        print_info "Do you want to load sample data? (y/n)"
+        read -r load_sample_data
+        if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+            print_info "Loading sample data..."
+            if [ -f "./migrations/000004_sample_data.up.sql" ]; then
+                if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < "./migrations/000004_sample_data.up.sql"; then
+                    print_error "Failed to load sample data"
+                else
+                    print_success "Sample data loaded successfully"
+                fi
+            else
+                print_warning "Sample data file not found at ./migrations/000004_sample_data.up.sql"
+            fi
+        fi
+        
+        print_success "Migrations have been applied"
+    else
+        print_success "Database tables exist. No migration needed."
+    fi
 }
 
 # Function to load sample data
@@ -168,7 +215,7 @@ load_sample_data() {
     fi
 }
 
-# Function to handle database reset and sample data
+# Function to handle database setup
 handle_database_setup() {
     print_header "Database Setup"
 
@@ -178,7 +225,15 @@ handle_database_setup() {
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
             apply_migrations
-            load_sample_data
+            
+            # Always prompt before loading sample data
+            print_info "Do you want to load sample data? (y/n)"
+            read -r load_sample_data
+            if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+                load_sample_data
+            else
+                print_info "Skipping sample data loading"
+            fi
             ;;
         "none")
             print_info "Setting up clean database without sample data"
@@ -192,8 +247,16 @@ handle_database_setup() {
             
             # Check if tables exist but are empty
             if docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} -t -c "SELECT EXISTS (SELECT FROM facilities)" | grep -q "f"; then
-                print_info "Tables exist but are empty. Loading sample data..."
-                load_sample_data
+                print_info "Tables exist but are empty."
+                # Prompt before loading sample data
+                print_info "Do you want to load sample data? (y/n)"
+                read -r load_sample_data
+                if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+                    print_info "Loading sample data..."
+                    load_sample_data
+                else
+                    print_info "Skipping sample data loading"
+                fi
             fi
             ;;
     esac
@@ -267,7 +330,7 @@ wait_for_database() {
 
 # Function to reset database and load sample data
 reset_database_with_sample_data() {
-    print_info "Resetting database and loading sample data..."
+    print_info "Resetting database..."
     
     # Stop containers if running
     docker-compose down postgres &> /dev/null || true
@@ -303,14 +366,8 @@ reset_database_with_sample_data() {
         done
     fi
     
-    # Apply sample data
-    print_info "Loading sample data..."
-    if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < ./migrations/000004_sample_data.up.sql; then
-        print_error "Failed to load sample data"
-        exit 1
-    fi
-    
-    print_success "Database reset and sample data loaded successfully"
+    # Sample data will be loaded later after prompting the user
+    print_success "Database reset successfully"
 }
 
 # Function to reset database without sample data
