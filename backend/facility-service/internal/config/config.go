@@ -78,7 +78,8 @@ func LoadConfig() (*Config, error) {
 // findServiceEnvFile looks for the service-specific .env file
 func findServiceEnvFile() string {
 	// Check for service-specific .env file at the exact location
-	serviceEnvPath := "/home/furkan/work/fitness-center/backend/facility-service/.env"
+	// Construct the relative path to the service-specific .env file
+	serviceEnvPath := filepath.Join("backend", "facility-service", ".env")
 	if _, err := os.Stat(serviceEnvPath); err == nil {
 		return serviceEnvPath
 	}
