@@ -152,6 +152,22 @@ apply_migrations() {
     done
 }
 
+# Function to load sample data
+load_sample_data() {
+    print_header "Loading Sample Data"
+    
+    print_info "Loading sample data into database..."
+    if [ -f "./migrations/000004_sample_data.sql" ]; then
+        if ! docker exec -i ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} < ./migrations/000004_sample_data.sql; then
+            print_error "Failed to load sample data"
+            exit 1
+        fi
+        print_success "Sample data loaded successfully"
+    else
+        print_warning "Sample data file not found at ./migrations/000004_sample_data.sql"
+    fi
+}
+
 # Function to handle database reset and sample data
 handle_database_setup() {
     print_header "Database Setup"
@@ -162,6 +178,7 @@ handle_database_setup() {
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
             apply_migrations
+            load_sample_data
             ;;
         "none")
             print_info "Setting up clean database without sample data"
@@ -172,6 +189,12 @@ handle_database_setup() {
             print_info "Keeping existing database data"
             ensure_database_running
             apply_migrations
+            
+            # Check if tables exist but are empty
+            if docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U ${DB_USER:-fitness_user} -d ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db} -t -c "SELECT EXISTS (SELECT FROM facilities)" | grep -q "f"; then
+                print_info "Tables exist but are empty. Loading sample data..."
+                load_sample_data
+            fi
             ;;
     esac
 }

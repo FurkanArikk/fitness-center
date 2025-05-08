@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/facility-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"
@@ -20,6 +20,20 @@ DB_NAME=${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
 # Export PGPASSWORD to avoid password prompt
 export PGPASSWORD=$DB_PASSWORD
 
+# First, check if we can connect to PostgreSQL at all - this is the basic check
+if ! docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U $DB_USER -d $DB_NAME -c "SELECT 1" > /dev/null 2>&1; then
+    echo "ERROR: Cannot connect to PostgreSQL database at $DB_HOST:$DB_PORT"
+    unset PGPASSWORD
+    exit 1
+fi
+
+# If no arguments, only check for basic connectivity
+if [ "$1" == "--connect-only" ]; then
+    echo "Database connection successful! PostgreSQL is accepting connections."
+    unset PGPASSWORD
+    exit 0
+fi
+
 # Verify database structure for fitness_facility_db
 echo "Verifying database structure for ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}..."
 
@@ -32,7 +46,7 @@ required_tables=("equipment" "facilities" "attendance")
 missing_tables=0
 
 for table in "${required_tables[@]}"; do
-    if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
+    if ! docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
         echo "WARNING: Required table '$table' is missing"
         missing_tables=$((missing_tables + 1))
     else
@@ -48,12 +62,12 @@ fi
 
 # Show all tables in the database
 echo -e "\nAll tables in database:"
-psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "\dt"
+docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U $DB_USER -d $DB_NAME -c "\dt"
 
 # Show table counts if tables exist
 if [ $missing_tables -lt 3 ]; then
     echo -e "\nCounting records in tables:"
-    psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
+    docker exec ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db} psql -U $DB_USER -d $DB_NAME -c "
     SELECT 'equipment' as table_name, COUNT(*) FROM equipment UNION ALL
     SELECT 'facilities', COUNT(*) FROM facilities UNION ALL
     SELECT 'attendance', COUNT(*) FROM attendance

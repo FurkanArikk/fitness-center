@@ -4,7 +4,7 @@
 # Usage: ./scripts/docker-db.sh [start|stop|restart|status|logs|reset|shell|debug]
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/facility-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"
@@ -26,7 +26,8 @@ if ! docker info > /dev/null 2>&1; then
 fi
 
 # Set container and DB parameters from environment variables with defaults
-CONTAINER_NAME="${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db}"
+# This is critical - make sure it matches docker-compose.yml!
+CONTAINER_NAME="facility-service-fitness_facility_db"
 DB_PORT=${FACILITY_SERVICE_DB_PORT:-5435}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
@@ -51,9 +52,14 @@ start_db() {
     echo "Starting PostgreSQL container..."
     
     # First check if container already exists but is stopped
-    if docker ps -a --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
+    if docker ps -a --format '{{.Names}}' | grep -q "^${CONTAINER_NAME}$"; then
         echo -e "${YELLOW}Container exists but is not running. Starting existing container...${NC}"
-        docker start "$CONTAINER_NAME"
+        if ! docker start $CONTAINER_NAME 2>/dev/null; then
+            echo -e "${RED}Error starting existing container. The container might be corrupted.${NC}"
+            echo -e "${YELLOW}Removing corrupted container and creating a new one...${NC}"
+            docker rm $CONTAINER_NAME 2>/dev/null || true
+            docker-compose up -d postgres
+        fi
     else
         echo "Creating and starting new container..."
         docker-compose up -d postgres
@@ -66,15 +72,15 @@ start_db() {
     # Check if container is running
     if ! docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
         echo -e "${RED}Error: Container failed to start. Checking logs...${NC}"
-        docker logs "$CONTAINER_NAME"
+        docker logs $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
         echo -e "${RED}Container might have failed during initialization. See logs above.${NC}"
         exit 1
     fi
     
-    # Try to connect to PostgreSQL up to 5 times
-    for i in {1..5}; do
+    # Try to connect to PostgreSQL up to 30 times (increased from 10)
+    for i in {1..30}; do
         echo "Attempt $i: Checking if PostgreSQL is ready..."
-        if docker exec "$CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; then
+        if docker exec $CONTAINER_NAME pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
             echo -e "${GREEN}PostgreSQL is running and ready!${NC}"
             echo "You can connect with:"
             echo "  ./scripts/db-connect.sh"
@@ -88,13 +94,14 @@ start_db() {
     
     echo -e "${RED}Error: PostgreSQL container is running but PostgreSQL server failed to start or initialize properly.${NC}"
     echo "Displaying container logs:"
-    docker logs "$CONTAINER_NAME"
+    docker logs $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
+    echo -e "${YELLOW}Try running: ./scripts/docker-db.sh reset to completely rebuild the container${NC}"
     exit 1
 }
 
 stop_db() {
     echo "Stopping PostgreSQL container..."
-    docker-compose stop postgres
+    docker stop $CONTAINER_NAME 2>/dev/null || echo "Container is not running"
     echo "PostgreSQL container stopped."
 }
 
@@ -105,25 +112,30 @@ restart_db() {
 
 status_db() {
     echo "PostgreSQL container status:"
-    docker-compose ps postgres
-    
-    # Add more detailed status info
     if docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
         echo -e "\n${GREEN}Container is running.${NC}"
+        echo "Container ID: $(docker ps -q -f "name=$CONTAINER_NAME")"
+        echo "Container Status: $(docker inspect -f '{{.State.Status}}' $CONTAINER_NAME)"
         echo "Checking PostgreSQL server status inside container..."
-        if docker exec "$CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; then
+        if docker exec $CONTAINER_NAME pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
             echo -e "${GREEN}PostgreSQL server is running properly.${NC}"
         else
             echo -e "${RED}PostgreSQL server is not responding inside the container.${NC}"
         fi
     else
         echo -e "\n${RED}Container is not running.${NC}"
+        # Check if it exists but is stopped
+        if docker ps -a --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
+            echo "Container exists but is stopped."
+        else
+            echo "Container does not exist."
+        fi
     fi
 }
 
 logs_db() {
     echo "PostgreSQL container logs:"
-    docker-compose logs postgres
+    docker logs $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
 }
 
 debug_db() {
@@ -137,19 +149,19 @@ debug_db() {
     
     # Check container state
     echo -e "\n${YELLOW}Container State:${NC}"
-    docker inspect --format='{{.State.Status}}' "$CONTAINER_NAME"
+    docker inspect --format='{{.State.Status}}' $CONTAINER_NAME
     
     # Check if container is running
     if ! docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
         echo -e "${RED}Container exists but is not running.${NC}"
         echo -e "\n${YELLOW}Container Exit Code:${NC}"
-        docker inspect --format='{{.State.ExitCode}}' "$CONTAINER_NAME"
+        docker inspect --format='{{.State.ExitCode}}' $CONTAINER_NAME
         
         echo -e "\n${YELLOW}Container Error:${NC}"
-        docker inspect --format='{{.State.Error}}' "$CONTAINER_NAME"
+        docker inspect --format='{{.State.Error}}' $CONTAINER_NAME
         
         echo -e "\n${YELLOW}Last 50 lines of container logs:${NC}"
-        docker logs --tail 50 "$CONTAINER_NAME"
+        docker logs --tail 50 $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
         
         echo -e "\n${YELLOW}Possible issues:${NC}"
         echo "1. Permission problems with mounted volumes"
@@ -162,7 +174,7 @@ debug_db() {
         
         # Check PostgreSQL server status
         echo -e "\n${YELLOW}PostgreSQL Server Status:${NC}"
-        if docker exec "$CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; then
+        if docker exec $CONTAINER_NAME pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
             echo -e "${GREEN}PostgreSQL server is running and accepting connections.${NC}"
         else
             echo -e "${RED}PostgreSQL server is not responding properly.${NC}"
@@ -170,7 +182,21 @@ debug_db() {
         
         # Show PostgreSQL logs from inside container
         echo -e "\n${YELLOW}PostgreSQL Server Logs:${NC}"
-        docker exec "$CONTAINER_NAME" bash -c "cat /var/log/postgresql/postgresql*.log 2>/dev/null || echo 'No PostgreSQL logs found'"
+        docker exec $CONTAINER_NAME bash -c "cat /var/lib/postgresql/data/logs/* 2>/dev/null || echo 'No PostgreSQL logs found'"
+        
+        # Check port binding
+        echo -e "\n${YELLOW}Port Binding:${NC}"
+        docker port $CONTAINER_NAME
+        
+        # Check if the port is actually in use
+        echo -e "\n${YELLOW}Port Usage on Host:${NC}"
+        if command -v ss &> /dev/null; then
+            ss -tulpn | grep ":$DB_PORT" || echo "Port $DB_PORT doesn't appear to be in use"
+        elif command -v netstat &> /dev/null; then
+            netstat -tulpn | grep ":$DB_PORT" || echo "Port $DB_PORT doesn't appear to be in use"
+        else
+            echo "Cannot check port usage: neither ss nor netstat command is available"
+        fi
     fi
 }
 
@@ -179,13 +205,9 @@ reset_db() {
     read -p "Are you sure you want to continue? (y/n): " confirm
     if [[ $confirm == [yY] || $confirm == [yY][eE][sS] ]]; then
         echo "Stopping and removing PostgreSQL container and volume..."
-        # Use docker-compose down with -v flag to ensure volumes are removed
-        docker-compose down -v --remove-orphans
-        
-        # For extra safety, remove any dangling container with the same name
-        if docker ps -a | grep -q "$CONTAINER_NAME"; then
-            docker rm -f "$CONTAINER_NAME"
-        fi
+        docker stop $CONTAINER_NAME 2>/dev/null || true
+        docker rm $CONTAINER_NAME 2>/dev/null || true
+        docker volume rm ${CONTAINER_NAME}_data 2>/dev/null || true
         
         echo "Starting fresh PostgreSQL container..."
         docker-compose up -d postgres
@@ -197,14 +219,14 @@ reset_db() {
         # Check if container is running
         if ! docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
             echo -e "${RED}Error: Container failed to start after reset. Checking logs...${NC}"
-            docker logs "$CONTAINER_NAME"
+            docker logs $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
             exit 1
         fi
         
-        # Try to connect to PostgreSQL up to 5 times
-        for i in {1..5}; do
+        # Try to connect to PostgreSQL up to 20 times
+        for i in {1..20}; do
             echo "Attempt $i: Checking if PostgreSQL is ready..."
-            if docker exec "$CONTAINER_NAME" pg_isready -U "$DB_USER" -d "$DB_NAME"; then
+            if docker exec $CONTAINER_NAME pg_isready -U $DB_USER -d $DB_NAME 2>/dev/null; then
                 echo -e "${GREEN}Database reset complete and PostgreSQL is ready!${NC}"
                 return 0
             fi
@@ -213,28 +235,21 @@ reset_db() {
         done
         
         echo -e "${RED}Error: Container started but PostgreSQL failed to initialize properly.${NC}"
-        docker logs "$CONTAINER_NAME"
+        docker logs $CONTAINER_NAME 2>/dev/null || echo "Cannot fetch logs: Container may not exist"
     else
         echo "Database reset cancelled."
     fi
 }
 
 shell_db() {
-    echo "Opening a shell in the PostgreSQL container..."
-    if ! docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
-        echo -e "${RED}Error: Container is not running. Start it first.${NC}"
+    echo "Opening shell in PostgreSQL container..."
+    if docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
+        docker exec -it $CONTAINER_NAME bash
+    else
+        echo -e "${RED}Container is not running. Start it first.${NC}"
+        echo "Try: ./scripts/docker-db.sh start"
         exit 1
     fi
-    docker-compose exec postgres bash
-}
-
-psql_db() {
-    echo "Opening psql in the PostgreSQL container..."
-    if ! docker ps --format '{{.Names}}' | grep -q "$CONTAINER_NAME"; then
-        echo -e "${RED}Error: Container is not running. Start it first.${NC}"
-        exit 1
-    fi
-    docker-compose exec postgres psql -U "$DB_USER" -d "$DB_NAME"
 }
 
 # Process command
@@ -263,11 +278,8 @@ case "$1" in
     shell)
         shell_db
         ;;
-    psql)
-        psql_db
-        ;;
     *)
-        echo "Usage: $0 [start|stop|restart|status|logs|debug|reset|shell|psql]"
+        echo "Usage: $0 [start|stop|restart|status|logs|debug|reset|shell]"
         echo ""
         echo "Commands:"
         echo "  start   - Start the PostgreSQL container"
@@ -277,8 +289,7 @@ case "$1" in
         echo "  logs    - Show the container logs"
         echo "  debug   - Run diagnostic checks on the container"
         echo "  reset   - Reset the database (destroy and recreate)"
-        echo "  shell   - Open a bash shell in the container"
-        echo "  psql    - Open a PostgreSQL shell in the container"
+        echo "  shell   - Open a shell in the container"
         echo ""
         exit 1
         ;;
