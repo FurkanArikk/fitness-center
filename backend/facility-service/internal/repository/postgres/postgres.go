@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -39,6 +40,11 @@ func NewPostgresRepository(connectionString string) (repository.Repository, erro
 	repo.attendanceRepo = NewAttendanceRepository(db)
 
 	return repo, nil
+}
+
+// Ping checks if the database connection is active
+func (r *PostgresRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
 }
 
 // Equipment returns the equipment repository

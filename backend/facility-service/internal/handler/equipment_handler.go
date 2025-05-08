@@ -5,17 +5,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateEquipment handles equipment creation
 func (h *Handler) CreateEquipment(c *gin.Context) {
-	var equipment model.Equipment
-	if err := c.ShouldBindJSON(&equipment); err != nil {
+	var equipmentReq dto.EquipmentCreateRequest
+	if err := c.ShouldBindJSON(&equipmentReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Convert DTO to model
+	equipment := equipmentReq.ToModel()
 
 	createdEquipment, err := h.repo.Equipment().Create(c.Request.Context(), &equipment)
 	if err != nil {
@@ -23,7 +26,9 @@ func (h *Handler) CreateEquipment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, createdEquipment)
+	// Convert model to response DTO
+	response := dto.EquipmentResponseFromModel(*createdEquipment)
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetEquipment retrieves equipment by ID
@@ -40,7 +45,9 @@ func (h *Handler) GetEquipment(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, equipment)
+	// Convert model to response DTO
+	response := dto.EquipmentResponseFromModel(*equipment)
+	c.JSON(http.StatusOK, response)
 }
 
 // UpdateEquipment handles equipment update
@@ -51,20 +58,25 @@ func (h *Handler) UpdateEquipment(c *gin.Context) {
 		return
 	}
 
-	var equipment model.Equipment
-	if err := c.ShouldBindJSON(&equipment); err != nil {
+	var equipmentReq dto.EquipmentUpdateRequest
+	if err := c.ShouldBindJSON(&equipmentReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Convert DTO to model
+	equipment := equipmentReq.ToModel()
 	equipment.EquipmentID = id
+
 	updatedEquipment, err := h.repo.Equipment().Update(c.Request.Context(), &equipment)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedEquipment)
+	// Convert model to response DTO
+	response := dto.EquipmentResponseFromModel(*updatedEquipment)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteEquipment handles equipment deletion
@@ -101,8 +113,11 @@ func (h *Handler) ListEquipment(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.EquipmentResponseListFromModel(equipment)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       equipment,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,

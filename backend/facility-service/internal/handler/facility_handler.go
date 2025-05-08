@@ -4,17 +4,20 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateFacility handles facility creation
 func (h *Handler) CreateFacility(c *gin.Context) {
-	var facility model.Facility
-	if err := c.ShouldBindJSON(&facility); err != nil {
+	var facilityReq dto.FacilityCreateRequest
+	if err := c.ShouldBindJSON(&facilityReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Convert DTO to model
+	facility := facilityReq.ToModel()
 
 	createdFacility, err := h.repo.Facility().Create(c.Request.Context(), &facility)
 	if err != nil {
@@ -22,7 +25,9 @@ func (h *Handler) CreateFacility(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, createdFacility)
+	// Convert model to response DTO
+	response := dto.FacilityResponseFromModel(*createdFacility)
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetFacility retrieves facility by ID
@@ -39,7 +44,9 @@ func (h *Handler) GetFacility(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, facility)
+	// Convert model to response DTO
+	response := dto.FacilityResponseFromModel(*facility)
+	c.JSON(http.StatusOK, response)
 }
 
 // UpdateFacility handles facility update
@@ -50,20 +57,25 @@ func (h *Handler) UpdateFacility(c *gin.Context) {
 		return
 	}
 
-	var facility model.Facility
-	if err := c.ShouldBindJSON(&facility); err != nil {
+	var facilityReq dto.FacilityUpdateRequest
+	if err := c.ShouldBindJSON(&facilityReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Convert DTO to model
+	facility := facilityReq.ToModel()
 	facility.FacilityID = id
+
 	updatedFacility, err := h.repo.Facility().Update(c.Request.Context(), &facility)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedFacility)
+	// Convert model to response DTO
+	response := dto.FacilityResponseFromModel(*updatedFacility)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteFacility handles facility deletion
@@ -100,8 +112,11 @@ func (h *Handler) ListFacilities(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.FacilityResponseListFromModel(facilities)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       facilities,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
