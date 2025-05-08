@@ -16,7 +16,7 @@ services:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db}"]
-      interval: 10s
+      interval: 180s
       timeout: 5s
       retries: 5
       start_period: 10s

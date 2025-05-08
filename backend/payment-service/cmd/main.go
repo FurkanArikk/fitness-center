@@ -23,7 +23,7 @@ func main() {
 	}
 
 	// Initialize repository
-	repo, err := postgres.NewPostgresRepository(cfg.PostgresConfig.GetConnectionString())
+	repo, err := postgres.NewPostgresRepository(cfg.DB.GetConnectionString())
 	if err != nil {
 		log.Fatalf("Failed to initialize repository: %v", err)
 	}

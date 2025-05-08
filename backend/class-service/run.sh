@@ -156,8 +156,50 @@ handle_database_setup() {
             print_info "Keeping existing database data"
             # Just ensure the database is running
             ensure_database_running
+            # Verify and possibly fix the migrations
+            verify_migrations
             ;;
     esac
+}
+
+# Function to verify if migrations have been properly applied
+verify_migrations() {
+    print_header "Verifying Database Migrations"
+    
+    # Check if the classes table exists
+    print_info "Checking if database tables exist..."
+    if ! docker exec ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'classes')" | grep -q "t"; then
+        print_warning "Database tables are missing. Applying migrations now..."
+        
+        # Apply migrations
+        print_info "Applying database schema migrations..."
+        for migration in ./migrations/*.up.sql; do
+            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* ]]; then
+                print_info "Applying migration: $(basename "$migration")"
+                if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < "$migration"; then
+                    print_error "Failed to apply migration: $(basename "$migration")"
+                    exit 1
+                fi
+                print_success "Successfully applied migration: $(basename "$migration")"
+            fi
+        done
+        
+        # Ask if sample data should be loaded
+        print_info "Do you want to load sample data? (y/n)"
+        read -r load_sample_data
+        if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+            print_info "Loading sample data..."
+            if ! docker exec -i ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db} psql -U ${DB_USER:-fitness_user} -d ${CLASS_SERVICE_DB_NAME:-fitness_class_db} < ./migrations/000004_sample_data.sql; then
+                print_error "Failed to load sample data"
+            else
+                print_success "Sample data loaded successfully"
+            fi
+        fi
+        
+        print_success "Migrations have been applied"
+    else
+        print_success "Database tables exist. No migration needed."
+    fi
 }
 
 # Function to ensure database is running

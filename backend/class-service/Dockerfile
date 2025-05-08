@@ -37,7 +37,7 @@ COPY --from=builder /app/class-service .
 # Copy migrations, configs and scripts
 COPY --from=builder /app/migrations ./migrations
 COPY --from=builder /app/scripts ./scripts
-COPY --from=builder /app/configs ./configs 2>/dev/null || :
+COPY --from=builder /app/configs ./configs
 
 # Copy environment files
 COPY --from=builder /app/.env* ./
