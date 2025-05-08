@@ -138,6 +138,117 @@ ensure_docker_network() {
     fi
 }
 
+# Function to verify if migrations have been properly applied
+verify_migrations() {
+    print_header "Verifying Database Migrations"
+    
+    # Check if the members table exists - do a complete check
+    print_info "Checking if database tables exist..."
+    
+    # Get a list of all tables
+    tables_output=$(docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} -t -c "SELECT tablename FROM pg_tables WHERE schemaname='public'")
+    
+    print_info "Current tables in database:"
+    if [ -z "$tables_output" ]; then
+        print_warning "No tables found in database. Will apply migrations."
+        need_migrations=true
+    else
+        # Show tables for debugging
+        echo "$tables_output" | while read -r table; do
+            if [ ! -z "$table" ]; then
+                echo -e "${GREEN}✓${NC} Found table: $table"
+            fi
+        done
+        
+        # Check specifically for required tables
+        if ! docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = 'members')" | grep -q "t"; then
+            print_warning "Critical table 'members' is missing. Will apply migrations."
+            need_migrations=true
+        else
+            # Check if we have all required tables
+            required_tables=("members" "memberships" "membership_benefits" "member_memberships" "fitness_assessments")
+            missing_tables=0
+            
+            for table in "${required_tables[@]}"; do
+                if ! docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
+                    print_warning "Required table '$table' is missing"
+                    missing_tables=$((missing_tables + 1))
+                fi
+            done
+            
+            if [ $missing_tables -gt 0 ]; then
+                print_warning "$missing_tables required tables are missing. Will apply migrations."
+                need_migrations=true
+            else
+                print_success "All required tables exist. No migration needed."
+                need_migrations=false
+            fi
+        fi
+    fi
+    
+    # Apply migrations if needed
+    if [ "$need_migrations" = true ]; then
+        print_info "Applying migrations to create required tables..."
+        
+        # First attempt to reset the database to ensure a clean state
+        print_info "Resetting database schema to ensure clean state..."
+        if [ -f "./migrations/000_drop_tables.sql" ]; then
+            if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} < "./migrations/000_drop_tables.sql"; then
+                print_warning "Could not drop tables, attempting to create them anyway."
+            else
+                print_success "Tables dropped successfully."
+            fi
+        fi
+        
+        # Apply each migration file in order
+        for migration_file in ./migrations/0*.up.sql; do
+            if [[ -f "$migration_file" && "$migration_file" != *"sample_data.sql"* ]]; then
+                print_info "Applying migration: $(basename "$migration_file")"
+                if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} < "$migration_file"; then
+                    print_error "Failed to apply migration: $(basename "$migration_file")"
+                    # Continue with other migrations
+                    continue
+                fi
+                print_success "Successfully applied: $(basename "$migration_file")"
+            fi
+        done
+        
+        # Verify tables were created
+        print_info "Verifying tables were created..."
+        missing_tables=0
+        for table in "${required_tables[@]}"; do
+            if ! docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} -t -c "SELECT EXISTS(SELECT 1 FROM information_schema.tables WHERE table_name = '$table')" | grep -q "t"; then
+                print_error "Table '$table' still missing after migrations"
+                missing_tables=$((missing_tables + 1))
+            else
+                print_success "Table '$table' created successfully"
+            fi
+        done
+        
+        if [ $missing_tables -gt 0 ]; then
+            print_error "Some tables are still missing. Please check migration files for errors."
+        else
+            print_success "All required tables created successfully"
+        fi
+        
+        # Ask if sample data should be loaded
+        print_info "Do you want to load sample data? (y/n)"
+        read -r load_sample_data
+        if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+            print_info "Loading sample data..."
+            if [ -f "./migrations/002_sample_data.sql" ]; then
+                if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} < "./migrations/002_sample_data.sql"; then
+                    print_error "Failed to load sample data"
+                else
+                    print_success "Sample data loaded successfully"
+                fi
+            else
+                print_warning "Sample data file not found at ./migrations/002_sample_data.sql"
+            fi
+        fi
+    fi
+}
+
 # Function to handle database reset and sample data
 handle_database_setup() {
     print_header "Database Setup"
@@ -247,47 +358,9 @@ reset_database_with_sample_data() {
     print_info "Waiting for database to initialize..."
     wait_for_database
     
-    # Apply migrations
-    print_info "Applying database schema..."
-    if ! docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness_member_db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
-        
-        # Apply migrations via direct connection
-        for migration in ./migrations/*.up.sql ./migrations/001_*.sql; do
-            if [[ -f "$migration" && "$migration" != *"sample_data.sql"* && "$migration" != *"drop_tables.sql"* ]]; then
-                print_info "Applying migration: $(basename "$migration")"
-                if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness-member_db} < "$migration"; then
-                    print_error "Failed to apply migration: $(basename "$migration")"
-                    exit 1
-                fi
-            fi
-        done
-    fi
-    
-    # Apply sample data
-    print_info "Loading sample data..."
-    SAMPLE_DATA_FILE=""
-    
-    # Check for different sample data file patterns
-    if [ -f "./migrations/002_sample_data.sql" ]; then
-        SAMPLE_DATA_FILE="./migrations/002_sample_data.sql"
-    elif [ -f "./migrations/sample_data.sql" ]; then
-        SAMPLE_DATA_FILE="./migrations/sample_data.sql"
-    elif [ -f "./migrations/000004_sample_data.sql" ]; then
-        SAMPLE_DATA_FILE="./migrations/000004_sample_data.sql"
-    elif [ -f "./migrations/000004_sample_data.up.sql" ]; then
-        SAMPLE_DATA_FILE="./migrations/000004_sample_data.up.sql"
-    fi
-    
-    if [ -n "$SAMPLE_DATA_FILE" ]; then
-        if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness-member_db} < "$SAMPLE_DATA_FILE"; then
-            print_error "Failed to load sample data"
-            exit 1
-        fi
-        print_success "Sample data loaded successfully"
-    else
-        print_warning "No sample data file found. Skipping sample data loading."
-    fi
+    # Run the setup script with Docker flag explicitly set
+    print_info "Setting up database schema..."
+    USE_DOCKER=true LOAD_SAMPLE_DATA=true ./scripts/setup-db.sh
     
     print_success "Database reset and sample data loaded successfully"
 }
@@ -313,22 +386,9 @@ reset_database_without_sample_data() {
     print_info "Waiting for database to initialize..."
     wait_for_database
     
-    # Apply migrations
-    print_info "Applying database schema..."
-    if ! docker exec ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness-member-db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
-        
-        # Apply migrations via direct connection
-        for migration in ./migrations/*.up.sql ./migrations/001_*.sql; do
-            if [[ -f "$migration" && "$migration" != *"sample_data.sql"* && "$migration" != *"drop_tables.sql"* ]]; then
-                print_info "Applying migration: $(basename "$migration")"
-                if ! docker exec -i ${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db} psql -U ${DB_USER:-fitness_user} -d ${MEMBER_SERVICE_DB_NAME:-fitness-member-db} < "$migration"; then
-                    print_error "Failed to apply migration: $(basename "$migration")"
-                    exit 1
-                fi
-            fi
-        done
-    fi
+    # Run the setup script with Docker flag explicitly set and no sample data
+    print_info "Setting up database schema without sample data..."
+    USE_DOCKER=true LOAD_SAMPLE_DATA=false ./scripts/setup-db.sh
     
     print_success "Database reset successfully without sample data"
 }
@@ -495,8 +555,8 @@ ensure_docker_network
 # Set up the database
 ensure_database_running
 
-# Check and initialize database schema if needed
-DB_HOST=localhost DB_PORT=${MEMBER_SERVICE_DB_PORT:-5432} DB_USER=${DB_USER:-fitness_user} DB_PASSWORD=${DB_PASSWORD:-admin} ./scripts/verify_db.sh || USE_DOCKER=true LOAD_SAMPLE_DATA=false ./scripts/setup-db.sh
+# Verify migrations
+verify_migrations
 
 # Handle sample data if required
 if [ "$SAMPLE_DATA_OPTION" != "keep" ]; then

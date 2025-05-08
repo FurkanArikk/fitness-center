@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Load environment variables from the service-specific .env file
-SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/member-service/.env"
+SERVICE_ENV_PATH="$(pwd)/.env"
 
 if [ -f "$SERVICE_ENV_PATH" ]; then
     source "$SERVICE_ENV_PATH"
@@ -20,7 +20,21 @@ DB_NAME=${MEMBER_SERVICE_DB_NAME:-fitness_member_db}
 # Export PGPASSWORD to avoid password prompt
 export PGPASSWORD=$DB_PASSWORD
 
-# Verify database structure for fitness_member_db
+# First, check if we can connect to PostgreSQL at all - this is the basic check
+if ! psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "SELECT 1" > /dev/null 2>&1; then
+    echo "ERROR: Cannot connect to PostgreSQL database at $DB_HOST:$DB_PORT"
+    unset PGPASSWORD
+    exit 1
+fi
+
+# If no arguments, only check for basic connectivity
+if [ "$1" == "--connect-only" ]; then
+    echo "Database connection successful! PostgreSQL is accepting connections."
+    unset PGPASSWORD
+    exit 0
+fi
+
+# Now verify database structure if requested
 echo "Verifying database structure for ${MEMBER_SERVICE_DB_NAME:-fitness_member_db}..."
 
 # Connect to the database and list tables
@@ -28,7 +42,7 @@ echo "Connecting to PostgreSQL at $DB_HOST:$DB_PORT..."
 
 # Check if critical tables exist
 echo "Checking if required tables exist..."
-required_tables=("members" "memberships" "membership_types")
+required_tables=("members" "memberships" "membership_benefits")
 missing_tables=0
 
 for table in "${required_tables[@]}"; do
@@ -56,7 +70,7 @@ if [ $missing_tables -lt 3 ]; then
     psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -c "
     SELECT 'members' as table_name, COUNT(*) FROM members UNION ALL
     SELECT 'memberships', COUNT(*) FROM memberships UNION ALL
-    SELECT 'membership_types', COUNT(*) FROM membership_types
+    SELECT 'membership_benefits', COUNT(*) FROM membership_benefits
     ORDER BY table_name;
     " 2>/dev/null || echo "Some tables don't exist yet, skipping count"
 fi
