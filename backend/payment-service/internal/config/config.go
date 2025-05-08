@@ -11,14 +11,20 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds all configuration for the service
+// Config holds the complete application configuration
 type Config struct {
+	ServerHost      string
 	ServerPort      int
-	PostgresConfig  PostgresConfig
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
+	DB              PostgresConfig
+	LogLevel        string
+	JWTSecret       string
 }
 
-// PostgresConfig holds Postgres connection configuration
+// PostgresConfig holds the database connection configuration
 type PostgresConfig struct {
 	Host     string
 	Port     int
@@ -36,27 +42,15 @@ func (c *PostgresConfig) GetConnectionString() string {
 	)
 }
 
-// LoadConfig loads configuration from environment variables
+// LoadConfig loads the application configuration from environment variables
 func LoadConfig() (*Config, error) {
-	// First try to find the service-specific .env file
-	serviceEnvPath := findServiceEnvFile()
-	if serviceEnvPath != "" {
-		log.Printf("Loading environment variables from service-specific file: %s", serviceEnvPath)
-		if err := godotenv.Load(serviceEnvPath); err != nil {
-			log.Printf("Warning: Error loading service-specific .env file: %v", err)
-		}
-	} else {
-		// Fall back to root .env file
-		rootEnvPath := findRootEnvFile()
-		if rootEnvPath != "" {
-			log.Printf("Loading environment variables from root file: %s", rootEnvPath)
-			if err := godotenv.Load(rootEnvPath); err != nil {
-				log.Printf("Warning: Error loading root .env file: %v", err)
-			}
-		} else {
-			log.Printf("No .env file found, using environment variables")
-		}
+	// Load .env file if present
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
 	}
+
+	// Use PAYMENT_SERVICE_HOST with fallback to default 0.0.0.0
+	serverHost := getEnv("PAYMENT_SERVICE_HOST", "0.0.0.0")
 
 	// Use PAYMENT_SERVICE_PORT with fallback to default 8003
 	serverPortStr := getEnv("PAYMENT_SERVICE_PORT", "8003")
@@ -65,8 +59,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("parsing server port: %w", err)
 	}
 
-	// Use PAYMENT_SERVICE_DB_PORT with fallback to default 5434
-	dbPortStr := getEnv("PAYMENT_SERVICE_DB_PORT", "5434")
+	// Use DB_PORT or PAYMENT_SERVICE_DB_PORT with fallback to default 5432
+	dbPortStr := getEnv("DB_PORT", getEnv("PAYMENT_SERVICE_DB_PORT", "5432"))
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
 		return nil, fmt.Errorf("parsing db port: %w", err)
@@ -80,8 +74,9 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
+		ServerHost: serverHost,
 		ServerPort: serverPort,
-		PostgresConfig: PostgresConfig{
+		DB: PostgresConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     dbPort,
 			User:     getEnv("DB_USER", "fitness_user"),

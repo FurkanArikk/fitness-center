@@ -3,13 +3,14 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-service}
+    container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Inside docker network, postgres uses default port
+      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
+      PAYMENT_SERVICE_DB_PORT: 5432  # Also set this explicitly
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
@@ -31,14 +32,14 @@ services:
 
   postgres:
     image: postgres:14
-    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
+    container_name: ${PAYMENT_SERVICE_DB_NAME:-fitness-payment-db}
     environment:
       POSTGRES_USER: ${DB_USER:-fitness_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
       POSTGRES_DB: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
       PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "${PAYMENT_SERVICE_DB_PORT:-5434}:5432"
+      - "${PAYMENT_SERVICE_DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       # Comment out this line to avoid the mount issues in WSL
@@ -47,7 +48,7 @@ services:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
-      interval: 10s
+      interval: 180s
       timeout: 5s
       retries: 5
       start_period: 10s
