@@ -3,7 +3,7 @@ import React from 'react'
 const Info = () => {
   return (
     <div>
-      bu bşr deneme sayfasıdır
+      bu bir deneme sayfasıdır
     </div>
   )
 }
