@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -10,6 +11,11 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/config"
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
+
+// PostgresRepository implements repository.Repository
+type PostgresRepository struct {
+	db *sql.DB
+}
 
 // NewPostgresDB creates a new PostgreSQL database connection
 func NewPostgresDB(cfg config.DatabaseConfig) (*sql.DB, error) {
@@ -34,4 +40,9 @@ func NewRepository(db *sql.DB) *repository.Repository {
 		Schedule: NewScheduleRepository(db),
 		Booking:  NewBookingRepository(db),
 	}
+}
+
+// Ping checks if the database connection is active
+func (r *PostgresRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
 }
