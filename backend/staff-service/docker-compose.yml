@@ -30,7 +30,8 @@ services:
     container_name: fitness-staff-service
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
+      STAFF_SERVICE_DB_PORT: 5432  # Also set this explicitly for Docker network
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       STAFF_SERVICE_DB_NAME: ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}

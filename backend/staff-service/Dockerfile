@@ -34,13 +34,21 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /app/staff-service .
 
-# Copy migrations, configs and scripts
-COPY --from=builder /app/configs ./configs 2>/dev/null || :
-COPY --from=builder /app/migrations ./migrations 2>/dev/null || :
-COPY --from=builder /app/scripts ./scripts 2>/dev/null || :
+# Copy optional directories if they exist - use proper Docker approach
+# Copy configs directory if it exists
+RUN mkdir -p ./configs
+COPY --from=builder /app/configs/ ./configs/
+
+# Copy migrations directory if it exists
+RUN mkdir -p ./migrations
+COPY --from=builder /app/migrations/ ./migrations/
+
+# Copy scripts directory if it exists
+RUN mkdir -p ./scripts
+COPY --from=builder /app/scripts/ ./scripts/
 
 # Make scripts executable if they exist
-RUN if [ -d "./scripts" ]; then chmod +x ./scripts/*.sh; fi
+RUN if [ -d "./scripts" ] && [ "$(ls -A ./scripts)" ]; then chmod +x ./scripts/*.sh 2>/dev/null || true; fi
 
 # Create directory for app user to write to
 RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
