@@ -138,6 +138,35 @@ ensure_docker_network() {
     fi
 }
 
+# Function to apply database migrations
+apply_migrations() {
+    print_header "Applying Database Migrations"
+
+    for migration in ./migrations/*.up.sql; do
+        if [[ "$migration" != *"sample_data"* && "$migration" != *"drop_tables"* ]]; then
+            print_info "Applying migration: $(basename "$migration")"
+            if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < "$migration"; then
+                print_error "Failed to apply migration: $(basename "$migration")"
+                exit 1
+            fi
+            print_success "Successfully applied migration: $(basename "$migration")"
+        fi
+    done
+}
+
+# Function to load sample data
+load_sample_data() {
+    print_header "Loading Sample Data"
+    
+    print_info "Loading sample data into database..."
+    # Use the migrate.sh script for sample data loading to ensure consistency
+    if ! ./scripts/migrate.sh sample; then
+        print_error "Failed to load sample data"
+        exit 1
+    fi
+    print_success "Sample data loaded successfully"
+}
+
 # Function to update Go dependencies
 update_dependencies() {
     print_header "Updating Go Dependencies"
@@ -181,8 +210,35 @@ handle_database_setup() {
             print_info "Keeping existing database data"
             # Just ensure the database is running
             ensure_database_running
+            verify_migrations
             ;;
     esac
+}
+
+# Function to verify if migrations have been properly applied
+verify_migrations() {
+    print_header "Verifying Database Migrations"
+    
+    # Check if the payments table exists
+    print_info "Checking if database tables exist..."
+    if ! docker exec ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'payments')" | grep -q "t"; then
+        print_warning "Database tables are missing. Applying migrations now..."
+        
+        # Apply migrations
+        print_info "Applying database schema migrations..."
+        apply_migrations
+        
+        print_success "Migrations have been applied"
+    else
+        print_success "Database tables exist. No migration needed."
+    fi
+    
+    # Ask if sample data should be loaded regardless of whether tables existed
+    print_info "Do you want to load sample data? (y/n)"
+    read -r load_sample_data
+    if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
+        load_sample_data
+    fi
 }
 
 # Function to ensure database is running
@@ -287,28 +343,10 @@ reset_database_with_sample_data() {
     wait_for_database
     
     # Apply migrations
-    print_info "Applying database schema..."
-    if ! docker exec ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
-        
-        # Apply migrations via direct connection
-        for migration in ./migrations/*.up.sql; do
-            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* ]]; then
-                print_info "Applying migration: $(basename "$migration")"
-                if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < "$migration"; then
-                    print_error "Failed to apply migration: $(basename "$migration")"
-                    exit 1
-                fi
-            fi
-        done
-    fi
+    apply_migrations
     
-    # Apply sample data
-    print_info "Loading sample data..."
-    if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < ./migrations/000004_sample_data.up.sql; then
-        print_error "Failed to load sample data"
-        exit 1
-    fi
+    # Load sample data
+    load_sample_data
     
     print_success "Database reset and sample data loaded successfully"
 }
@@ -335,21 +373,7 @@ reset_database_without_sample_data() {
     wait_for_database
     
     # Apply migrations
-    print_info "Applying database schema..."
-    if ! docker exec ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
-        
-        # Apply migrations via direct connection
-        for migration in ./migrations/*.up.sql; do
-            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* ]]; then
-                print_info "Applying migration: $(basename "$migration")"
-                if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < "$migration"; then
-                    print_error "Failed to apply migration: $(basename "$migration")"
-                    exit 1
-                fi
-            fi
-        done
-    fi
+    apply_migrations
     
     print_success "Database reset successfully without sample data"
 }
