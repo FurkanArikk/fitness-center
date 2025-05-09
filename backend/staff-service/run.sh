@@ -218,9 +218,71 @@ wait_for_database() {
     return 1
 }
 
+# Function to apply database migrations
+apply_migrations() {
+    print_header "Applying Database Migrations"
+
+    for migration in ./migrations/*.up.sql; do
+        # Skip sample data and reset schema migrations during regular migration
+        if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
+            print_info "Applying migration: $(basename "$migration")"
+            if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$migration"; then
+                print_error "Failed to apply migration: $(basename "$migration")"
+                exit 1
+            fi
+            print_success "Successfully applied migration: $(basename "$migration")"
+        fi
+    done
+}
+
+# Function to load sample data
+load_sample_data() {
+    print_header "Loading Sample Data"
+    
+    print_info "Loading sample data into database..."
+    # Try to find sample data file with different possible names
+    local sample_data_file=""
+    for file in "./migrations/002_sample_data.sql" "./migrations/sample_data.sql"; do
+        if [ -f "$file" ]; then
+            sample_data_file="$file"
+            break
+        fi
+    done
+    
+    if [ -n "$sample_data_file" ]; then
+        print_info "Using sample data file: $sample_data_file"
+        if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$sample_data_file"; then
+            print_error "Failed to load sample data"
+            exit 1
+        fi
+        print_success "Sample data loaded successfully"
+    else
+        print_warning "No sample data file found in migrations directory"
+        print_info "Looking for sample files with pattern: *sample*.sql"
+        sample_files=$(find ./migrations -name "*sample*.sql" -type f)
+        if [ -n "$sample_files" ]; then
+            print_info "Found potential sample data files:"
+            echo "$sample_files"
+            print_info "Please choose one to load (enter full path or leave empty to skip):"
+            read -r chosen_file
+            if [ -n "$chosen_file" ] && [ -f "$chosen_file" ]; then
+                if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$chosen_file"; then
+                    print_error "Failed to load sample data"
+                    exit 1
+                fi
+                print_success "Sample data loaded successfully"
+            else
+                print_info "No valid file chosen, skipping sample data"
+            fi
+        else
+            print_warning "No sample data files found"
+        fi
+    fi
+}
+
 # Function to reset database and load sample data
 reset_database_with_sample_data() {
-    print_info "Resetting database and loading sample data..."
+    print_info "Resetting database..."
     
     # Stop containers if running
     docker-compose down postgres &> /dev/null || true
@@ -241,29 +303,10 @@ reset_database_with_sample_data() {
     
     # Apply migrations
     print_info "Applying database schema..."
-    if ! docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
-        
-        # Apply migrations via direct connection
-        for migration in ./migrations/*.up.sql; do
-            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
-                print_info "Applying migration: $(basename "$migration")"
-                if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$migration"; then
-                    print_error "Failed to apply migration: $(basename "$migration")"
-                    exit 1
-                fi
-            fi
-        done
-    fi
+    apply_migrations
     
-    # Apply sample data
-    print_info "Loading sample data..."
-    if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < ./migrations/002_sample_data.sql; then
-        print_error "Failed to load sample data"
-        exit 1
-    fi
-    
-    print_success "Database reset and sample data loaded successfully"
+    # Sample data will be loaded separately after user confirmation
+    print_success "Database reset successfully"
 }
 
 # Function to reset database without sample data
@@ -288,23 +331,97 @@ reset_database_without_sample_data() {
     wait_for_database
     
     # Apply migrations
-    print_info "Applying database schema..."
-    if ! docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} bash -c "cd /docker-entrypoint-initdb.d && for f in *.up.sql; do [ -f \"\$f\" ] && psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -f \"\$f\" || true; done" &> /dev/null; then
-        print_warning "Could not apply migrations automatically. Trying direct method..."
+    apply_migrations
+    
+    print_success "Database reset successfully without sample data"
+}
+
+# Function to verify if migrations have been properly applied
+verify_migrations() {
+    print_header "Verifying Database Migrations"
+    
+    # Check if the staff table exists
+    print_info "Checking if database tables exist..."
+    if ! docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'staff')" | grep -q "t"; then
+        print_warning "Database tables are missing. Applying migrations now..."
         
-        # Apply migrations via direct connection
+        # Apply migrations
+        print_info "Applying database schema migrations..."
         for migration in ./migrations/*.up.sql; do
-            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
+            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
                 print_info "Applying migration: $(basename "$migration")"
                 if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$migration"; then
                     print_error "Failed to apply migration: $(basename "$migration")"
                     exit 1
                 fi
+                print_success "Successfully applied migration: $(basename "$migration")"
             fi
         done
+        
+        print_success "Migrations have been applied"
+    else
+        print_success "Database tables exist."
     fi
     
-    print_success "Database reset successfully without sample data"
+    # Check if tables are empty
+    print_info "Checking if tables contain data..."
+    local staff_count=$(docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -t -c "SELECT COUNT(*) FROM staff" | xargs)
+    
+    if [ "$staff_count" = "0" ]; then
+        print_warning "Tables are empty. No data available."
+        
+        # Ask if sample data should be loaded
+        print_info "Do you want to load sample data? (y/n)"
+        read -r load_sample_data_response
+        if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+            print_info "Loading sample data..."
+            if [ -f "./migrations/002_sample_data.sql" ]; then
+                if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "./migrations/002_sample_data.sql"; then
+                    print_error "Failed to load sample data"
+                else
+                    print_success "Sample data loaded successfully"
+                fi
+            else
+                print_warning "Sample data file not found at ./migrations/002_sample_data.sql"
+            fi
+        else
+            print_info "Skipping sample data loading"
+        fi
+    else
+        print_success "Tables contain data. Found $staff_count staff records."
+    fi
+}
+
+# Function to check if tables are empty and offer to load sample data
+check_empty_tables_and_offer_sample_data() {
+    print_header "Checking Database Content"
+    
+    # Check if tables are empty
+    print_info "Checking if tables contain data..."
+    local staff_count=$(docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -t -c "SELECT COUNT(*) FROM staff" | xargs)
+    
+    if [ "$staff_count" = "0" ]; then
+        print_warning "Tables are empty. No data available."
+        
+        # Ask if sample data should be loaded
+        print_info "Do you want to load sample data? (y/n)"
+        read -r load_sample_data_response
+        if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+            # Use the migrate.sh script if available
+            if [ -f "./scripts/migrate.sh" ]; then
+                print_info "Running migrate.sh script to load sample data..."
+                ./scripts/migrate.sh sample
+            else
+                # Fallback to direct loading
+                print_info "Loading sample data directly..."
+                load_sample_data
+            fi
+        else
+            print_info "Skipping sample data loading"
+        fi
+    else
+        print_success "Tables contain data. Found $staff_count staff records."
+    fi
 }
 
 # Function to handle database setup
@@ -316,6 +433,14 @@ handle_database_setup() {
         "reset")
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
+            # Prompt before loading sample data even in reset mode
+            print_info "Do you want to load sample data? (y/n)"
+            read -r load_sample_data_response
+            if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+                load_sample_data
+            else
+                print_info "Skipping sample data loading"
+            fi
             ;;
         "none")
             print_info "Setting up clean database without sample data"
@@ -325,6 +450,8 @@ handle_database_setup() {
             print_info "Keeping existing database data"
             # Just ensure the database is running
             ensure_database_running
+            # Apply migrations to ensure schema is up to date
+            apply_migrations
             ;;
     esac
 }
@@ -441,17 +568,16 @@ display_sample_data_instructions() {
     echo -e "${MAGENTA}If you want to load sample data later, follow these steps:${NC}"
     echo -e ""
     echo -e "${CYAN}1. Make sure the database is running:${NC}"
-    echo -e "   ${YELLOW}./scripts/docker-db.sh status${NC}"
+    echo -e "   ${YELLOW}docker-compose ps postgres${NC}"
     echo -e ""
     echo -e "${CYAN}2. Connect to the database and execute the sample data SQL file:${NC}"
+    echo -e "   ${YELLOW}docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < ./migrations/002_sample_data.sql${NC}"
+    echo -e ""
+    echo -e "${CYAN}3. Or use db-connect script if it exists:${NC}"
     echo -e "   ${YELLOW}./scripts/db-connect.sh -f ./migrations/002_sample_data.sql${NC}"
     echo -e ""
-    echo -e "${CYAN}3. Or reset the database completely and start fresh:${NC}"
-    echo -e "   ${YELLOW}./scripts/docker-db.sh reset${NC}"
-    echo -e "   ${YELLOW}USE_DOCKER=true ./scripts/setup-db.sh${NC}"
-    echo -e ""
     echo -e "${CYAN}4. Verify the data was loaded:${NC}"
-    echo -e "   ${YELLOW}./scripts/verify_db.sh${NC}"
+    echo -e "   ${YELLOW}docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -c \"SELECT COUNT(*) FROM staff\"${NC}"
     echo -e ""
 }
 
@@ -477,6 +603,9 @@ ensure_docker_network
 
 # Set up the database
 handle_database_setup
+
+# Verify migrations have been properly applied and check if tables are populated
+verify_migrations
 
 # Show manual sample data loading instructions
 display_sample_data_instructions
