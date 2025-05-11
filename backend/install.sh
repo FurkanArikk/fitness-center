@@ -199,19 +199,22 @@ show_container_status() {
 # Function to display access instructions
 show_access_instructions() {
     print_header "Access Information"
-    
+
     echo -e "${GREEN}All services started!${NC}"
     echo
-    echo -e "${CYAN}Direct Service Access:${NC}"
-    echo -e "  ${YELLOW}Members API: http://localhost:8001/api/v1/members${NC}"
-    echo -e "  ${YELLOW}Staff API: http://localhost:8002/api/v1/staff${NC}"
-    echo -e "  ${YELLOW}Payment API: http://localhost:8003/api/v1/payments${NC}"
-    echo -e "  ${YELLOW}Facility API: http://localhost:8004/api/v1/facilities${NC}"
-    echo -e "  ${YELLOW}Class API: http://localhost:8005/api/v1/classes${NC}"
+    echo -e "${CYAN}API Gateway (Traefik):${NC}"
+    echo -e "  ${YELLOW}Traefik Dashboard: http://localhost:8080/dashboard/#/${NC}"
+    echo -e "  ${YELLOW}Members API: http://localhost/api/v1/members${NC}"
+    echo -e "  ${YELLOW}Staff API: http://localhost/api/v1/staff${NC}"
+    echo -e "  ${YELLOW}Payment API: http://localhost/api/v1/payments${NC}"
+    echo -e "  ${YELLOW}Facility API: http://localhost/api/v1/facilities${NC}"
+    echo -e "  ${YELLOW}Class API: http://localhost/api/v1/classes${NC}"
     echo
     echo -e "${CYAN}To stop services:${NC}"
+    echo -e "  ${YELLOW}Run ./stop.sh script${NC}"
+    echo
+    echo -e "${CYAN}To stop individual service (if needed):${NC}"
     echo -e "  ${YELLOW}cd <service-directory> && docker-compose down${NC}"
-    echo -e "  ${YELLOW}or to stop all services: ./stop.sh${NC}"
 }
 
 # Function to calculate and display elapsed time
@@ -238,8 +241,16 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 echo -e "\${MAGENTA}==========================================${NC}"
-echo -e "\${MAGENTA}      STOPPING ALL SERVICES             ${NC}"
+echo -e "\${MAGENTA}      STOPPING ALL SERVICES & TRAEFIK      ${NC}"
 echo -e "\${MAGENTA}==========================================${NC}"
+
+# Stop Traefik (assuming it's in the main docker-compose.yml)
+echo -e "\${BLUE}===${NC} \${CYAN}Stopping Traefik API Gateway${NC} \${BLUE}===${NC}"
+if docker-compose -f docker-compose.yml down &> /dev/null; then
+    echo -e "\${GREEN}✓ Traefik API Gateway stopped successfully${NC}"
+else
+    echo -e "\${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker-compose.yml${NC}"
+fi
 
 services=("member-service" "staff-service" "payment-service" "facility-service" "class-service")
 
@@ -258,11 +269,11 @@ for service in "\${services[@]}"; do
     fi
 done
 
-echo -e "\${GREEN}All services stopped${NC}"
+echo -e "\${GREEN}All services and Traefik stopped${NC}"
 EOF
-    
+
     chmod +x "$(pwd)/stop.sh"
-    print_success "stop.sh script created"
+    print_success "stop.sh script updated for Traefik"
 }
 
 # MAIN PROGRAM STARTS HERE
@@ -284,6 +295,16 @@ ensure_docker_network
 
 # Start services
 if start_services; then
+    # Start Traefik separately
+    print_header "Starting Traefik API Gateway"
+    if docker-compose -f docker-compose.yml up -d traefik &> /dev/null; then
+        print_success "Traefik API Gateway started successfully"
+    else
+        print_error "Failed to start Traefik API Gateway. Check docker-compose.yml in the main directory."
+        # Optionally, decide if you want to exit if Traefik fails
+        # exit 1 
+    fi
+
     # Show container status
     show_container_status
     

@@ -36,8 +36,12 @@ services:
       MEMBER_SERVICE_DB_NAME: ${MEMBER_SERVICE_DB_NAME:-fitness_member_db}
       MEMBER_SERVICE_PORT: ${MEMBER_SERVICE_PORT:-8001}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
-    ports:
-      - "${MEMBER_SERVICE_PORT:-8001}:8001"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.member-service.rule=PathPrefix(`/api/v1/members`)"
+      - "traefik.http.routers.member-service.entrypoints=web"
+      - "traefik.http.services.member-service.loadbalancer.server.port=8001"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:
       postgres:
         condition: service_healthy

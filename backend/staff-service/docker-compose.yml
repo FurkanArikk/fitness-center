@@ -37,8 +37,12 @@ services:
       STAFF_SERVICE_DB_NAME: ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
       STAFF_SERVICE_PORT: ${STAFF_SERVICE_PORT:-8002}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
-    ports:
-      - "${STAFF_SERVICE_PORT:-8002}:8002"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.staff-service.rule=PathPrefix(`/api/v1/staff`)"
+      - "traefik.http.routers.staff-service.entrypoints=web"
+      - "traefik.http.services.staff-service.loadbalancer.server.port=8002"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:
       postgres:
         condition: service_healthy

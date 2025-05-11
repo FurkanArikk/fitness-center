@@ -16,8 +16,12 @@ services:
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
       PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-8003}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
-    ports:
-      - "${PAYMENT_SERVICE_PORT:-8003}:8003"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`)"
+      - "traefik.http.routers.payment-service.entrypoints=web"
+      - "traefik.http.services.payment-service.loadbalancer.server.port=8003"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     volumes:
