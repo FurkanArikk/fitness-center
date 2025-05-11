@@ -45,19 +45,32 @@ func (dc DatabaseConfig) GetDSN() string {
 
 // Load loads configuration from environment variables
 func Load() (*Config, error) {
-	// Load .env file from project root
-	rootEnvPath := findRootEnvFile()
-	if rootEnvPath != "" {
-		log.Printf("Loading environment variables from: %s", rootEnvPath)
-		godotenv.Load(rootEnvPath)
+	// First try to find the service-specific .env file
+	serviceEnvPath := findServiceEnvFile()
+	if serviceEnvPath != "" {
+		log.Printf("Loading environment variables from service-specific file: %s", serviceEnvPath)
+		if err := godotenv.Load(serviceEnvPath); err != nil {
+			log.Printf("Warning: Error loading service-specific .env file: %v", err)
+		}
+	} else {
+		// Fall back to root .env file
+		rootEnvPath := findRootEnvFile()
+		if rootEnvPath != "" {
+			log.Printf("Loading environment variables from root file: %s", rootEnvPath)
+			if err := godotenv.Load(rootEnvPath); err != nil {
+				log.Printf("Warning: Error loading root .env file: %v", err)
+			}
+		} else {
+			log.Printf("No .env file found, using environment variables")
+		}
 	}
 
 	config := &Config{
 		Server: ServerConfig{
 			Port:         getEnvAsInt("MEMBER_SERVICE_PORT", 8001),
-			ReadTimeout:  getEnvAsDuration("SERVER_READ_TIMEOUT", 5*time.Second),
-			WriteTimeout: getEnvAsDuration("SERVER_WRITE_TIMEOUT", 10*time.Second),
-			IdleTimeout:  getEnvAsDuration("SERVER_IDLE_TIMEOUT", 15*time.Second),
+			ReadTimeout:  getEnvAsDuration("MEMBER_SERVICE_READ_TIMEOUT", 15*time.Second),
+			WriteTimeout: getEnvAsDuration("MEMBER_SERVICE_WRITE_TIMEOUT", 15*time.Second),
+			IdleTimeout:  getEnvAsDuration("MEMBER_SERVICE_IDLE_TIMEOUT", 60*time.Second),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -82,10 +95,39 @@ func LoadConfig() Config {
 	return *config
 }
 
+// findServiceEnvFile looks for the service-specific .env file
+func findServiceEnvFile() string {
+	// Check for service-specific .env file at the exact location
+	serviceEnvPath := "/home/furkan/work/fitness-center/backend/member-service/.env"
+	if _, err := os.Stat(serviceEnvPath); err == nil {
+		return serviceEnvPath
+	}
+
+	// Start from current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Try to find .env in the current directory
+	envPath := filepath.Join(dir, ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
+
+	return ""
+}
+
 // findRootEnvFile locates the .env file in the project root
 func findRootEnvFile() string {
 	// Start from current directory
 	dir, _ := os.Getwd()
+
+	// Try project root (backend/member-service/..)
+	envPath := filepath.Join(dir, "..", "..", ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
 
 	// Go up until we find the .env file or reach filesystem root
 	for {
@@ -124,8 +166,8 @@ func getEnvAsInt(key string, defaultValue int) int {
 // Helper function to get environment variables as durations
 func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
 	valueStr := getEnv(key, "")
-	if value, err := strconv.Atoi(valueStr); err == nil {
-		return time.Duration(value) * time.Second
+	if value, err := time.ParseDuration(valueStr); err == nil {
+		return value
 	}
 	return defaultValue
 }

@@ -2,19 +2,28 @@
 
 This document outlines all the API endpoints provided by the Staff Service.
 
-Base URL: `/api/v1`
+**Base URL:** `http://localhost:8002/api/v1`
 
-## Staff
+## Table of Contents
+- [Staff Endpoints](#staff-endpoints)
+- [Trainer Endpoints](#trainer-endpoints)
+- [Qualification Endpoints](#qualification-endpoints)
+- [Personal Training Endpoints](#personal-training-endpoints)
+- [Health Check Endpoint](#health-check-endpoint)
+
+## Staff Endpoints
 
 ### Get All Staff
 
-Returns a list of all staff members.
+Returns a paginated list of all staff members with optional filtering.
 
 **Endpoint:** `GET /staff`
 
 **Query Parameters:**
-- `position` (optional): Filter by staff position
-- `status` (optional): Filter by employment status (Active, Inactive)
+- `position` (optional): Filter by staff position (e.g., "Trainer", "Manager")
+- `status` (optional): Filter by employment status ("Active", "Inactive")
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
 
 **Response (200 OK):**
 ```json
@@ -55,6 +64,9 @@ Returns a list of all staff members.
 Returns a specific staff member by their ID.
 
 **Endpoint:** `GET /staff/{id}`
+
+**Path Parameters:**
+- `id`: Staff ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -113,11 +125,19 @@ Creates a new staff member.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid request body or validation error
+- `409 Conflict`: Email already in use
+- `500 Internal Server Error`: Server-side error
+
 ### Update Staff
 
 Updates an existing staff member.
 
 **Endpoint:** `PUT /staff/{id}`
+
+**Path Parameters:**
+- `id`: Staff ID (integer)
 
 **Request Body:**
 ```json
@@ -151,11 +171,20 @@ Updates an existing staff member.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid staff ID or request body
+- `404 Not Found`: Staff member not found
+- `409 Conflict`: Email already in use by another staff member
+- `500 Internal Server Error`: Server-side error
+
 ### Delete Staff
 
 Deletes a staff member.
 
 **Endpoint:** `DELETE /staff/{id}`
+
+**Path Parameters:**
+- `id`: Staff ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -164,11 +193,19 @@ Deletes a staff member.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid staff ID
+- `404 Not Found`: Staff member not found
+- `500 Internal Server Error`: Server-side error
+
 ### Get Staff Qualifications
 
 Returns all qualifications for a specific staff member.
 
 **Endpoint:** `GET /staff/{staffID}/qualifications`
+
+**Path Parameters:**
+- `staffID`: Staff ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -196,7 +233,12 @@ Returns all qualifications for a specific staff member.
 ]
 ```
 
-## Trainers
+**Error Responses:**
+- `400 Bad Request`: Invalid staff ID
+- `404 Not Found`: Staff member not found
+- `500 Internal Server Error`: Server-side error
+
+## Trainer Endpoints
 
 ### Get All Trainers
 
@@ -367,7 +409,7 @@ Deletes a trainer record. This does not delete the associated staff record.
 }
 ```
 
-## Qualifications
+## Qualification Endpoints
 
 ### Add Qualification
 
@@ -443,7 +485,7 @@ Deletes a qualification.
 }
 ```
 
-## Personal Training
+## Personal Training Endpoints
 
 ### Get All Personal Training Sessions
 
@@ -670,3 +712,19 @@ Deletes a personal training session.
   "message": "Training session deleted successfully"
 }
 ```
+
+## Health Check Endpoint
+
+### Check Service Health
+
+Verifies that the service is running properly.
+
+**Endpoint:** `GET /health`
+
+**Response (200 OK):**
+```text
+OK
+```
+
+**Error Responses:**
+- `500 Internal Server Error`: Server-side error or service unhealthy

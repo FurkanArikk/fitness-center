@@ -2,19 +2,29 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
+
+	"github.com/joho/godotenv"
 )
 
-// Config holds all configuration for the service
+// Config holds the complete application configuration
 type Config struct {
+	ServerHost      string
 	ServerPort      int
-	PostgresConfig  PostgresConfig
+	ReadTimeout     time.Duration
+	WriteTimeout    time.Duration
+	IdleTimeout     time.Duration
 	ShutdownTimeout time.Duration
+	DB              PostgresConfig
+	LogLevel        string
+	JWTSecret       string
 }
 
-// PostgresConfig holds Postgres connection configuration
+// PostgresConfig holds the database connection configuration
 type PostgresConfig struct {
 	Host     string
 	Port     int
@@ -32,8 +42,16 @@ func (c *PostgresConfig) GetConnectionString() string {
 	)
 }
 
-// LoadConfig loads configuration from environment variables
+// LoadConfig loads the application configuration from environment variables
 func LoadConfig() (*Config, error) {
+	// Load .env file if present
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
+	// Use PAYMENT_SERVICE_HOST with fallback to default 0.0.0.0
+	serverHost := getEnv("PAYMENT_SERVICE_HOST", "0.0.0.0")
+
 	// Use PAYMENT_SERVICE_PORT with fallback to default 8003
 	serverPortStr := getEnv("PAYMENT_SERVICE_PORT", "8003")
 	serverPort, err := strconv.Atoi(serverPortStr)
@@ -41,8 +59,8 @@ func LoadConfig() (*Config, error) {
 		return nil, fmt.Errorf("parsing server port: %w", err)
 	}
 
-	// Use PAYMENT_SERVICE_DB_PORT with fallback to default 5434
-	dbPortStr := getEnv("PAYMENT_SERVICE_DB_PORT", "5434")
+	// Use DB_PORT or PAYMENT_SERVICE_DB_PORT with fallback to default 5432
+	dbPortStr := getEnv("DB_PORT", getEnv("PAYMENT_SERVICE_DB_PORT", "5432"))
 	dbPort, err := strconv.Atoi(dbPortStr)
 	if err != nil {
 		return nil, fmt.Errorf("parsing db port: %w", err)
@@ -56,8 +74,9 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return &Config{
+		ServerHost: serverHost,
 		ServerPort: serverPort,
-		PostgresConfig: PostgresConfig{
+		DB: PostgresConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
 			Port:     dbPort,
 			User:     getEnv("DB_USER", "fitness_user"),
@@ -67,6 +86,60 @@ func LoadConfig() (*Config, error) {
 		},
 		ShutdownTimeout: shutdownTimeout,
 	}, nil
+}
+
+// findServiceEnvFile looks for the service-specific .env file
+func findServiceEnvFile() string {
+	// Check for service-specific .env file at the exact location
+	serviceEnvPath := "/home/furkan/work/fitness-center/backend/payment-service/.env"
+	if _, err := os.Stat(serviceEnvPath); err == nil {
+		return serviceEnvPath
+	}
+
+	// Start from current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Try to find .env in the current directory
+	envPath := filepath.Join(dir, ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
+
+	return ""
+}
+
+// findRootEnvFile searches for a .env file in parent directories
+func findRootEnvFile() string {
+	// Start from current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Try project root (backend/payment-service/..)
+	envPath := filepath.Join(dir, "..", "..", ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
+
+	// Traverse up to find a .env file
+	for {
+		envPath := filepath.Join(dir, ".env")
+		if _, err := os.Stat(envPath); err == nil {
+			return envPath
+		}
+
+		// Go up one level
+		parentDir := filepath.Dir(dir)
+		if parentDir == dir {
+			// We've reached the root and didn't find a .env file
+			return ""
+		}
+		dir = parentDir
+	}
 }
 
 // getEnv gets an environment variable or returns a default value

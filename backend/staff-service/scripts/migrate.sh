@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to manage database migrations for class-service
+# Script to manage database migrations for staff-service
 # Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
 
 # Load environment variables from the service-specific .env file
@@ -21,11 +21,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Set container and DB parameters from environment variables with defaults
-CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
-DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
+CONTAINER_NAME=${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db}
+DB_PORT=${STAFF_SERVICE_DB_PORT:-5433}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+DB_NAME=${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
 
 # Function to apply all migrations (up migrations only)
 apply_migrations() {
@@ -109,7 +109,7 @@ check_status() {
     fi
     
     # Check for each required table
-    required_tables=("classes" "class_schedule" "class_bookings")
+    required_tables=("staff" "staff_qualifications" "trainers" "personal_training")
     missing_tables=0
     
     echo -e "${YELLOW}Required tables:${NC}"
@@ -149,17 +149,45 @@ load_sample_data() {
         return 1
     fi
     
-    # Apply sample data migration
-    if [ -f "./migrations/000004_sample_data.sql" ]; then
-        echo -e "${YELLOW}Loading sample data...${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.sql"; then
+    # Try to find sample data file with different possible names
+    local sample_data_file=""
+    for file in "./migrations/002_sample_data.sql" "./migrations/sample_data.sql"; do
+        if [ -f "$file" ]; then
+            sample_data_file="$file"
+            break
+        fi
+    done
+    
+    if [ -n "$sample_data_file" ]; then
+        echo -e "${YELLOW}Loading sample data from: $sample_data_file...${NC}"
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$sample_data_file"; then
             echo -e "${RED}Failed to load sample data${NC}"
             return 1
         fi
         echo -e "${GREEN}Sample data loaded successfully!${NC}"
     else
-        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.sql${NC}"
-        return 1
+        echo -e "${RED}Sample data file not found in the migrations directory${NC}"
+        echo -e "${YELLOW}Looking for sample files with pattern: *sample*.sql${NC}"
+        sample_files=$(find ./migrations -name "*sample*.sql" -type f)
+        if [ -n "$sample_files" ]; then
+            echo -e "${YELLOW}Found potential sample data files:${NC}"
+            echo "$sample_files"
+            echo -e "${YELLOW}Please choose one to load (enter full path or leave empty to skip):${NC}"
+            read -r chosen_file
+            if [ -n "$chosen_file" ] && [ -f "$chosen_file" ]; then
+                if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$chosen_file"; then
+                    echo -e "${RED}Failed to load sample data${NC}"
+                    return 1
+                fi
+                echo -e "${GREEN}Sample data loaded successfully!${NC}"
+            else
+                echo -e "${YELLOW}No valid file chosen, skipping sample data${NC}"
+                return 1
+            fi
+        else
+            echo -e "${RED}No sample data files found${NC}"
+            return 1
+        fi
     fi
     
     return 0

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to manage database migrations for class-service
+# Script to manage database migrations for payment-service
 # Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
 
 # Load environment variables from the service-specific .env file
@@ -21,11 +21,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Set container and DB parameters from environment variables with defaults
-CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
-DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
+CONTAINER_NAME=${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
+DB_PORT=${PAYMENT_SERVICE_DB_PORT:-5434}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+DB_NAME=${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
 
 # Function to apply all migrations (up migrations only)
 apply_migrations() {
@@ -109,7 +109,7 @@ check_status() {
     fi
     
     # Check for each required table
-    required_tables=("classes" "class_schedule" "class_bookings")
+    required_tables=("payments" "payment_types" "payment_transactions")
     missing_tables=0
     
     echo -e "${YELLOW}Required tables:${NC}"
@@ -150,15 +150,15 @@ load_sample_data() {
     fi
     
     # Apply sample data migration
-    if [ -f "./migrations/000004_sample_data.sql" ]; then
+    if [ -f "./migrations/000004_sample_data.up.sql" ]; then
         echo -e "${YELLOW}Loading sample data...${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.sql"; then
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.up.sql"; then
             echo -e "${RED}Failed to load sample data${NC}"
             return 1
         fi
         echo -e "${GREEN}Sample data loaded successfully!${NC}"
     else
-        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.sql${NC}"
+        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.up.sql${NC}"
         return 1
     fi
     

@@ -1,5 +1,20 @@
 -- Sample data for class service tables
 
+-- Check if tables exist first before proceeding
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'classes') THEN
+        RAISE EXCEPTION 'Table "classes" does not exist. Run migrations first!';
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'class_schedule') THEN
+        RAISE EXCEPTION 'Table "class_schedule" does not exist. Run migrations first!';
+    END IF;
+    IF NOT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'class_bookings') THEN
+        RAISE EXCEPTION 'Table "class_bookings" does not exist. Run migrations first!';
+    END IF;
+END
+$$;
+
 -- First, clear existing data to prevent duplicates
 TRUNCATE classes CASCADE;
 TRUNCATE class_schedule CASCADE;

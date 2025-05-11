@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to manage database migrations for class-service
+# Script to manage database migrations for member-service
 # Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
 
 # Load environment variables from the service-specific .env file
@@ -20,12 +20,12 @@ YELLOW='\033[0;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Set container and DB parameters from environment variables with defaults
-CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
-DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+# Set DB parameters from environment variables with defaults
+DB_HOST="${DB_HOST:-localhost}"
+DB_PORT="${MEMBER_SERVICE_DB_PORT:-5432}"
+DB_USER="${DB_USER:-fitness_user}"
+DB_PASSWORD="${DB_PASSWORD:-admin}"
+DB_NAME="${MEMBER_SERVICE_DB_NAME:-fitness_member_db}"
 
 # Function to apply all migrations (up migrations only)
 apply_migrations() {
@@ -35,7 +35,7 @@ apply_migrations() {
         # Skip sample data migration, handle separately
         if [[ "$migration" != *"sample_data"* && "$migration" != *"drop_tables"* ]]; then
             echo -e "${YELLOW}Applying: $(basename "$migration")${NC}"
-            if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
+            if ! PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME < "$migration"; then
                 echo -e "${RED}Failed to apply migration: $(basename "$migration")${NC}"
                 return 1
             fi
@@ -54,7 +54,7 @@ revert_migrations() {
     # Apply down migrations in reverse order
     for migration in $(ls -r ./migrations/*.down.sql); do
         echo -e "${YELLOW}Reverting: $(basename "$migration")${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
+        if ! PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME < "$migration"; then
             echo -e "${RED}Failed to revert migration: $(basename "$migration")${NC}"
             return 1
         fi
@@ -69,17 +69,10 @@ revert_migrations() {
 reset_database() {
     echo -e "${BLUE}Resetting database...${NC}"
     
-    # First check if container is running
-    if ! docker ps | grep -q "$CONTAINER_NAME"; then
-        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
-        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
-        return 1
-    fi
-    
     # Apply drop tables migration to ensure clean slate
     if [ -f "./migrations/000_drop_tables.sql" ]; then
         echo -e "${YELLOW}Dropping all existing tables...${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000_drop_tables.sql"; then
+        if ! PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME < "./migrations/000_drop_tables.sql"; then
             echo -e "${RED}Failed to drop tables${NC}"
             return 1
         fi
@@ -101,24 +94,17 @@ reset_database() {
 check_status() {
     echo -e "${BLUE}Checking migration status...${NC}"
     
-    # First check if container is running
-    if ! docker ps | grep -q "$CONTAINER_NAME"; then
-        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
-        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
-        return 1
-    fi
-    
     # Check for each required table
-    required_tables=("classes" "class_schedule" "class_bookings")
+    required_tables=("members" "memberships" "membership_benefits" "member_memberships" "fitness_assessments")
     missing_tables=0
     
     echo -e "${YELLOW}Required tables:${NC}"
     for table in "${required_tables[@]}"; do
-        exists=$(docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | xargs)
+        exists=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | xargs)
         
         if [ "$exists" == "t" ]; then
             # Count rows in the table
-            row_count=$(docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM $table" | xargs)
+            row_count=$(PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM $table" | xargs)
             echo -e "${GREEN}✓ $table${NC} (rows: $row_count)"
         else
             echo -e "${RED}✗ $table${NC} (missing)"
@@ -142,23 +128,16 @@ check_status() {
 load_sample_data() {
     echo -e "${BLUE}Loading sample data...${NC}"
     
-    # First check if container is running
-    if ! docker ps | grep -q "$CONTAINER_NAME"; then
-        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
-        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
-        return 1
-    fi
-    
     # Apply sample data migration
-    if [ -f "./migrations/000004_sample_data.sql" ]; then
+    if [ -f "./migrations/002_sample_data.sql" ]; then
         echo -e "${YELLOW}Loading sample data...${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.sql"; then
+        if ! PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d $DB_NAME < "./migrations/002_sample_data.sql"; then
             echo -e "${RED}Failed to load sample data${NC}"
             return 1
         fi
         echo -e "${GREEN}Sample data loaded successfully!${NC}"
     else
-        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.sql${NC}"
+        echo -e "${RED}Sample data file not found at ./migrations/002_sample_data.sql${NC}"
         return 1
     fi
     

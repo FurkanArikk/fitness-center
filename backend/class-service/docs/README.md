@@ -40,3 +40,23 @@ The Class Service interacts with:
 - **Framework**: Gin Web Framework
 - **Database**: PostgreSQL
 - **Containerization**: Docker
+
+## Quick Start
+
+The Class Service can be run using the included `run.sh` script:
+
+```bash
+# Run with default settings (keep data, use Docker)
+./run.sh
+
+# Reset and load sample data
+./run.sh -s reset
+
+# Start with clean database without sample data
+./run.sh -s none
+
+# Run service locally (database still in Docker)
+./run.sh -l
+```
+
+For more details on deployment options, check the [Deployment Guide](DEPLOYMENT.md).

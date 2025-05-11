@@ -36,15 +36,31 @@ func (dc DatabaseConfig) GetDSN() string {
 }
 
 func LoadConfig() Config {
-	// Try to find .env file in project dir or parent dirs
-	rootEnvPath := findRootEnvFile()
-	if rootEnvPath != "" {
-		log.Printf("Loading environment variables from: %s", rootEnvPath)
-		if err := godotenv.Load(rootEnvPath); err != nil {
-			log.Printf("Warning: Error loading .env file: %v", err)
+	// First try to find the service-specific .env file
+	serviceEnvPath := findServiceEnvFile()
+	if serviceEnvPath != "" {
+		log.Printf("Loading environment variables from service-specific file: %s", serviceEnvPath)
+		if err := godotenv.Load(serviceEnvPath); err != nil {
+			log.Printf("Warning: Error loading service-specific .env file: %v", err)
 		}
 	} else {
-		log.Printf("No .env file found, using environment variables")
+		// Fall back to root .env file
+		rootEnvPath := findRootEnvFile()
+		if rootEnvPath != "" {
+			log.Printf("Loading environment variables from root file: %s", rootEnvPath)
+			if err := godotenv.Load(rootEnvPath); err != nil {
+				log.Printf("Warning: Error loading root .env file: %v", err)
+			}
+		} else {
+			log.Printf("No .env file found, using environment variables")
+		}
+	}
+
+	// Determine database port - different handling for Docker vs local
+	dbPort := getEnvAsInt("DB_PORT", 0)
+	if dbPort == 0 {
+		// If DB_PORT is not set, use CLASS_SERVICE_DB_PORT instead
+		dbPort = getEnvAsInt("CLASS_SERVICE_DB_PORT", 5436)
 	}
 
 	config := Config{
@@ -53,7 +69,7 @@ func LoadConfig() Config {
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
-			Port:     getEnvAsInt("CLASS_SERVICE_DB_PORT", 5436),
+			Port:     dbPort,
 			User:     getEnv("DB_USER", "fitness_user"),
 			Password: getEnv("DB_PASSWORD", "admin"),
 			DBName:   getEnv("CLASS_SERVICE_DB_NAME", "fitness_class_db"),
@@ -69,6 +85,38 @@ func LoadConfig() Config {
 	return config
 }
 
+// findServiceEnvFile looks for the service-specific .env file
+func findServiceEnvFile() string {
+	// Start from current working directory
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+
+	// Try to find .env in the current directory
+	envPath := filepath.Join(dir, ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
+
+	// Try to find .env in the parent directory (project root)
+	envPath = filepath.Join(dir, "..", ".env")
+	if _, err := os.Stat(envPath); err == nil {
+		return envPath
+	}
+
+	// Try executing directory for binary distribution
+	execDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err == nil {
+		envPath := filepath.Join(execDir, ".env")
+		if _, err := os.Stat(envPath); err == nil {
+			return envPath
+		}
+	}
+
+	return ""
+}
+
 // findRootEnvFile searches for a .env file in the current directory
 // and parent directories
 func findRootEnvFile() string {
@@ -78,14 +126,14 @@ func findRootEnvFile() string {
 		return ""
 	}
 
-	// First try the main project .env file
-	rootEnvPath := filepath.Join(projRoot, "..", "..", ".env")
+	// First try the service-specific .env file
+	rootEnvPath := filepath.Join(projRoot, ".env")
 	if _, err := os.Stat(rootEnvPath); err == nil {
 		return rootEnvPath
 	}
 
-	// Try the service-specific .env file
-	rootEnvPath = filepath.Join(projRoot, ".env")
+	// Then try the main project .env file
+	rootEnvPath = filepath.Join(projRoot, "..", "..", ".env")
 	if _, err := os.Stat(rootEnvPath); err == nil {
 		return rootEnvPath
 	}

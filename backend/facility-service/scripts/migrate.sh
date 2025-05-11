@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Script to manage database migrations for class-service
+# Script to manage database migrations for facility-service
 # Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
 
 # Load environment variables from the service-specific .env file
@@ -21,11 +21,11 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Set container and DB parameters from environment variables with defaults
-CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
-DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
+CONTAINER_NAME=${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db}
+DB_PORT=${FACILITY_SERVICE_DB_PORT:-5435}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
+DB_NAME=${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
 
 # Function to apply all migrations (up migrations only)
 apply_migrations() {
@@ -109,7 +109,7 @@ check_status() {
     fi
     
     # Check for each required table
-    required_tables=("classes" "class_schedule" "class_bookings")
+    required_tables=("equipment" "facilities" "attendance")
     missing_tables=0
     
     echo -e "${YELLOW}Required tables:${NC}"

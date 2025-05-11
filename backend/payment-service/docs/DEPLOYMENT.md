@@ -15,7 +15,8 @@ The Payment Service uses the following environment variables:
 | Variable                     | Description                                | Default Value        |
 |------------------------------|--------------------------------------------|----------------------|
 | PAYMENT_SERVICE_PORT         | Port on which the service will listen      | 8003                 |
-| PAYMENT_SERVICE_DB_PORT      | Port for the PostgreSQL database           | 5434                 |
+| PAYMENT_SERVICE_DB_PORT      | Port for the PostgreSQL database (host)    | 5434                 |
+| DB_PORT                      | Port for the PostgreSQL database (container)| 5432                |
 | PAYMENT_SERVICE_DB_NAME      | Name of the database                       | fitness_payment_db   |
 | PAYMENT_SERVICE_CONTAINER_NAME| Name of the container for the database     | fitness-payment-db   |
 | DB_HOST                      | Database hostname                          | localhost            |
@@ -23,6 +24,15 @@ The Payment Service uses the following environment variables:
 | DB_PASSWORD                  | Database password                          | admin                |
 | DB_SSLMODE                   | SSL mode for database connection           | disable              |
 | DOCKER_NETWORK_NAME          | Docker network to use                      | fitness-network      |
+
+## Important Note on Database Ports
+
+When working with the payment service, it's crucial to understand the port configuration:
+
+- **Host Connection (outside Docker)**: Use port **5434** when connecting to the PostgreSQL database from your host machine.
+- **Container Connection (inside Docker)**: Use port **5432** when services within Docker connect to the PostgreSQL database.
+
+This distinction is important because the PostgreSQL container exposes port 5432 internally but maps it to port 5434 on the host machine.
 
 ## Deployment with Docker Compose
 
@@ -67,7 +77,7 @@ go build -o payment-service ./cmd/main.go
 ```bash
 export PAYMENT_SERVICE_PORT=8003
 export DB_HOST=localhost
-export DB_PORT=5434
+export DB_PORT=5434  # Use 5434 when connecting from host
 export DB_USER=fitness_user
 export DB_PASSWORD=admin
 export PAYMENT_SERVICE_DB_NAME=fitness_payment_db
@@ -152,6 +162,11 @@ If the service cannot connect to the database:
    ```bash
    ./scripts/docker-db.sh debug
    ```
+
+5. Verify port configuration:
+   - Ensure that in docker-compose.yml, the service environment variables have `DB_PORT=5432` when connecting from inside Docker
+   - When connecting from the host machine, use `DB_PORT=5434`
+   - Check if there are any port conflicts by running: `sudo lsof -i :5434`
 
 ### Service Issues
 

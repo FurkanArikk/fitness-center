@@ -53,6 +53,28 @@ docker-compose ps
 docker-compose down
 ```
 
+## Docker Configuration Details
+
+The Facility Service uses a multi-stage build process in its Dockerfile:
+
+1. **Builder Stage**: Compiles the Go application
+2. **Final Stage**: Creates a minimal Alpine-based container with only the necessary components
+
+### Important Docker Configuration Notes
+
+- The service automatically creates the `/app/configs` directory in the container
+- Configuration files are properly handled with a safe approach that avoids shell redirection issues
+- Any custom configuration files should be placed in the `configs` directory in your project
+- The container uses a non-root user (appuser) for better security
+
+### Using Custom Configuration
+
+To use custom configuration files:
+
+1. Add your configuration files to the `configs` directory in your project
+2. When the container starts, these files will be copied to the container's `/app/configs` directory
+3. The application is designed to look for configuration files in this location
+
 ## Manual Deployment
 
 If you prefer to run the service without Docker, follow these steps:
@@ -91,6 +113,37 @@ go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@lat
 # Run migrations
 migrate -path ./migrations -database "postgres://fitness_user:admin@localhost:5432/fitness_facility_db?sslmode=disable" up
 ```
+
+## Running the Service with run.sh
+
+The service includes a convenience script `run.sh` that makes it easy to start the service:
+
+```bash
+# Run with default settings (Docker mode)
+./run.sh
+
+# Run locally (database still in Docker)
+./run.sh -l
+```
+
+## Troubleshooting Docker Issues
+
+If you encounter issues with the Docker build:
+
+1. **Configs Directory Handling**: The Dockerfile handles the configs directory with a proper approach. If you need to modify this, edit the Dockerfile's line:
+   ```dockerfile
+   RUN if [ -d /app/builder/configs ]; then cp -r /app/builder/configs/* /app/configs/ 2>/dev/null; fi || :
+   ```
+
+2. **Container Logs**: Check container logs for details about any failures:
+   ```bash
+   docker-compose logs facility-service
+   ```
+
+3. **Database Connection**: Ensure the PostgreSQL container is running and healthy:
+   ```bash
+   docker-compose logs postgres
+   ```
 
 ## Health Check
 

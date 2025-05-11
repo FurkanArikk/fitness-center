@@ -23,7 +23,10 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o staff-service ./c
 FROM alpine:latest
 
 # Add ca-certificates for secure connections
-RUN apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata postgresql-client
+
+# Create non-root user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 # Set working directory
 WORKDIR /app
@@ -31,8 +34,27 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /app/staff-service .
 
-# Copy any additional configuration files if needed
-COPY --from=builder /app/configs ./configs
+# Copy optional directories if they exist - use proper Docker approach
+# Copy configs directory if it exists
+RUN mkdir -p ./configs
+COPY --from=builder /app/configs/ ./configs/
+
+# Copy migrations directory if it exists
+RUN mkdir -p ./migrations
+COPY --from=builder /app/migrations/ ./migrations/
+
+# Copy scripts directory if it exists
+RUN mkdir -p ./scripts
+COPY --from=builder /app/scripts/ ./scripts/
+
+# Make scripts executable if they exist
+RUN if [ -d "./scripts" ] && [ "$(ls -A ./scripts)" ]; then chmod +x ./scripts/*.sh 2>/dev/null || true; fi
+
+# Create directory for app user to write to
+RUN mkdir -p /app/tmp && chown -R appuser:appgroup /app/tmp
+
+# Use non-root user
+USER appuser
 
 # Expose the application port
 EXPOSE 8002

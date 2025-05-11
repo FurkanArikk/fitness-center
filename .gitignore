@@ -37,6 +37,7 @@ logs/
 .env.test.local
 .env.production.local
 .env
+.env.docker
 
 # Build outputs
 build/
@@ -69,6 +70,7 @@ config.local.yaml
 # Service binaries (generated after running run.sh)
 /backend/api-gateway/api-gateway
 /backend/class-service/class-service
+/backend/api-gateway/api-gateway
 /backend/member-service/member-service
 /backend/staff-service/staff-service 
 /backend/payment-service/payment-service

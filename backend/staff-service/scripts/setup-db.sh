@@ -1,13 +1,23 @@
 #!/bin/bash
 
-echo "Setting up fitness_staff_db database..."
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="/home/furkan/work/fitness-center/backend/staff-service/.env"
 
-# Parameters for psql - can be overridden with environment variables
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
+else
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
+fi
+
+echo "Setting up ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} database..."
+
+# Parameters for psql - loaded from environment with defaults
 DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5433}"
+DB_PORT="${STAFF_SERVICE_DB_PORT:-5433}"
 DB_USER="${DB_USER:-fitness_user}"
 DB_PASSWORD="${DB_PASSWORD:-admin}"
-DB_NAME="${DB_NAME:-fitness_staff_db}"
+DB_NAME="${STAFF_SERVICE_DB_NAME:-fitness_staff_db}"
 
 # Set PGPASSWORD environment variable to avoid password prompt
 export PGPASSWORD="${DB_PASSWORD}"
