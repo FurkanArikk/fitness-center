@@ -1,0 +1,68 @@
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - API_GATEWAY_PORT=8000
+      - MEMBER_SERVICE_URL=http://member-service:8001
+      - STAFF_SERVICE_URL=http://staff-service:8002
+      - CLASS_SERVICE_URL=http://class-service:8003
+      - FACILITY_SERVICE_URL=http://facility-service:8004
+      - PAYMENT_SERVICE_URL=http://payment-service:8005
+    networks:
+      - fitness-network
+    restart: unless-stopped
+    depends_on:
+      - member-service
+      - staff-service
+      - class-service
+      - facility-service
+      - payment-service
+
+  member-service:
+    build:
+      context: ../member-service
+    container_name: fitness-member-service
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+  staff-service:
+    build:
+      context: ../staff-service
+    container_name: fitness-staff-service
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+  class-service:
+    build:
+      context: ../class-service
+    container_name: fitness-class-service
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+  facility-service:
+    build:
+      context: ../facility-service
+    container_name: fitness-facility-service
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+  payment-service:
+    build:
+      context: ../payment-service
+    container_name: fitness-payment-service
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+networks:
+  fitness-network:
+    name: fitness-network

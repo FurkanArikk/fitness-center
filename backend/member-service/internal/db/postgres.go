@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -32,4 +33,7 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*PostgresDB, error) {
 	return &PostgresDB{DB: db}, nil
 }
 
-// ...existing database methods...
+// Ping checks if the database connection is active
+func (db *PostgresDB) Ping(ctx context.Context) error {
+	return db.DB.PingContext(ctx)
+}

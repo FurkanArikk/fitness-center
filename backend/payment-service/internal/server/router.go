@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/furkan/fitness-center/backend/payment-service/internal/handler"
 	"github.com/gin-gonic/gin"
 )
@@ -10,13 +8,7 @@ import (
 // setupRoutes configures all API routes for the payment service
 func setupRoutes(router *gin.Engine, handler *handler.Handler) {
 	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"status":  "up",
-			"service": "payment-service",
-			"time":    time.Now().Format(time.RFC3339),
-		})
-	})
+	router.GET("/health", handler.HealthCheck)
 
 	// API v1 routes
 	api := router.Group("/api/v1")

@@ -11,6 +11,7 @@ type Repository interface {
 	Payment() PaymentRepository
 	PaymentType() PaymentTypeRepository
 	Transaction() TransactionRepository
+	Ping(ctx context.Context) error // Add Ping method to check database connectivity
 	Close() error
 }
 

@@ -1,13 +1,9 @@
 package handler
 
 import (
-	"net/http"
-	"time"
-
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/db"
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/service"
-	"github.com/gin-gonic/gin"
 )
 
 // StaffHandler handles staff-related requests
@@ -58,11 +54,4 @@ func NewHandler(db *db.PostgresDB, services *service.Service) *Handler {
 	return handler
 }
 
-// HealthCheck handles the health check endpoint
-func (h *Handler) HealthCheck(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{
-		"service": "staff-service",
-		"status":  "up",
-		"time":    time.Now().Format(time.RFC3339),
-	})
-}
+// HealthCheck method has been moved to health_handler.go file

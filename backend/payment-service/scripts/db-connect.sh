@@ -1,9 +1,19 @@
 #!/bin/bash
 
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="$(pwd)/.env"
+
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
+else
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
+fi
+
 # Connection script for fitness payment database
 # Usage: ./scripts/db-connect.sh [-f file.sql] [-c "SQL command"]
 
-# Default connection parameters - can be overridden with environment variables
+# Default connection parameters from environment variables with defaults
 DB_HOST="${DB_HOST:-localhost}"
 DB_PORT="${PAYMENT_SERVICE_DB_PORT:-5434}"
 DB_USER="${DB_USER:-fitness_user}"
@@ -14,6 +24,8 @@ DB_NAME="${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"
 if [ -z "$PGPASSWORD" ]; then
     export PGPASSWORD="$DB_PASSWORD"
 fi
+
+echo "Connecting to the payment service database..."
 
 # Process command line options
 if [ "$1" = "-f" ] && [ -n "$2" ]; then

@@ -5,22 +5,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateAttendance handles attendance creation (check-in)
 func (h *Handler) CreateAttendance(c *gin.Context) {
-	var attendance model.Attendance
-	if err := c.ShouldBindJSON(&attendance); err != nil {
+	var attendanceReq dto.AttendanceCreateRequest
+	if err := c.ShouldBindJSON(&attendanceReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Set check-in time to now if not provided
-	if attendance.CheckInTime.IsZero() {
-		attendance.CheckInTime = time.Now()
-	}
+	// Convert DTO to model
+	attendance := attendanceReq.ToModel()
 
 	createdAttendance, err := h.repo.Attendance().Create(c.Request.Context(), &attendance)
 	if err != nil {
@@ -28,7 +26,9 @@ func (h *Handler) CreateAttendance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, createdAttendance)
+	// Convert model to response DTO
+	response := dto.AttendanceResponseFromModel(*createdAttendance)
+	c.JSON(http.StatusCreated, response)
 }
 
 // GetAttendance retrieves attendance by ID
@@ -45,7 +45,9 @@ func (h *Handler) GetAttendance(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, attendance)
+	// Convert model to response DTO
+	response := dto.AttendanceResponseFromModel(*attendance)
+	c.JSON(http.StatusOK, response)
 }
 
 // UpdateAttendance handles attendance update
@@ -56,20 +58,25 @@ func (h *Handler) UpdateAttendance(c *gin.Context) {
 		return
 	}
 
-	var attendance model.Attendance
-	if err := c.ShouldBindJSON(&attendance); err != nil {
+	var attendanceReq dto.AttendanceUpdateRequest
+	if err := c.ShouldBindJSON(&attendanceReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Convert DTO to model
+	attendance := attendanceReq.ToModel()
 	attendance.AttendanceID = id
+
 	updatedAttendance, err := h.repo.Attendance().Update(c.Request.Context(), &attendance)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedAttendance)
+	// Convert model to response DTO
+	response := dto.AttendanceResponseFromModel(*updatedAttendance)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteAttendance handles attendance deletion
@@ -96,15 +103,30 @@ func (h *Handler) CheckoutAttendance(c *gin.Context) {
 		return
 	}
 
-	checkOutTime := time.Now()
-	if err := h.repo.Attendance().CheckOut(c.Request.Context(), id, checkOutTime); err != nil {
+	var checkoutReq dto.CheckoutRequest
+	if err := c.ShouldBindJSON(&checkoutReq); err != nil {
+		// If no check-out time provided, use current time
+		checkOutTime := time.Now()
+		if err := h.repo.Attendance().CheckOut(c.Request.Context(), id, checkOutTime); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		c.JSON(http.StatusOK, gin.H{
+			"message":        "Member checked out successfully",
+			"check_out_time": checkOutTime,
+		})
+		return
+	}
+
+	if err := h.repo.Attendance().CheckOut(c.Request.Context(), id, checkoutReq.CheckOutTime); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":        "Member checked out successfully",
-		"check_out_time": checkOutTime,
+		"check_out_time": checkoutReq.CheckOutTime,
 	})
 }
 
@@ -126,8 +148,11 @@ func (h *Handler) ListAttendance(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,

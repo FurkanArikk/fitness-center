@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.23-alpine AS builder
 
 # Install necessary build tools
 RUN apk add --no-cache git
@@ -34,7 +34,6 @@ WORKDIR /app
 # Copy the binary and necessary files from builder
 COPY --from=builder /app/payment-service .
 COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/configs ./configs
 COPY --from=builder /app/scripts ./scripts
 
 # Make scripts executable

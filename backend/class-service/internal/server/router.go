@@ -1,15 +1,15 @@
 package server
 
 import (
-	"net/http"
 	"time"
 
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 // SetupRouter creates and configures a Gin router
-func SetupRouter() *gin.Engine {
+func SetupRouter(h *handler.Handler) *gin.Engine {
 	router := gin.Default()
 
 	// Configure CORS
@@ -23,13 +23,7 @@ func SetupRouter() *gin.Engine {
 	}))
 
 	// Health check endpoint
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "up",
-			"service": "class-service",
-			"time":    time.Now().Format(time.RFC3339),
-		})
-	})
+	router.GET("/health", h.HealthCheck)
 
 	return router
 }

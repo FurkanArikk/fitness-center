@@ -16,7 +16,7 @@ Docker compose komutunu doğrudan kullanarak:
 docker-compose stop postgres
 
 Docker container'ı doğrudan durdurarak:
-docker stop fitness-payment-db
+docker stop fitness_payment_db
 
 Hem Servisi Hem de Veritabanını Sonlandırmak İçin
 Önce servisi Ctrl+C ile sonlandırın
@@ -29,10 +29,13 @@ Veritabanının çalışıp çalışmadığını kontrol etmek isterseniz:
 
 Veritabanı Bağlantı Bilgileri
 Host: localhost
-Port: 5434
+Port: 5434 (host bağlantısı için)
 User: fitness_user
 Password: admin
 Database: fitness_payment_db
+
+NOT: Docker içindeki servisler birbirine bağlanırken port olarak 5432 kullanır,
+ancak host makineden veritabanına erişmek için 5434 portu kullanılmalıdır.
 
 API Servisini Kullanmak İçin
 Port: 8003
@@ -43,6 +46,7 @@ Sorun Giderme
 1. Veritabanı bağlantı hatası alıyorsanız:
    - Docker konteynerinin çalıştığından emin olun: ./scripts/docker-db.sh status
    - Port çakışması olmadığından emin olun. 5434 portu başka bir uygulama tarafından kullanılıyor olabilir
+   - Docker ağında konteyner adlarının doğru olduğundan emin olun. Konteyner adları "fitness_payment_db" formatında olabilir
    - Hata devam ederse konteynerı yeniden başlatın: ./scripts/docker-db.sh restart
 
 2. Servis başlatılırken port çakışması olursa:

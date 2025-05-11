@@ -17,11 +17,42 @@ services:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}"]
-      interval: 10s
+      interval: 180s
       timeout: 5s
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
+  staff-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-staff-service
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
+      STAFF_SERVICE_DB_PORT: 5432  # Also set this explicitly for Docker network
+      DB_USER: ${DB_USER:-fitness_user}
+      DB_PASSWORD: ${DB_PASSWORD:-admin}
+      STAFF_SERVICE_DB_NAME: ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
+      STAFF_SERVICE_PORT: ${STAFF_SERVICE_PORT:-8002}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+    ports:
+      - "${STAFF_SERVICE_PORT:-8002}:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
 networks:
   fitness-network:

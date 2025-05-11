@@ -1,64 +1,198 @@
 #!/bin/bash
 
-# Script to handle database migrations for the class service
+# Script to manage database migrations for class-service
+# Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
 
-set -e
+# Load environment variables from the service-specific .env file
+SERVICE_ENV_PATH="$(pwd)/.env"
 
-echo "Running database migrations for class service..."
-
-# Check if migrate command is available
-if ! command -v migrate &> /dev/null; then
-    echo "Error: migrate command not found. Please install golang-migrate."
-    echo "Installation instructions: https://github.com/golang-migrate/migrate/tree/master/cmd/migrate"
-    exit 1
-fi
-
-# Load environment variables from the root .env file
-ROOT_ENV_PATH=""
-CURRENT_DIR=$(pwd)
-
-# Find the root .env file by going up directories
-while [ "$CURRENT_DIR" != "/" ]; do
-    if [ -f "$CURRENT_DIR/.env" ]; then
-        ROOT_ENV_PATH="$CURRENT_DIR/.env"
-        break
-    fi
-    CURRENT_DIR=$(dirname "$CURRENT_DIR")
-done
-
-if [ -f "$ROOT_ENV_PATH" ]; then
-    source "$ROOT_ENV_PATH"
-    echo "Loaded environment from: $ROOT_ENV_PATH"
+if [ -f "$SERVICE_ENV_PATH" ]; then
+    source "$SERVICE_ENV_PATH"
+    echo "Loaded environment from: $SERVICE_ENV_PATH"
 else
-    echo "Warning: No .env file found in parent directories"
+    echo "Warning: No service-specific .env file found at $SERVICE_ENV_PATH"
 fi
 
-# Set default values if not provided in environment
-DB_HOST=${DB_HOST:-localhost}
+# Colors for better output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Set container and DB parameters from environment variables with defaults
+CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
 DB_PORT=${CLASS_SERVICE_DB_PORT:-5436}
 DB_USER=${DB_USER:-fitness_user}
 DB_PASSWORD=${DB_PASSWORD:-admin}
 DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
-DB_SSL_MODE=${DB_SSLMODE:-disable}
 
-# Set up migration database URL
-DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=${DB_SSL_MODE}"
+# Function to apply all migrations (up migrations only)
+apply_migrations() {
+    echo -e "${BLUE}Applying migrations...${NC}"
+    
+    for migration in ./migrations/*.up.sql; do
+        # Skip sample data migration, handle separately
+        if [[ "$migration" != *"sample_data"* && "$migration" != *"drop_tables"* ]]; then
+            echo -e "${YELLOW}Applying: $(basename "$migration")${NC}"
+            if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
+                echo -e "${RED}Failed to apply migration: $(basename "$migration")${NC}"
+                return 1
+            fi
+            echo -e "${GREEN}Successfully applied: $(basename "$migration")${NC}"
+        fi
+    done
+    
+    echo -e "${GREEN}All migrations applied successfully!${NC}"
+    return 0
+}
 
-# Set migrations directory
-MIGRATIONS_DIR="./migrations"
+# Function to revert all migrations
+revert_migrations() {
+    echo -e "${BLUE}Reverting migrations...${NC}"
+    
+    # Apply down migrations in reverse order
+    for migration in $(ls -r ./migrations/*.down.sql); do
+        echo -e "${YELLOW}Reverting: $(basename "$migration")${NC}"
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
+            echo -e "${RED}Failed to revert migration: $(basename "$migration")${NC}"
+            return 1
+        fi
+        echo -e "${GREEN}Successfully reverted: $(basename "$migration")${NC}"
+    done
+    
+    echo -e "${GREEN}All migrations reverted successfully!${NC}"
+    return 0
+}
 
-# Create the database if it doesn't exist
-echo "Ensuring database exists..."
-if ! PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "SELECT 1 FROM pg_database WHERE datname='$DB_NAME'" | grep -q 1; then
-    echo "Creating database: $DB_NAME"
-    PGPASSWORD=$DB_PASSWORD psql -h $DB_HOST -p $DB_PORT -U $DB_USER -d postgres -c "CREATE DATABASE $DB_NAME"
-fi
+# Function to reset database (drop everything and reapply)
+reset_database() {
+    echo -e "${BLUE}Resetting database...${NC}"
+    
+    # First check if container is running
+    if ! docker ps | grep -q "$CONTAINER_NAME"; then
+        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
+        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
+        return 1
+    fi
+    
+    # Apply drop tables migration to ensure clean slate
+    if [ -f "./migrations/000_drop_tables.sql" ]; then
+        echo -e "${YELLOW}Dropping all existing tables...${NC}"
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000_drop_tables.sql"; then
+            echo -e "${RED}Failed to drop tables${NC}"
+            return 1
+        fi
+    fi
+    
+    # Apply all migrations
+    if ! apply_migrations; then
+        echo -e "${RED}Failed to apply migrations during reset${NC}"
+        return 1
+    fi
+    
+    echo -e "${GREEN}Database reset successfully! Tables have been recreated.${NC}"
+    echo -e "To load sample data, run: ${YELLOW}./scripts/migrate.sh sample${NC}"
+    
+    return 0
+}
 
-# Execute the migration command with the provided arguments
-# Usage: ./scripts/migrate.sh [up|down|version|goto N]
-COMMAND=${1:-up}
+# Function to check migration status
+check_status() {
+    echo -e "${BLUE}Checking migration status...${NC}"
+    
+    # First check if container is running
+    if ! docker ps | grep -q "$CONTAINER_NAME"; then
+        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
+        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
+        return 1
+    fi
+    
+    # Check for each required table
+    required_tables=("classes" "class_schedule" "class_bookings")
+    missing_tables=0
+    
+    echo -e "${YELLOW}Required tables:${NC}"
+    for table in "${required_tables[@]}"; do
+        exists=$(docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT EXISTS(SELECT FROM information_schema.tables WHERE table_name = '$table')" | xargs)
+        
+        if [ "$exists" == "t" ]; then
+            # Count rows in the table
+            row_count=$(docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME -t -c "SELECT COUNT(*) FROM $table" | xargs)
+            echo -e "${GREEN}✓ $table${NC} (rows: $row_count)"
+        else
+            echo -e "${RED}✗ $table${NC} (missing)"
+            missing_tables=$((missing_tables + 1))
+        fi
+    done
+    
+    # Overall status
+    if [ $missing_tables -eq 0 ]; then
+        echo -e "\n${GREEN}Database schema is complete!${NC}"
+    else
+        echo -e "\n${RED}Database schema is incomplete! $missing_tables tables are missing.${NC}"
+        echo -e "To apply migrations, run: ${YELLOW}./scripts/migrate.sh up${NC}"
+        return 1
+    fi
+    
+    return 0
+}
 
-echo "Executing: migrate -path ${MIGRATIONS_DIR} -database \"${DB_URL}\" ${COMMAND} ${2}"
-migrate -path ${MIGRATIONS_DIR} -database "${DB_URL}" ${COMMAND} ${2}
+# Function to load sample data
+load_sample_data() {
+    echo -e "${BLUE}Loading sample data...${NC}"
+    
+    # First check if container is running
+    if ! docker ps | grep -q "$CONTAINER_NAME"; then
+        echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
+        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
+        return 1
+    fi
+    
+    # Apply sample data migration
+    if [ -f "./migrations/000004_sample_data.sql" ]; then
+        echo -e "${YELLOW}Loading sample data...${NC}"
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.sql"; then
+            echo -e "${RED}Failed to load sample data${NC}"
+            return 1
+        fi
+        echo -e "${GREEN}Sample data loaded successfully!${NC}"
+    else
+        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.sql${NC}"
+        return 1
+    fi
+    
+    return 0
+}
 
-echo "Migration completed successfully."
+# Main script logic
+case "$1" in
+    "up")
+        apply_migrations
+        ;;
+    "down")
+        revert_migrations
+        ;;
+    "reset")
+        reset_database
+        ;;
+    "status")
+        check_status
+        ;;
+    "sample")
+        load_sample_data
+        ;;
+    *)
+        echo "Usage: $0 [up|down|reset|status|sample]"
+        echo ""
+        echo "Commands:"
+        echo "  up     - Apply all migrations"
+        echo "  down   - Revert all migrations"
+        echo "  reset  - Reset database (drop everything and reapply migrations)"
+        echo "  status - Check migration status"
+        echo "  sample - Load sample data"
+        exit 1
+        ;;
+esac
+
+exit $?

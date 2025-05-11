@@ -48,5 +48,6 @@ type Repository interface {
 	Equipment() EquipmentRepository
 	Facility() FacilityRepository
 	Attendance() AttendanceRepository
-	Close() error // Add Close method to the interface
+	Ping(ctx context.Context) error // Add Ping method to check database connectivity
+	Close() error
 }

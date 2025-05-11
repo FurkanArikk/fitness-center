@@ -3,13 +3,14 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-service}
+    container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Inside docker network, postgres uses default port
+      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
+      PAYMENT_SERVICE_DB_PORT: 5432  # Also set this explicitly
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
@@ -24,7 +25,7 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:8003/health"]
-      interval: 10s
+      interval: 180s
       timeout: 5s
       retries: 5
       start_period: 10s
@@ -47,7 +48,7 @@ services:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
-      interval: 10s
+      interval: 180s
       timeout: 5s
       retries: 5
       start_period: 10s

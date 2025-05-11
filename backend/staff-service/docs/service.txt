@@ -1,28 +1,44 @@
-Servis ve Veritabanını Sonlandırma Talimatları
-Fitness Center Staff Service uygulamasını çalıştırırken, hem servisi hem de veritabanını düzgün bir şekilde sonlandırmak için aşağıdaki adımları izleyebilirsiniz:
+# Service and Database Shutdown Instructions
 
-Servisi Sonlandırmak İçin
-Servis terminalinizde ön planda çalışıyorsa:
+When running the Fitness Center Staff Service application, you can properly terminate both the service and the database by following these steps:
 
-Sadece Ctrl+C tuşlarına basın
-Servis graceful shutdown işlemini gerçekleştirecek ve sonlanacaktır
-PostgreSQL Veritabanını Sonlandırmak İçin
-Docker'da çalışan PostgreSQL veritabanını durdurmanın birkaç yolu vardır:
+## Shutting Down the Service
 
-docker-db.sh script dosyasını kullanarak:
+If the service is running in the foreground in your terminal:
+
+1. Simply press Ctrl+C
+2. The service will perform a graceful shutdown and terminate
+
+## Shutting Down the PostgreSQL Database
+
+There are several ways to stop the PostgreSQL database running in Docker:
+
+1. Using the docker-db.sh script:
+```
 ./scripts/docker-db.sh stop
+```
 
-Docker compose komutunu doğrudan kullanarak:
+2. Using Docker Compose directly:
+```
 docker-compose stop postgres
+```
 
-Docker container'ı doğrudan durdurarak:
+3. Stopping the Docker container directly:
+```
 docker stop fitness-staff-db
+```
 
-Hem Servisi Hem de Veritabanını Sonlandırmak İçin
-Önce servisi Ctrl+C ile sonlandırın
-Sonra veritabanını durdurun:
+## Shutting Down Both the Service and Database
+
+1. First terminate the service with Ctrl+C
+2. Then stop the database:
+```
 ./scripts/docker-db.sh stop
+```
 
-Veritabanı Durumunu Kontrol Etmek İçin
-Veritabanının çalışıp çalışmadığını kontrol etmek isterseniz:
+## Checking Database Status
+
+To check if the database is running:
+```
 ./scripts/docker-db.sh status
+```
