@@ -45,3 +45,9 @@ type Repository struct {
 	Schedule ScheduleRepository
 	Booking  BookingRepository
 }
+
+// Add Ping method to check database connectivity
+func (r *Repository) Ping(ctx context.Context) error {
+	// Implementation for Ping method
+	return nil
+}

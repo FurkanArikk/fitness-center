@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -54,6 +55,11 @@ func (r *PostgresRepository) PaymentType() repository.PaymentTypeRepository {
 // Transaction returns the transaction repository
 func (r *PostgresRepository) Transaction() repository.TransactionRepository {
 	return r.transactionRepo
+}
+
+// Ping checks if the database connection is active
+func (r *PostgresRepository) Ping(ctx context.Context) error {
+	return r.db.PingContext(ctx)
 }
 
 // Close closes the database connection

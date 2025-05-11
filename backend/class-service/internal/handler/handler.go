@@ -3,12 +3,23 @@ package handler
 import (
 	"database/sql"
 
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 
-// Handler holds all HTTP handlers and their dependencies
+// Handler manages HTTP requests
 type Handler struct {
-	DB *sql.DB
+	DB   *sql.DB
+	repo repository.Repository // Make sure this field exists
+	svc  service.Service
+}
+
+// New creates a new handler
+func New(repo repository.Repository) *Handler {
+	return &Handler{
+		repo: repo,
+	}
 }
 
 // NewHandler creates a new handler with the given dependencies
@@ -16,6 +27,11 @@ func NewHandler(db *sql.DB) *Handler {
 	return &Handler{
 		DB: db,
 	}
+}
+
+// SetService sets the service for the handler
+func (h *Handler) SetService(svc service.Service) {
+	h.svc = svc
 }
 
 // SetupRoutes configures all routes for the API
