@@ -525,11 +525,11 @@ echo -e "Run mode: ${YELLOW}$([ "$USE_DOCKER" = "true" ] && echo "Docker" || ech
 # Load environment variables
 load_env_vars
 
-# Check docker is available
-check_docker
+        # Check docker is available
+        check_docker
 
-# Ensure Docker network exists
-ensure_docker_network
+        # Ensure Docker network exists
+        ensure_docker_network
 
 # Set up the database
 handle_database_setup

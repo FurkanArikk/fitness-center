@@ -68,6 +68,7 @@ postgres_data/
 config.local.yaml
 
 # Service binaries (generated after running run.sh)
+/backend/api-gateway/api-gateway
 /backend/class-service/class-service
 /backend/api-gateway/api-gateway
 /backend/member-service/member-service
