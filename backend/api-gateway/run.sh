@@ -49,9 +49,14 @@ check_port_available() {
             # Ask if user wants to kill the process and retry
             read -p "Do you want to terminate this process and try starting the service? (y/n): " kill_choice
             if [[ $kill_choice =~ ^[Yy]$ ]]; then
-                print_info "Terminating process (PID=$pid)..."
-                kill -9 $pid
-                sleep 2
+                print_info "Terminating process (PID=$pid) with SIGTERM..."
+                kill $pid
+                sleep 5
+                if ps -p $pid > /dev/null 2>&1; then
+                    print_warning "Process did not terminate with SIGTERM. Sending SIGKILL..."
+                    kill -9 $pid
+                    sleep 2
+                fi
                 
                 # Check port again
                 if nc -z localhost $port > /dev/null 2>&1 || lsof -ti:$port &>/dev/null; then
