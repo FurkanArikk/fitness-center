@@ -18,7 +18,7 @@ services:
       DB_SSLMODE: ${DB_SSLMODE:-disable}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`)"
+      - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`) || PathPrefix(`/api/v1/payment-types`) || PathPrefix(`/api/v1/transactions`) || PathPrefix(`/api/v1/admin/db-status`)"
       - "traefik.http.routers.payment-service.entrypoints=web"
       - "traefik.http.services.payment-service.loadbalancer.server.port=8003"
       - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"

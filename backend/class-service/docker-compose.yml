@@ -42,7 +42,7 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.class-service.rule=PathPrefix(`/api/v1/classes`)"
+      - "traefik.http.routers.class-service.rule=PathPrefix(`/api/v1/classes`) || PathPrefix(`/api/v1/schedules`) || PathPrefix(`/api/v1/bookings`)"
       - "traefik.http.routers.class-service.entrypoints=web"
       - "traefik.http.services.class-service.loadbalancer.server.port=8005"
       - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
