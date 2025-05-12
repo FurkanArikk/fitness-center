@@ -1,11 +1,9 @@
 import React from 'react'
+import { redirect } from 'next/navigation'
 
 const Home = () => {
-  return (
-    <div>
-      ana sayfa
-    </div>
-  )
+  redirect('/dashboard');
+  return null;
 }
 
 export default Home
