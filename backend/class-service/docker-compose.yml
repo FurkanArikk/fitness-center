@@ -40,8 +40,12 @@ services:
       DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
-    ports:
-      - "${CLASS_SERVICE_PORT:-8005}:8005"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.class-service.rule=PathPrefix(`/api/v1/classes`) || PathPrefix(`/api/v1/schedules`) || PathPrefix(`/api/v1/bookings`)"
+      - "traefik.http.routers.class-service.entrypoints=web"
+      - "traefik.http.services.class-service.loadbalancer.server.port=8005"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:
       postgres:
         condition: service_healthy

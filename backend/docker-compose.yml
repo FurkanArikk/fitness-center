@@ -98,9 +98,37 @@ services:
     volumes:
       - payment-db-data:/var/lib/postgresql/data
 
+  traefik:
+    image: "traefik:v3.4.0"
+    container_name: "traefik_api_gateway"
+    command:
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      # HTTPS için gelecekte eklenebilir:
+      # - "--entrypoints.websecure.address=:443"
+      # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.email=your-email@example.com" # E-posta adresinizi girin
+      # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"    # HTTP
+      - "8080:8080"  # Traefik Dashboard
+      # - "443:443"  # HTTPS
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # - "./letsencrypt:/letsencrypt" # SSL sertifikaları için
+    networks:
+      - fitness-network
+
 volumes:
   member-db-data:
   staff-db-data:
   class-db-data:
   facility-db-data:
   payment-db-data:
+
+networks:
+  fitness-network:
+    name: ${DOCKER_NETWORK_NAME:-fitness-network}
+    external: true
