@@ -30,6 +30,8 @@ const Members = () => {
   const [memberStats, setMemberStats] = useState({
     totalMembers: 0,
     activeMembers: 0,
+    inactiveMembers: 0,
+    holdMembers: 0,
     newMembersThisMonth: 0,
     averageAttendance: 0
   });
@@ -44,13 +46,29 @@ const Members = () => {
       // Update state - add the new member to the list
       setMembers([newMember, ...members]);
       
-      // Update statistics
-      setMemberStats(prev => ({
-        ...prev,
-        totalMembers: prev.totalMembers + 1,
-        activeMembers: formData.status === 'active' ? prev.activeMembers + 1 : prev.activeMembers,
-        newMembersThisMonth: prev.newMembersThisMonth + 1
-      }));
+      // Update statistics based on status
+      setMemberStats(prev => {
+        // Destruct current values with default 0
+        const { activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
+        
+        // Determine which count to increment based on status
+        const updatedStats = {
+          ...prev,
+          totalMembers: prev.totalMembers + 1,
+          newMembersThisMonth: prev.newMembersThisMonth + 1
+        };
+        
+        // Update the specific status count
+        if (formData.status === 'active') {
+          updatedStats.activeMembers = activeMembers + 1;
+        } else if (formData.status === 'de_active') {
+          updatedStats.inactiveMembers = inactiveMembers + 1;
+        } else if (formData.status === 'hold_on') {
+          updatedStats.holdMembers = holdMembers + 1;
+        }
+        
+        return updatedStats;
+      });
       
       // Close modal
       setShowAddModal(false);
@@ -76,6 +94,36 @@ const Members = () => {
         member.id === updatedMember.id ? updatedMember : member
       ));
       
+      // Status değişimi olduğunda istatistikleri güncelle
+      if (editMember.status !== formData.status) {
+        setMemberStats(prev => {
+          // Destruct current values with default 0
+          const { activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
+          
+          const updatedStats = { ...prev };
+          
+          // Decrease count for old status
+          if (editMember.status === 'active') {
+            updatedStats.activeMembers = Math.max(0, activeMembers - 1);
+          } else if (editMember.status === 'de_active') {
+            updatedStats.inactiveMembers = Math.max(0, inactiveMembers - 1);
+          } else if (editMember.status === 'hold_on') {
+            updatedStats.holdMembers = Math.max(0, holdMembers - 1);
+          }
+          
+          // Increase count for new status
+          if (formData.status === 'active') {
+            updatedStats.activeMembers = activeMembers + 1;
+          } else if (formData.status === 'de_active') {
+            updatedStats.inactiveMembers = inactiveMembers + 1;
+          } else if (formData.status === 'hold_on') {
+            updatedStats.holdMembers = holdMembers + 1;
+          }
+          
+          return updatedStats;
+        });
+      }
+      
       // Close modal
       setEditMember(null);
     } catch (err) {
@@ -94,17 +142,41 @@ const Members = () => {
       if (success) {
         console.log('[Members] Member deleted:', id);
         
+        // Find the member before removing from list
+        const deletedMember = members.find(m => m.id === id);
+        
         // Remove deleted member from the list
         setMembers(members.filter(member => member.id !== id));
         
-        // Update statistics
-        const deletedMember = members.find(m => m.id === id);
+        // Update statistics based on deleted member's status
         if (deletedMember) {
-          setMemberStats(prev => ({
-            ...prev,
-            totalMembers: prev.totalMembers - 1,
-            activeMembers: deletedMember.status === 'active' ? prev.activeMembers - 1 : prev.activeMembers
-          }));
+          setMemberStats(prev => {
+            // Destruct current values with default 0
+            const { totalMembers = 0, activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
+            
+            const updatedStats = {
+              ...prev,
+              totalMembers: Math.max(0, totalMembers - 1)
+            };
+            
+            // Decrease appropriate status count
+            if (deletedMember.status === 'active') {
+              updatedStats.activeMembers = Math.max(0, activeMembers - 1);
+            } else if (deletedMember.status === 'de_active') {
+              updatedStats.inactiveMembers = Math.max(0, inactiveMembers - 1);
+            } else if (deletedMember.status === 'hold_on') {
+              updatedStats.holdMembers = Math.max(0, holdMembers - 1);
+            }
+            
+            // If it was a member added this month, decrease that count too
+            const joinDate = new Date(deletedMember.joinDate);
+            const now = new Date();
+            if (joinDate.getMonth() === now.getMonth() && joinDate.getFullYear() === now.getFullYear()) {
+              updatedStats.newMembersThisMonth = Math.max(0, prev.newMembersThisMonth - 1);
+            }
+            
+            return updatedStats;
+          });
         }
       } else {
         setError('Failed to delete member');
@@ -134,11 +206,16 @@ const Members = () => {
             setMembers(data);
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
             
-            // Update statistics data
+            // Update statistics data with status breakdown
             const activeCount = data.filter(member => member.status === 'active').length;
+            const inactiveCount = data.filter(member => member.status === 'de_active').length;
+            const holdCount = data.filter(member => member.status === 'hold_on').length;
+            
             setMemberStats({
               totalMembers: data.length,
               activeMembers: activeCount,
+              inactiveMembers: inactiveCount,
+              holdMembers: holdCount,
               newMembersThisMonth: data.filter(m => {
                 const joinDate = new Date(m.joinDate);
                 const now = new Date();
@@ -155,11 +232,16 @@ const Members = () => {
                          (data.total ? Math.ceil(data.total / 10) : 1);
             setTotalPages(total);
             
-            // Update statistics data
+            // Update statistics data with status breakdown
             const activeCount = items.filter(member => member.status === 'active').length;
+            const inactiveCount = items.filter(member => member.status === 'de_active').length;
+            const holdCount = items.filter(member => member.status === 'hold_on').length;
+            
             setMemberStats({
               totalMembers: items.length,
               activeMembers: activeCount,
+              inactiveMembers: inactiveCount,
+              holdMembers: holdCount,
               newMembersThisMonth: items.filter(m => {
                 const joinDate = new Date(m.joinDate);
                 const now = new Date();
