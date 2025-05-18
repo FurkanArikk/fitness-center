@@ -7,7 +7,7 @@ import Card from '@/components/common/Card';
 import Loader from '@/components/common/Loader';
 import EquipmentCard from '@/components/equipment/EquipmentCard';
 import EquipmentList from '@/components/equipment/EquipmentList';
-import apiService from '@/api/apiService';
+import { facilityService } from '@/api';
 
 const Equipment = () => {
   const [equipment, setEquipment] = useState([]);
@@ -20,7 +20,7 @@ const Equipment = () => {
     const fetchEquipment = async () => {
       setLoading(true);
       try {
-        const response = await apiService.getEquipment(1, 50);
+        const response = await facilityService.getEquipment(1, 50);
         setEquipment(response.data || []);
       } catch (err) {
         setError("Failed to load equipment data");

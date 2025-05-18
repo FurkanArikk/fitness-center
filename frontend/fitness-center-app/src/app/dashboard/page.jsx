@@ -9,8 +9,8 @@ import ClassSchedule from '@/components/dashboard/ClassSchedule';
 import PopularClasses from '@/components/dashboard/PopularClasses';
 import TrainersList from '@/components/dashboard/TrainersList';
 import PaymentStats from '@/components/dashboard/PaymentStats';
-import apiService from '@/api/apiService';
 import { SERVICE_PORTS } from '@/api/endpoints';
+import { healthService, classService, staffService, paymentService } from '@/api';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ const Dashboard = () => {
   useEffect(() => {
     const checkHealth = async () => {
       const healthPromises = Object.keys(SERVICE_PORTS).map(async (service) => {
-        const isHealthy = await apiService.checkServiceHealth(service);
+        const isHealthy = await healthService.checkServiceHealth(service);
         return { service, isHealthy };
       });
       
@@ -57,13 +57,13 @@ const Dashboard = () => {
       
       try {
         // Fetch data for dashboard
-        const schedules = await apiService.getSchedules();
+        const schedules = await classService.getSchedules();
         setUpcomingClasses(Array.isArray(schedules) ? schedules.slice(0, 5) : []);
         
-        const trainersData = await apiService.getTrainers();
+        const trainersData = await staffService.getTrainers();
         setTrainers(Array.isArray(trainersData) ? trainersData.slice(0, 4) : []);
         
-        const paymentStatsData = await apiService.getPaymentStatistics();
+        const paymentStatsData = await paymentService.getPaymentStatistics();
         setPaymentStats(paymentStatsData);
       } catch (err) {
         setError("Failed to load dashboard data");

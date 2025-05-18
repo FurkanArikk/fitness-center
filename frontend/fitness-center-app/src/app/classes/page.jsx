@@ -7,7 +7,7 @@ import Card from '@/components/common/Card';
 import Loader from '@/components/common/Loader';
 import ClassCalendar from '@/components/classes/ClassCalendar';
 import ClassManagement from '@/components/classes/ClassManagement';
-import apiService from '@/api/apiService';
+import { classService } from '@/api';
 
 const Classes = () => {
   const [classes, setClasses] = useState([]);
@@ -19,10 +19,10 @@ const Classes = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const classesData = await apiService.getClasses();
+        const classesData = await classService.getClasses();
         setClasses(Array.isArray(classesData) ? classesData : []);
         
-        const schedulesData = await apiService.getSchedules();
+        const schedulesData = await classService.getSchedules();
         setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
       } catch (err) {
         setError("Failed to load class data");

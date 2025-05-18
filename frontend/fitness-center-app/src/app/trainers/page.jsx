@@ -7,7 +7,7 @@ import Loader from '@/components/common/Loader';
 import Card from '@/components/common/Card';
 import TrainerCard from '@/components/trainers/TrainerCard';
 import TrainerSchedule from '@/components/trainers/TrainerSchedule';
-import apiService from '@/api/apiService';
+import { staffService } from '@/api';
 
 const Trainers = () => {
   const [trainers, setTrainers] = useState([]);
@@ -18,7 +18,7 @@ const Trainers = () => {
     const fetchTrainers = async () => {
       setLoading(true);
       try {
-        const data = await apiService.getTrainers();
+        const data = await staffService.getTrainers();
         setTrainers(Array.isArray(data) ? data : []);
       } catch (err) {
         setError("Failed to load trainers");

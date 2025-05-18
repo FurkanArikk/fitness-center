@@ -1,4 +1,5 @@
-export const API_BASE_URL = "http://localhost:80/api/v1";
+// API temel URL'si (baseURL değişkeni zaten apiClient.js'de tanımlı, burada sadece path'i belirtiyoruz)
+export const API_BASE_URL = "/api/v1";
 
 // Service ports for health checks
 export const SERVICE_PORTS = {
@@ -15,10 +16,12 @@ export const ENDPOINTS = {
   members: `${API_BASE_URL}/members`,
   memberships: `${API_BASE_URL}/memberships`,
   assessments: `${API_BASE_URL}/assessments`,
+  benefits: `${API_BASE_URL}/benefits`,
   
   // Staff endpoints
   staff: `${API_BASE_URL}/staff`,
   trainers: `${API_BASE_URL}/trainers`,
+  qualifications: `${API_BASE_URL}/qualifications`,
   trainingSessions: `${API_BASE_URL}/training-sessions`,
   
   // Class endpoints
@@ -34,5 +37,6 @@ export const ENDPOINTS = {
   // Payment endpoints
   payments: `${API_BASE_URL}/payments`,
   paymentStats: `${API_BASE_URL}/payments/statistics`,
+  paymentTypes: `${API_BASE_URL}/payment-types`,
   transactions: `${API_BASE_URL}/transactions`
 };

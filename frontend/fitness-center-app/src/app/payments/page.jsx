@@ -7,7 +7,7 @@ import Card from '@/components/common/Card';
 import Loader from '@/components/common/Loader';
 import TransactionList from '@/components/payments/TransactionList';
 import PaymentCharts from '@/components/payments/PaymentCharts';
-import apiService from '@/api/apiService';
+import { paymentService } from '@/api';
 import { formatCurrency } from '@/utils/formatters';
 
 const Payments = () => {
@@ -20,10 +20,10 @@ const Payments = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const paymentsData = await apiService.getPayments(1, 10);
+        const paymentsData = await paymentService.getPayments(1, 10);
         setPayments(paymentsData.data || []);
         
-        const statsData = await apiService.getPaymentStatistics();
+        const statsData = await paymentService.getPaymentStatistics();
         setPaymentStats(statsData);
       } catch (err) {
         setError("Failed to load payment data");

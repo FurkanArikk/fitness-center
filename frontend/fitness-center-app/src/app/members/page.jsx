@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
 import StatusBadge from '@/components/common/StatusBadge';
-import apiService from '@/api/apiService';
+import { memberService } from '@/api';
 import { formatDate } from '@/utils/formatters';
 
 const Members = () => {
@@ -15,18 +15,52 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const searchInputId = useId(); // Benzersiz ID oluştur
 
   useEffect(() => {
     const fetchMembers = async () => {
       setLoading(true);
+      setError(null); // Her yeni istekte hata durumunu sıfırlıyoruz
+      
       try {
-        const data = await apiService.getMembers(currentPage, 10);
-        console.log(data, "BORAAAAA");
-        setMembers(data.data || []);
-        setTotalPages(data.totalPages || 1);
+        // API isteğini yapıyoruz ve yanıtı alıyoruz
+        console.log(`[Members Page] Üyeleri getirme isteği, sayfa: ${currentPage}`);
+        const data = await memberService.getMembers(currentPage, 10);
+        
+        // API yanıtını konsola yazdırıyoruz
+        console.log('[Members Page] API Yanıtı:', data);
+        
+        // API yanıt formatına göre veriyi işliyoruz (hem dizi hem de obje formatını destekler)
+        if (data) {
+          if (Array.isArray(data)) {
+            // Doğrudan dizi formatında yanıt
+            setMembers(data);
+            // Sayfalama için basit varsayılan değer
+            setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
+          } else if (data.items || data.data) {
+            // { items: [] } veya { data: [] } formatında yanıt
+            const items = data.items || data.data || [];
+            setMembers(items);
+            
+            // Sayfalama bilgisi API yanıtından alınır
+            const total = data.totalPages || 
+                         (data.total ? Math.ceil(data.total / 10) : 1);
+            setTotalPages(total);
+          } else {
+            // Belirsiz yanıt formatı
+            console.warn('[Members Page] Bilinmeyen API yanıt formatı:', data);
+            setMembers([]);
+            setTotalPages(1);
+          }
+        } else {
+          // Yanıt yok veya boş
+          setMembers([]);
+          setTotalPages(1);
+        }
       } catch (err) {
-        setError("Failed to load members");
-        console.error(err);
+        setError(`Üyeler yüklenirken hata oluştu: ${err.message}`);
+        console.error("[Members Page] API Hatası:", err);
+        setMembers([]);
       } finally {
         setLoading(false);
       }
@@ -66,9 +100,11 @@ const Members = () => {
             <div className="flex gap-2">
               <div className="relative">
                 <input 
+                  id={searchInputId}
                   type="text" 
                   placeholder="Search members..." 
                   className="border rounded-md py-2 px-4 pl-9 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  suppressHydrationWarning
                 />
                 <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
               </div>
