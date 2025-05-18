@@ -1,13 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useId } from 'react';
-import { Plus, Search, Filter, Edit, Trash, X } from 'lucide-react';
+import { Plus, Search, Filter, X } from 'lucide-react';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
-import StatusBadge from '@/components/common/StatusBadge';
+import MemberList from '@/components/members/MemberList';
+import MemberStats from '@/components/members/MemberStats';
 import { memberService } from '@/api';
-import { formatDate } from '@/utils/formatters';
 
 const Members = () => {
   const [members, setMembers] = useState([]);
@@ -15,13 +15,21 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const searchInputId = useId(); // Create a unique ID
+  const searchInputId = useId();
   
   // States for edit and delete operations
   const [editMember, setEditMember] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // Added state variable for statistics
+  const [memberStats, setMemberStats] = useState({
+    totalMembers: 0,
+    activeMembers: 0,
+    newMembersThisMonth: 0,
+    averageAttendance: 0
+  });
 
   // Member edit function
   const handleEditMember = async (formData) => {
@@ -73,40 +81,59 @@ const Members = () => {
   useEffect(() => {
     const fetchMembers = async () => {
       setLoading(true);
-      setError(null); // Reset error state on new request
+      setError(null);
       
       try {
-        // Make API request and get response
         console.log(`[Members Page] Fetching members, page: ${currentPage}`);
         const data = await memberService.getMembers(currentPage, 10);
         
-        // Log API response to console
         console.log('[Members Page] API Response:', data);
         
-        // API yanıt formatına göre veriyi işliyoruz (hem dizi hem de obje formatını destekler)
         if (data) {
           if (Array.isArray(data)) {
-            // Direct array format response
             setMembers(data);
-            // Simple default value for pagination
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
+            
+            // Update statistics data
+            const activeCount = data.filter(member => member.status === 'active').length;
+            setMemberStats({
+              totalMembers: data.length,
+              activeMembers: activeCount,
+              newMembersThisMonth: data.filter(m => {
+                const joinDate = new Date(m.joinDate);
+                const now = new Date();
+                return joinDate.getMonth() === now.getMonth() && 
+                       joinDate.getFullYear() === now.getFullYear();
+              }).length,
+              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+            });
           } else if (data.items || data.data) {
-            // { items: [] } or { data: [] } format response
             const items = data.items || data.data || [];
             setMembers(items);
             
-            // Pagination info from API response
             const total = data.totalPages || 
                          (data.total ? Math.ceil(data.total / 10) : 1);
             setTotalPages(total);
+            
+            // Update statistics data
+            const activeCount = items.filter(member => member.status === 'active').length;
+            setMemberStats({
+              totalMembers: items.length,
+              activeMembers: activeCount,
+              newMembersThisMonth: items.filter(m => {
+                const joinDate = new Date(m.joinDate);
+                const now = new Date();
+                return joinDate.getMonth() === now.getMonth() && 
+                       joinDate.getFullYear() === now.getFullYear();
+              }).length,
+              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+            });
           } else {
-            // Unknown response format
             console.warn('[Members Page] Unknown API response format:', data);
             setMembers([]);
             setTotalPages(1);
           }
         } else {
-          // No response or empty
           setMembers([]);
           setTotalPages(1);
         }
@@ -138,6 +165,9 @@ const Members = () => {
           Add New Member
         </Button>
       </div>
+      
+      {/* Added statistics cards */}
+      <MemberStats stats={memberStats} />
       
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg">
@@ -172,62 +202,18 @@ const Members = () => {
             <Loader size="small" message="Refreshing data..." />
           ) : (
             <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="py-2 px-4 text-left">ID</th>
-                      <th className="py-2 px-4 text-left">Name</th>
-                      <th className="py-2 px-4 text-left">Email</th>
-                      <th className="py-2 px-4 text-left">Phone</th>
-                      <th className="py-2 px-4 text-left">Status</th>
-                      <th className="py-2 px-4 text-left">Join Date</th>
-                      <th className="py-2 px-4 text-left">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {members.length === 0 ? (
-                      <tr>
-                        <td colSpan="7" className="py-4 text-center text-gray-500">No members found</td>
-                      </tr>
-                    ) : (
-                      members.map((member) => (
-                        <tr key={member.id} className="border-b hover:bg-gray-50">
-                          <td className="py-2 px-4">{member.id}</td>
-                          <td className="py-2 px-4">{`${member.firstName} ${member.lastName}`}</td>
-                          <td className="py-2 px-4">{member.email}</td>
-                          <td className="py-2 px-4">{member.phone}</td>
-                          <td className="py-2 px-4">
-                            <StatusBadge status={member.status} />
-                          </td>
-                          <td className="py-2 px-4">{formatDate(member.joinDate)}</td>
-                          <td className="py-2 px-4">
-                            <div className="flex space-x-2">
-                              <button 
-                                className="p-1 text-blue-500 hover:bg-blue-50 rounded flex items-center"
-                                onClick={() => {
-                                  setEditMember(member);
-                                  setShowEditModal(true);
-                                }}
-                              >
-                                <Edit size={16} className="mr-1" />
-                                Edit
-                              </button>
-                              <button 
-                                className="p-1 text-red-500 hover:bg-red-50 rounded flex items-center"
-                                onClick={() => setDeleteConfirm(member)}
-                              >
-                                <Trash size={16} className="mr-1" />
-                                Delete
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              {/* Using the MemberList component */}
+              <MemberList 
+                members={members} 
+                onEdit={(member) => {
+                  setEditMember(member);
+                  setShowEditModal(true);
+                }}
+                onDelete={(id) => {
+                  const member = members.find(m => m.id === id);
+                  setDeleteConfirm(member);
+                }}
+              />
               
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-sm text-gray-500">
