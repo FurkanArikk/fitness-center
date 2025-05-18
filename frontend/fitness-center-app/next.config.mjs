@@ -1,11 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // API isteklerini yönlendirmek için rewrites kullanıyoruz
+  // Using rewrites to redirect API requests
   async rewrites() {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:80/api/:path*', // gateway servisine yönlendirme
+        destination: 'http://localhost:80/api/:path*', // redirect to gateway service
       }
     ];
   }

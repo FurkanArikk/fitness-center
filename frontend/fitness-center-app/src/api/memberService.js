@@ -5,20 +5,20 @@ const memberService = {
   // Member methods
   getMembers: async (page = 1, size = 10) => {
     try {
-      // API path'i doğrudan olarak tanımlanıyor (URL parametrelerine dikkat)
+      // Define API path directly (pay attention to URL parameters)
       const url = `${ENDPOINTS.members}?page=${page}&size=${size}`;
-      console.log('[Members Service] İstek:', url);
+      console.log('[Members Service] Request:', url);
       
-      // API isteği yapılıyor
+      // Make API request
       const response = await apiClient.get(url);
-      console.log('[Members Service] Yanıt alındı:', response.status);
+      console.log('[Members Service] Response received:', response.status);
       
-      // API'den gelen veriyi doğrudan döndürüyoruz
+      // Return data directly from API
       return response.data;
     } catch (error) {
-      console.error("[Members Service] Hata:", error.message);
-      // Hata durumunda boş dizi dönüyoruz
-      throw new Error(`Üye verisi alınamadı: ${error.message}`);
+      console.error("[Members Service] Error:", error.message);
+      // Throw error with message
+      throw new Error(`Could not fetch member data: ${error.message}`);
     }
   },
   

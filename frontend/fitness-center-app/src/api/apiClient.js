@@ -1,44 +1,44 @@
 import axios from 'axios';
 
-// İstek ve yanıtları izleme
+// Request and response tracking
 const logRequestAndResponse = (config) => {
-  console.log(`[API İsteği] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
+  console.log(`[API Request] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
   return config;
 };
 
 // Create axios instance
-// Next.js rewrites kullandığımız için baseURL'yi boş bırakabiliriz
+// We can leave baseURL empty since we're using Next.js rewrites
 const apiClient = axios.create({
-  baseURL: '', // Next.js rewrites ile yönlendirme yapılacağı için boş bırakıyoruz
+  baseURL: '', // Leave empty as we're using Next.js rewrites for routing
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: false // CORS sorunlarını önlemek için false yapıyoruz
+  withCredentials: false // Set to false to prevent CORS issues
 });
 
-// İstek interceptor'u ekle
+// Add request interceptor
 apiClient.interceptors.request.use(logRequestAndResponse, error => {
-  console.error('API İstek Hatası:', error);
+  console.error('API Request Error:', error);
   return Promise.reject(error);
 });
 
 // Add response interceptor for error handling
 apiClient.interceptors.response.use(
   response => {
-    console.log(`[API Yanıtı] ${response.status} ${response.config.url}`, response.data);
+    console.log(`[API Response] ${response.status} ${response.config.url}`, response.data);
     return response;
   },
   error => {
     if (error.response) {
-      // Sunucu yanıtı var ama hata kodu (4xx, 5xx)
-      console.error(`[API Hata] ${error.response.status} ${error.config?.url}:`, error.response.data);
+      // Server responded with an error code (4xx, 5xx)
+      console.error(`[API Error] ${error.response.status} ${error.config?.url}:`, error.response.data);
     } else if (error.request) {
-      // İstek yapıldı ama yanıt alınamadı
-      console.error(`[API Bağlantı Hatası] ${error.config?.url}:`, error.request);
+      // Request was made but no response received
+      console.error(`[API Connection Error] ${error.config?.url}:`, error.request);
     } else {
-      // İstek oluşturma hatası
-      console.error('[API Konfigürasyon Hatası]:', error.message);
+      // Error creating request
+      console.error('[API Configuration Error]:', error.message);
     }
     return Promise.reject(error);
   }
