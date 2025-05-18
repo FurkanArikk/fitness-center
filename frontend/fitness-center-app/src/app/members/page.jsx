@@ -9,6 +9,7 @@ import MemberList from '@/components/members/MemberList';
 import MemberStats from '@/components/members/MemberStats';
 import EditMemberModal from '@/components/members/EditMemberModal';
 import DeleteMemberConfirm from '@/components/members/DeleteMemberConfirm';
+import AddMemberModal from '@/components/members/AddMemberModal';
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -19,9 +20,10 @@ const Members = () => {
   const [totalPages, setTotalPages] = useState(1);
   const searchInputId = useId();
   
-  // States for edit and delete operations
+  // States for member operations
   const [editMember, setEditMember] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   
   // Added state variable for statistics
@@ -31,6 +33,34 @@ const Members = () => {
     newMembersThisMonth: 0,
     averageAttendance: 0
   });
+
+  // Member add function
+  const handleAddMember = async (formData) => {
+    setActionLoading(true);
+    try {
+      const newMember = await memberService.createMember(formData);
+      console.log('[Members] Member added:', newMember);
+      
+      // Update state - add the new member to the list
+      setMembers([newMember, ...members]);
+      
+      // Update statistics
+      setMemberStats(prev => ({
+        ...prev,
+        totalMembers: prev.totalMembers + 1,
+        activeMembers: formData.status === 'active' ? prev.activeMembers + 1 : prev.activeMembers,
+        newMembersThisMonth: prev.newMembersThisMonth + 1
+      }));
+      
+      // Close modal
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Error adding member:', err);
+      setError('An error occurred while adding the member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   // Member edit function
   const handleEditMember = async (formData) => {
@@ -66,6 +96,16 @@ const Members = () => {
         
         // Remove deleted member from the list
         setMembers(members.filter(member => member.id !== id));
+        
+        // Update statistics
+        const deletedMember = members.find(m => m.id === id);
+        if (deletedMember) {
+          setMemberStats(prev => ({
+            ...prev,
+            totalMembers: prev.totalMembers - 1,
+            activeMembers: deletedMember.status === 'active' ? prev.activeMembers - 1 : prev.activeMembers
+          }));
+        }
       } else {
         setError('Failed to delete member');
       }
@@ -160,7 +200,7 @@ const Members = () => {
         <Button 
           variant="primary" 
           icon={<Plus size={18} />}
-          onClick={() => console.log('Add new member')}
+          onClick={() => setShowAddModal(true)}
         >
           Add New Member
         </Button>
@@ -267,6 +307,15 @@ const Members = () => {
           member={deleteConfirm}
           onClose={() => setDeleteConfirm(null)}
           onConfirm={handleDeleteMember}
+          isLoading={actionLoading}
+        />
+      )}
+      
+      {/* Using AddMemberModal component */}
+      {showAddModal && (
+        <AddMemberModal
+          onClose={() => setShowAddModal(false)}
+          onSave={handleAddMember}
           isLoading={actionLoading}
         />
       )}
