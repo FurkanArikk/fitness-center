@@ -364,8 +364,8 @@ const Members = () => {
                     className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                    <option value="on_hold">On Hold</option>
+                    <option value="de_active">Inactive</option>
+                    <option value="hold_on">On Hold</option>
                   </select>
                 </div>
                 <div>
