@@ -496,6 +496,40 @@ const Members = () => {
       const result = await memberService.assignMembershipToMember(membershipData);
       console.log('[Members] Membership assigned:', result);
       
+      // Üyelerin güncel bilgilerini almak için çağrı yap
+      try {
+        // Üye ID'sini kullanarak üyenin güncel detaylarını getir
+        const updatedMemberDetails = await memberService.getMember(membershipData.memberId);
+        
+        // Atanan üyelik tipinin detaylarını çek
+        const membershipDetails = await memberService.getMembership(membershipData.membershipId);
+        
+        if (updatedMemberDetails && membershipDetails) {
+          // Aktif üyeliği oluştur
+          const activeMembership = {
+            membershipId: membershipData.membershipId,
+            startDate: membershipData.startDate,
+            endDate: membershipData.endDate,
+            membershipName: membershipDetails.membershipName || 'Unknown',
+            description: membershipDetails.description || '',
+            price: membershipDetails.price || 0
+          };
+          
+          // Üye listesini güncelle
+          setMembers(currentMembers => currentMembers.map(member => {
+            if (member.id === membershipData.memberId) {
+              return { ...member, activeMembership };
+            }
+            return member;
+          }));
+          
+          console.log('[Members] Member list updated with new membership information');
+        }
+      } catch (updateErr) {
+        console.error('Error updating member details after assignment:', updateErr);
+        // Hatayı göster ama işlemi iptal etme
+      }
+      
       // Successful operation
       setAssignMembershipMember(null); // Close modal
     } catch (err) {
