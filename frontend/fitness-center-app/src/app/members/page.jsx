@@ -31,6 +31,9 @@ const Members = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [pageSize] = useState(10);
   const searchInputId = useId();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterOpen, setFilterOpen] = useState(false);
   
   // States for member operations
   const [editMember, setEditMember] = useState(null);
@@ -123,7 +126,7 @@ const Members = () => {
     try {
       const data = await memberService.getMemberships();
       
-      // Tüm membership'ler için benefit'leri çekelim
+      // Fetch benefits for all memberships
       if (Array.isArray(data) && data.length > 0) {
         const membershipsWithBenefits = await Promise.all(data.map(async (membership) => {
           try {
@@ -200,7 +203,7 @@ const Members = () => {
     }
   };
 
-  // Değerlendirme düzenleme fonksiyonu
+  // Assessment edit function
   const handleEditAssessment = async (formData) => {
     if (!formData || !formData.id) return;
     
@@ -222,7 +225,7 @@ const Members = () => {
     }
   };
 
-  // Değerlendirme silme fonksiyonu
+  // Assessment delete function
   const handleDeleteAssessment = async (id) => {
     if (!id || !viewAssessmentsMember) return;
     
@@ -277,10 +280,10 @@ const Members = () => {
             return;
           }
           
-          // Üyelerin aktif üyeliklerini çek
+          // Fetch active memberships for members
           const membersWithMemberships = await Promise.all(membersData.map(async (member) => {
             try {
-              // İlk olarak üyenin tüm üyeliklerini al
+              // First, get all memberships of the member
               let memberMemberships = [];
               
               try {
@@ -295,16 +298,16 @@ const Members = () => {
               }
               
               if (memberMemberships.length > 0) {
-                // ID'ye göre sıralama yap (en büyük ID'li üyelik en önce)
+                // Sort by ID (highest ID first)
                 const sortedMemberships = [...memberMemberships].sort((a, b) => 
                   b.id - a.id
                 );
                 
-                // ID'si en büyük olan üyeliği al
+                // Get the membership with the highest ID
                 const latestMembership = sortedMemberships[0];
                 
                 if (latestMembership) {
-                  // Üyelik tipine ait detayları al
+                  // Get details of the membership type
                   try {
                     const membershipDetails = await memberService.getMembership(latestMembership.membershipId);
                     if (membershipDetails) {
@@ -330,15 +333,15 @@ const Members = () => {
           
           setMembers(membersWithMemberships);
           
-          // Üyelik dağılımı istatistiklerini hesapla
+          // Calculate membership distribution statistics
           const membershipColors = {
-            'basic': '#3B82F6',    // Mavi
-            'premium': '#8B5CF6',  // Mor
+            'basic': '#3B82F6',    // Blue
+            'premium': '#8B5CF6',  // Purple
             'gold': '#F59E0B',     // Amber
-            'platinum': '#6B7280', // Gri
+            'platinum': '#6B7280', // Gray
           };
           
-          // Üyelik tipine göre sayım yap
+          // Count by membership type
           const membershipCounts = {};
           
           membersWithMemberships.forEach(member => {
@@ -353,7 +356,7 @@ const Members = () => {
             }
           });
           
-          // Üyelik istatistiklerini oluştur
+          // Create membership statistics
           const membershipStatsData = Object.keys(membershipCounts).map(name => ({
             name,
             value: membershipCounts[name],
@@ -362,7 +365,7 @@ const Members = () => {
           
           setMembershipStats(membershipStatsData);
           
-          // İstatistikleri güncelle
+          // Update statistics
           const activeCount = membersWithMemberships.filter(member => member.status === 'active').length;
           const inactiveCount = membersWithMemberships.filter(member => member.status === 'de_active').length;
           const holdCount = membersWithMemberships.filter(member => member.status === 'hold_on').length;
@@ -488,16 +491,12 @@ const Members = () => {
       const result = await memberService.assignMembershipToMember(membershipData);
       console.log('[Members] Membership assigned:', result);
       
-      // Üyelerin güncel bilgilerini almak için çağrı yap
+      // Fetch updated member details
       try {
-        // Üye ID'sini kullanarak üyenin güncel detaylarını getir
         const updatedMemberDetails = await memberService.getMember(membershipData.memberId);
-        
-        // Atanan üyelik tipinin detaylarını çek
         const membershipDetails = await memberService.getMembership(membershipData.membershipId);
         
         if (updatedMemberDetails && membershipDetails) {
-          // Aktif üyeliği oluştur
           const activeMembership = {
             membershipId: membershipData.membershipId,
             startDate: membershipData.startDate,
@@ -507,7 +506,6 @@ const Members = () => {
             price: membershipDetails.price || 0
           };
           
-          // Üye listesini güncelle
           setMembers(currentMembers => currentMembers.map(member => {
             if (member.id === membershipData.memberId) {
               return { ...member, activeMembership };
@@ -519,10 +517,8 @@ const Members = () => {
         }
       } catch (updateErr) {
         console.error('Error updating member details after assignment:', updateErr);
-        // Hatayı göster ama işlemi iptal etme
       }
       
-      // Successful operation
       setAssignMembershipMember(null); // Close modal
     } catch (err) {
       console.error('Error assigning membership:', err);
@@ -543,15 +539,12 @@ const Members = () => {
         // Refresh memberships
         await fetchMemberships();
         
-        // Başarılı işlem sonrası modalı kapat
         setDeleteMembershipConfirm(null);
       } else {
-        // API'den gelen hata mesajını göster
         setError(result.error || 'Failed to delete membership');
         
-        // Eğer üyelik kullanımdaysa, kullanıcıya özel mesaj göster
         if (result.error && result.error.includes("in use by members")) {
-          setError("Bu üyelik tipi aktif üyeler tarafından kullanılıyor ve silinemiyor. Önce tüm üyeleri başka bir üyelik tipine transfer etmeniz gerekiyor.");
+          setError("This membership type is currently in use by active members and cannot be deleted. Please transfer all members to another membership type first.");
         }
       }
     } catch (err) {
@@ -566,20 +559,16 @@ const Members = () => {
   const handleUpdateMembership = async (id, data) => {
     setActionLoading(true);
     try {
-      // Eğer id varsa güncelleme, yoksa yeni oluşturma
       if (id) {
         await memberService.updateMembership(id, data);
         console.log('[Members] Membership updated:', id);
       } else {
-        // Yeni üyelik oluştur
         const newMembership = await memberService.createMembership(data);
         console.log('[Members] New membership created:', newMembership);
       }
       
-      // Refresh memberships
       await fetchMemberships();
       
-      // Close modal
       setEditMembership(null);
     } catch (err) {
       console.error('Error updating/creating membership:', err);
@@ -589,17 +578,15 @@ const Members = () => {
     }
   };
 
-  // Üyelik durumunu güncelleme fonksiyonu
+  // Update membership status function
   const handleUpdateMembershipStatus = async (id, isActive) => {
     setActionLoading(true);
     try {
       const result = await memberService.updateMembershipStatus(id, { isActive: !isActive });
       
       if (result.success) {
-        // Başarılı işlemden sonra üyelik listesini yenile
         await fetchMemberships();
       } else {
-        // API'den gelen hata mesajını göster
         setError(result.error || 'Failed to update membership status');
       }
     } catch (err) {
@@ -618,7 +605,6 @@ const Members = () => {
       if (success) {
         console.log('[Members] Benefit deleted:', id);
         
-        // Benefit listesini yenile
         await fetchBenefits();
       } else {
         setError('Failed to delete benefit');
@@ -636,20 +622,16 @@ const Members = () => {
   const handleUpdateBenefit = async (id, data) => {
     setActionLoading(true);
     try {
-      // id varsa güncelleme, yoksa yeni oluşturma
       if (id) {
         await memberService.updateBenefit(id, data);
         console.log('[Members] Benefit updated:', id);
       } else {
-        // Yeni benefit oluştur
         const newBenefit = await memberService.createBenefit(data);
         console.log('[Members] New benefit created:', newBenefit);
       }
       
-      // Benefit listesini yenile
       await fetchBenefits();
       
-      // Modal'ı kapat
       setEditBenefit(null);
     } catch (err) {
       console.error('Error updating/creating benefit:', err);
@@ -662,6 +644,14 @@ const Members = () => {
   if (loading && members.length === 0) {
     return <Loader message="Loading members..." />;
   }
+
+  // Only filter by status and search term
+  const filteredMembers = members.filter(member => {
+    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase());
+    const matchesStatus = !filterStatus || member.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
 
   return (
     <div className="space-y-6">
@@ -698,12 +688,57 @@ const Members = () => {
                   placeholder="Search members..." 
                   className="border rounded-md py-2 px-4 pl-9 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   suppressHydrationWarning
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
                 />
                 <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
               </div>
-              <button className="border border-gray-300 hover:bg-gray-50 p-2 rounded-md">
-                <Filter size={18} />
-              </button>
+              <div className="relative">
+                <button
+                  className="border border-gray-300 hover:bg-gray-50 p-2 rounded-md"
+                  onClick={() => setFilterOpen((prev) => !prev)}
+                  type="button"
+                  aria-label="Filter by status"
+                >
+                  <Filter size={18} />
+                </button>
+                {filterOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-20 p-4">
+                    <div className="mb-3">
+                      <label className="block text-xs font-semibold mb-1">Status</label>
+                      <select
+                        className="w-full border rounded px-2 py-1 text-sm"
+                        value={filterStatus}
+                        onChange={e => setFilterStatus(e.target.value)}
+                      >
+                        <option value="">All</option>
+                        <option value="active">Active</option>
+                        <option value="de_active">Inactive</option>
+                        <option value="hold_on">On Hold</option>
+                      </select>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        className="text-xs px-2 py-1 rounded bg-gray-100 hover:bg-gray-200"
+                        onClick={() => {
+                          setFilterStatus("");
+                          setFilterOpen(false);
+                        }}
+                        type="button"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        className="text-xs px-2 py-1 rounded bg-blue-500 text-white hover:bg-blue-600"
+                        onClick={() => setFilterOpen(false)}
+                        type="button"
+                      >
+                        Apply
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -714,7 +749,7 @@ const Members = () => {
             <>
               {/* Using the MemberList component with new onViewAssessments prop */}
               <MemberList 
-                members={members} 
+                members={filteredMembers} 
                 onEdit={(member) => setEditMember(member)}
                 onDelete={(id) => {
                   const member = members.find(m => m.id === id);
@@ -722,7 +757,7 @@ const Members = () => {
                 }}
                 onAssignMembership={(member) => setAssignMembershipMember(member)}
                 onViewDetails={(member) => setDetailsMember(member)}
-                onViewAssessments={handleViewAssessments} // Yeni assessment butonunun click handler'ı
+                onViewAssessments={handleViewAssessments} // New assessment button click handler
               />
               
               <div className="mt-4 flex justify-between items-center">
@@ -808,7 +843,7 @@ const Members = () => {
                         </div>
                       </div>
 
-                      {/* Membership Benefits - mavi arka plan kaldırıldı */}
+                      {/* Membership Benefits */}
                       {membership.benefits && membership.benefits.length > 0 && (
                         <div className="mt-4">
                           <h5 className="text-sm font-medium text-gray-700 mb-2">Benefits:</h5>
@@ -855,17 +890,17 @@ const Members = () => {
                   <p>No membership types found.</p>
                   <button
                     className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    onClick={() => setEditMembership({})} // Boş bir nesne ile düzenleyici modalını aç
+                    onClick={() => setEditMembership({})}
                   >
                     Add New Membership Type
                   </button>
                 </div>
               )}
               
-              {/* Yeni Üyelik Tipi Ekleme Kartı */}
+              {/* Add New Membership Type Card */}
               {membershipsData.length > 0 && (
                 <div className="border border-dashed rounded-lg p-4 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setEditMembership({})} // Boş bir nesne ile düzenleyici modalını aç
+                  onClick={() => setEditMembership({})}
                 >
                   <div className="text-center">
                     <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
@@ -943,10 +978,8 @@ const Members = () => {
           onClose={() => setEditMembership(null)}
           onSave={(data) => {
             if (Object.keys(editMembership).length === 0) {
-              // Yeni ekleme
               handleUpdateMembership(null, data);
             } else {
-              // Güncelleme
               handleUpdateMembership(editMembership.id, data);
             }
           }}
@@ -972,10 +1005,8 @@ const Members = () => {
           onSave={(data) => {
             const benefitId = editBenefit.id || editBenefit.benefit_id;
             if (!benefitId || Object.keys(editBenefit).length === 0) {
-              // Yeni ekleme
               handleUpdateBenefit(null, data);
             } else {
-              // Güncelleme
               handleUpdateBenefit(benefitId, data);
             }
           }}
@@ -1016,7 +1047,7 @@ const Members = () => {
         />
       )}
 
-      {/* Yeni eklenen Değerlendirme düzenleme modalı */}
+      {/* Edit Assessment Modal */}
       {editAssessment && (
         <EditAssessmentModal
           assessment={editAssessment}
@@ -1026,7 +1057,7 @@ const Members = () => {
         />
       )}
 
-      {/* Yeni eklenen Değerlendirme silme onayı modalı */}
+      {/* Delete Assessment Confirmation Modal */}
       {deleteAssessmentConfirm && (
         <DeleteAssessmentConfirm
           assessment={deleteAssessmentConfirm}
