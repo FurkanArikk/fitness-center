@@ -184,7 +184,21 @@ const memberService = {
   getMembershipBenefits: async (membershipId) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.memberships}/${membershipId}/benefits`);
-      return response.data.benefits || [];
+      
+      // API'den gelen yanıta bakalım ve uygun şekilde işleyelim
+      let benefits = [];
+      if (response.data) {
+        // Eğer 'benefits' adında bir dizi döndürüyorsa
+        if (response.data.benefits && Array.isArray(response.data.benefits)) {
+          benefits = response.data.benefits;
+        }
+        // Eğer doğrudan dizi döndürüyorsa
+        else if (Array.isArray(response.data)) {
+          benefits = response.data;
+        }
+      }
+      console.log(`[Membership Service] Got ${benefits.length} benefits for membership ${membershipId}`);
+      return benefits;
     } catch (error) {
       console.error(`Failed to fetch benefits for membership ${membershipId}:`, error);
       return [];
@@ -237,6 +251,16 @@ const memberService = {
   },
   
   // Benefit operations
+  getBenefits: async () => {
+    try {
+      const response = await apiClient.get(ENDPOINTS.benefits);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch benefits:", error);
+      return [];
+    }
+  },
+  
   getBenefit: async (id) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.benefits}/${id}`);
@@ -249,7 +273,15 @@ const memberService = {
   
   createBenefit: async (benefitData) => {
     try {
-      const response = await apiClient.post(ENDPOINTS.benefits, benefitData);
+      // API'nin beklediği formata dönüştürme (snake_case -> camelCase)
+      const apiData = {
+        membershipId: parseInt(benefitData.membership_id, 10),
+        benefitName: benefitData.benefit_name,
+        benefitDescription: benefitData.benefit_description
+      };
+      
+      console.log('[Benefit Service] Creating benefit with data:', apiData);
+      const response = await apiClient.post(ENDPOINTS.benefits, apiData);
       return response.data;
     } catch (error) {
       console.error('Failed to create benefit:', error);
@@ -259,7 +291,15 @@ const memberService = {
   
   updateBenefit: async (id, benefitData) => {
     try {
-      const response = await apiClient.put(`${ENDPOINTS.benefits}/${id}`, benefitData);
+      // API'nin beklediği formata dönüştürme (snake_case -> camelCase)
+      const apiData = {
+        membershipId: parseInt(benefitData.membership_id, 10),
+        benefitName: benefitData.benefit_name,
+        benefitDescription: benefitData.benefit_description
+      };
+      
+      console.log(`[Benefit Service] Updating benefit ${id} with data:`, apiData);
+      const response = await apiClient.put(`${ENDPOINTS.benefits}/${id}`, apiData);
       return response.data;
     } catch (error) {
       console.error(`Failed to update benefit ${id}:`, error);

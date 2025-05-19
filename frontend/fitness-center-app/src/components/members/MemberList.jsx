@@ -14,18 +14,41 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
 
   // Üyelik tipine göre renk sınıfını belirle
   const getMembershipBadgeClass = (type) => {
-    switch(type?.toLowerCase()) {
-      case 'basic':
-        return 'bg-blue-100 text-blue-800';
-      case 'premium':
-        return 'bg-purple-100 text-purple-800';
-      case 'gold':
-        return 'bg-amber-100 text-amber-800';
-      case 'platinum':
-        return 'bg-gray-800 text-gray-100';
-      default:
-        return 'bg-gray-100 text-gray-800';
+    const predefinedColors = {
+      'basic': 'bg-blue-100 text-blue-800',
+      'premium': 'bg-purple-100 text-purple-800',
+      'gold': 'bg-amber-100 text-amber-800',
+      'platinum': 'bg-gray-800 text-gray-100',
+    };
+    
+    // Eğer tanımlanmış bir renk varsa onu kullan
+    if (type && predefinedColors[type.toLowerCase()]) {
+      return predefinedColors[type.toLowerCase()];
     }
+    
+    // Tanımlanmış renk yoksa, üyelik tipinin adına göre bir renk seç
+    if (type) {
+      // Üyelik adının ilk harflerine göre bir renk belirle
+      const firstChar = type.charAt(0).toLowerCase();
+      
+      // Harf aralıklarına göre farklı renkler tanımla
+      if ('abcd'.includes(firstChar)) {
+        return 'bg-pink-100 text-pink-800';  // A-D arası pembe
+      } else if ('efgh'.includes(firstChar)) {
+        return 'bg-green-100 text-green-800'; // E-H arası yeşil
+      } else if ('ijkl'.includes(firstChar)) {
+        return 'bg-red-100 text-red-800';    // I-L arası kırmızı
+      } else if ('mnop'.includes(firstChar)) {
+        return 'bg-indigo-100 text-indigo-800'; // M-P arası indigo
+      } else if ('qrst'.includes(firstChar)) {
+        return 'bg-yellow-100 text-yellow-800'; // Q-T arası sarı
+      } else {
+        return 'bg-teal-100 text-teal-800';    // U-Z arası teal
+      }
+    }
+    
+    // Tip yoksa varsayılan gri renk
+    return 'bg-gray-100 text-gray-800';
   };
 
   return (

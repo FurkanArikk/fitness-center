@@ -14,6 +14,8 @@ import AssignMembershipModal from '@/components/members/AssignMembershipModal';
 import MemberDetailsModal from '@/components/members/MemberDetailsModal'; // Yeni eklendi
 import EditMembershipModal from '@/components/members/EditMembershipModal';
 import DeleteMembershipConfirm from '@/components/members/DeleteMembershipConfirm';
+import EditBenefitModal from '@/components/members/EditBenefitModal';
+import DeleteBenefitConfirm from '@/components/members/DeleteBenefitConfirm';
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -56,6 +58,12 @@ const Members = () => {
   const [loadingMemberships, setLoadingMemberships] = useState(false);
   const [editMembership, setEditMembership] = useState(null);
   const [deleteMembershipConfirm, setDeleteMembershipConfirm] = useState(null);
+
+  // States for benefit types
+  const [benefitsData, setBenefitsData] = useState([]);
+  const [loadingBenefits, setLoadingBenefits] = useState(false);
+  const [editBenefit, setEditBenefit] = useState(null);
+  const [deleteBenefitConfirm, setDeleteBenefitConfirm] = useState(null);
 
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
@@ -102,11 +110,39 @@ const Members = () => {
     setLoadingMemberships(true);
     try {
       const data = await memberService.getMemberships();
-      setMembershipsData(data || []);
+      
+      // Tüm membership'ler için benefit'leri çekelim
+      if (Array.isArray(data) && data.length > 0) {
+        const membershipsWithBenefits = await Promise.all(data.map(async (membership) => {
+          try {
+            const benefits = await memberService.getMembershipBenefits(membership.id);
+            return { ...membership, benefits: benefits || [] };
+          } catch (err) {
+            console.error(`Error fetching benefits for membership ${membership.id}:`, err);
+            return { ...membership, benefits: [] };
+          }
+        }));
+        setMembershipsData(membershipsWithBenefits);
+      } else {
+        setMembershipsData(data || []);
+      }
     } catch (err) {
       console.error('Error fetching memberships:', err);
     } finally {
       setLoadingMemberships(false);
+    }
+  };
+
+  // Function to fetch benefit types
+  const fetchBenefits = async () => {
+    setLoadingBenefits(true);
+    try {
+      const data = await memberService.getBenefits();
+      setBenefitsData(data || []);
+    } catch (err) {
+      console.error('Error fetching benefits:', err);
+    } finally {
+      setLoadingBenefits(false);
     }
   };
 
@@ -261,6 +297,9 @@ const Members = () => {
 
     // Fetch membership types
     fetchMemberships();
+
+    // Fetch benefit types
+    fetchBenefits();
   }, [currentPage, pageSize]); // Add pageSize to dependencies to refetch data when it changes
 
   // Function to change page size
@@ -367,21 +406,29 @@ const Members = () => {
   const handleDeleteMembership = async (id) => {
     setActionLoading(true);
     try {
-      const success = await memberService.deleteMembership(id);
-      if (success) {
+      const result = await memberService.deleteMembership(id);
+      if (result.success) {
         console.log('[Members] Membership deleted:', id);
         
         // Refresh memberships
         await fetchMemberships();
+        
+        // Başarılı işlem sonrası modalı kapat
+        setDeleteMembershipConfirm(null);
       } else {
-        setError('Failed to delete membership');
+        // API'den gelen hata mesajını göster
+        setError(result.error || 'Failed to delete membership');
+        
+        // Eğer üyelik kullanımdaysa, kullanıcıya özel mesaj göster
+        if (result.error && result.error.includes("in use by members")) {
+          setError("Bu üyelik tipi aktif üyeler tarafından kullanılıyor ve silinemiyor. Önce tüm üyeleri başka bir üyelik tipine transfer etmeniz gerekiyor.");
+        }
       }
     } catch (err) {
       console.error('Error deleting membership:', err);
       setError('An error occurred while deleting the membership');
     } finally {
       setActionLoading(false);
-      setDeleteMembershipConfirm(null);
     }
   };
 
@@ -407,6 +454,76 @@ const Members = () => {
     } catch (err) {
       console.error('Error updating/creating membership:', err);
       setError('An error occurred while updating/creating the membership');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Üyelik durumunu güncelleme fonksiyonu
+  const handleUpdateMembershipStatus = async (id, isActive) => {
+    setActionLoading(true);
+    try {
+      const result = await memberService.updateMembershipStatus(id, { isActive: !isActive });
+      
+      if (result.success) {
+        // Başarılı işlemden sonra üyelik listesini yenile
+        await fetchMemberships();
+      } else {
+        // API'den gelen hata mesajını göster
+        setError(result.error || 'Failed to update membership status');
+      }
+    } catch (err) {
+      console.error('Error updating membership status:', err);
+      setError('An error occurred while updating membership status');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Benefit delete function
+  const handleDeleteBenefit = async (id) => {
+    setActionLoading(true);
+    try {
+      const success = await memberService.deleteBenefit(id);
+      if (success) {
+        console.log('[Members] Benefit deleted:', id);
+        
+        // Benefit listesini yenile
+        await fetchBenefits();
+      } else {
+        setError('Failed to delete benefit');
+      }
+    } catch (err) {
+      console.error('Error deleting benefit:', err);
+      setError('An error occurred while deleting the benefit');
+    } finally {
+      setActionLoading(false);
+      setDeleteBenefitConfirm(null);
+    }
+  };
+
+  // Benefit update function
+  const handleUpdateBenefit = async (id, data) => {
+    setActionLoading(true);
+    try {
+      // id varsa güncelleme, yoksa yeni oluşturma
+      if (id) {
+        await memberService.updateBenefit(id, data);
+        console.log('[Members] Benefit updated:', id);
+      } else {
+        // Yeni benefit oluştur
+        const newBenefit = await memberService.createBenefit(data);
+        console.log('[Members] New benefit created:', newBenefit);
+      }
+      
+      // Benefit listesini yenile
+      await fetchBenefits();
+      
+      // Modal'ı kapat
+      setEditBenefit(null);
+    } catch (err) {
+      console.error('Error updating/creating benefit:', err);
+      setError('An error occurred while updating/creating the benefit');
     } finally {
       setActionLoading(false);
     }
@@ -584,6 +701,23 @@ const Members = () => {
                           <p className="font-medium text-right">${membership.price}</p>
                         </div>
                       </div>
+
+                      {/* Membership Benefits - mavi arka plan kaldırıldı */}
+                      {membership.benefits && membership.benefits.length > 0 && (
+                        <div className="mt-4">
+                          <h5 className="text-sm font-medium text-gray-700 mb-2">Benefits:</h5>
+                          <ul className="space-y-1">
+                            {membership.benefits.map((benefit, index) => (
+                              <li 
+                                key={benefit.id || benefit.benefit_id || index} 
+                                className="text-sm text-gray-800 px-2 py-1 rounded border border-gray-200 flex items-center justify-between"
+                              >
+                                <span>{benefit.benefitName || benefit.benefit_name}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                     
                     <div className="mt-4 flex justify-end space-x-2">
@@ -603,10 +737,7 @@ const Members = () => {
                       
                       <button
                         className={`px-3 py-1 text-sm border rounded ${membership.isActive ? 'text-amber-500 hover:bg-amber-50' : 'text-green-500 hover:bg-green-50'}`}
-                        onClick={async () => {
-                          await memberService.updateMembershipStatus(membership.id, { isActive: !membership.isActive });
-                          fetchMemberships();
-                        }}
+                        onClick={() => handleUpdateMembershipStatus(membership.id, membership.isActive)}
                       >
                         {membership.isActive ? 'Deactivate' : 'Activate'}
                       </button>
@@ -635,6 +766,90 @@ const Members = () => {
                       <Plus size={24} className="text-blue-500" />
                     </div>
                     <h4 className="mt-2 font-medium text-blue-500">Add New Membership Type</h4>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
+      {/* Benefit Types Cards */}
+      <Card title="Benefit Types">
+        {loadingBenefits ? (
+          <div className="p-4">
+            <Loader size="small" message="Loading benefit types..." />
+          </div>
+        ) : (
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {benefitsData.length > 0 ? (
+                benefitsData.map(benefit => {
+                  // İlgili membership'i bulalım
+                  const benefitMembershipId = benefit.membershipId || benefit.membership_id;
+                  const relatedMembership = membershipsData.find(m => m.id === benefitMembershipId);
+                  const membershipName = relatedMembership ? relatedMembership.membershipName : `Membership #${benefitMembershipId}`;
+                  
+                  return (
+                    <div 
+                      key={benefit.id || benefit.benefit_id} 
+                      className="border rounded-lg shadow p-4 border-indigo-200"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-lg font-medium">{benefit.benefitName || benefit.benefit_name}</h4>
+                        {benefitMembershipId && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {membershipName}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div className="mt-3 space-y-2">
+                        <p className="text-gray-600 text-sm">
+                          {benefit.benefitDescription || benefit.benefit_description || 'No description'}
+                        </p>
+                      </div>
+                      
+                      <div className="mt-4 flex justify-end space-x-2">
+                        <button
+                          className="px-3 py-1 text-sm border rounded text-blue-500 hover:bg-blue-50"
+                          onClick={() => setEditBenefit(benefit)}
+                        >
+                          Edit
+                        </button>
+                        
+                        <button
+                          className="px-3 py-1 text-sm border rounded text-red-500 hover:bg-red-50"
+                          onClick={() => setDeleteBenefitConfirm(benefit)}
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="col-span-full p-4 text-center text-gray-500 border rounded-lg border-dashed">
+                  <p>No benefit types found.</p>
+                  <button
+                    className="mt-2 px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600"
+                    onClick={() => setEditBenefit({})} // Boş bir nesne ile düzenleyici modalını aç
+                  >
+                    Add New Benefit Type
+                  </button>
+                </div>
+              )}
+              
+              {/* Yeni Benefit Tipi Ekleme Kartı */}
+              {benefitsData.length > 0 && (
+                <div className="border border-dashed rounded-lg p-4 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setEditBenefit({})} // Boş bir nesne ile düzenleyici modalını aç
+                >
+                  <div className="text-center">
+                    <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-indigo-100">
+                      <Plus size={24} className="text-indigo-500" />
+                    </div>
+                    <h4 className="mt-2 font-medium text-indigo-500">Add New Benefit Type</h4>
                   </div>
                 </div>
               )}
@@ -714,6 +929,36 @@ const Members = () => {
           membership={deleteMembershipConfirm}
           onClose={() => setDeleteMembershipConfirm(null)}
           onConfirm={() => handleDeleteMembership(deleteMembershipConfirm.id)}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Benefit edit modal */}
+      {editBenefit && (
+        <EditBenefitModal
+          benefit={editBenefit}
+          onClose={() => setEditBenefit(null)}
+          onSave={(data) => {
+            const benefitId = editBenefit.id || editBenefit.benefit_id;
+            if (!benefitId || Object.keys(editBenefit).length === 0) {
+              // Yeni ekleme
+              handleUpdateBenefit(null, data);
+            } else {
+              // Güncelleme
+              handleUpdateBenefit(benefitId, data);
+            }
+          }}
+          memberships={membershipsData}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Benefit delete confirmation modal */}
+      {deleteBenefitConfirm && (
+        <DeleteBenefitConfirm
+          benefit={deleteBenefitConfirm}
+          onClose={() => setDeleteBenefitConfirm(null)}
+          onConfirm={() => handleDeleteBenefit(deleteBenefitConfirm.id || deleteBenefitConfirm.benefit_id)}
           isLoading={actionLoading}
         />
       )}
