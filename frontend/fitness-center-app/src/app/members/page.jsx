@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useId } from 'react';
-import { Plus, Search, Filter } from 'lucide-react';
+import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
 import Card from '@/components/common/Card';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
@@ -18,6 +18,8 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // Sayfa boyutu için yeni state
+  const [pageSizeOpen, setPageSizeOpen] = useState(false); // Dropdown menüsü için state
   const searchInputId = useId();
   
   // States for member operations
@@ -82,8 +84,8 @@ const Members = () => {
       setError(null);
       
       try {
-        console.log(`[Members Page] Fetching members, page: ${currentPage}`);
-        const data = await memberService.getMembers(currentPage, 2);
+        console.log(`[Members Page] Fetching members, page: ${currentPage}, size: ${pageSize}`);
+        const data = await memberService.getMembers(currentPage, pageSize);
         
         console.log('[Members Page] API Response:', data);
         
@@ -159,7 +161,14 @@ const Members = () => {
     
     // Update statistics when the application starts
     fetchAndUpdateStats();
-  }, [currentPage]);
+  }, [currentPage, pageSize]); // pageSize değişikliğinde de yeniden veri çekmek için dependency'e ekliyoruz
+
+  // Sayfa boyutunu değiştiren fonksiyon
+  const handlePageSizeChange = (size) => {
+    setPageSize(size);
+    setCurrentPage(1); // Sayfa boyutu değiştiğinde ilk sayfaya dön
+    setPageSizeOpen(false); // Dropdown'ı kapat
+  };
 
   // Member add function
   const handleAddMember = async (formData) => {
@@ -300,8 +309,33 @@ const Members = () => {
               />
               
               <div className="mt-4 flex justify-between items-center">
-                <div className="text-sm text-gray-500">
+                <div className="text-sm text-gray-500 flex items-center gap-2">
                   Showing page {currentPage} of {totalPages}
+                  
+                  {/* Sayfa boyutu seçme dropdown'ı */}
+                  <div className="relative ml-4">
+                    <button 
+                      className="border rounded px-3 py-1 flex items-center gap-1 text-sm hover:bg-gray-50"
+                      onClick={() => setPageSizeOpen(!pageSizeOpen)}
+                    >
+                      {pageSize} per page
+                      <ChevronDown size={14} />
+                    </button>
+                    
+                    {pageSizeOpen && (
+                      <div className="absolute top-full left-0 mt-1 bg-white shadow-lg border rounded-md z-10">
+                        {[10, 25, 50].map(size => (
+                          <button
+                            key={size}
+                            className={`block w-full text-left px-4 py-2 hover:bg-gray-50 ${pageSize === size ? 'bg-blue-50 text-blue-600' : ''}`}
+                            onClick={() => handlePageSizeChange(size)}
+                          >
+                            {size} per page
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <div className="flex space-x-2">
                   <button 
