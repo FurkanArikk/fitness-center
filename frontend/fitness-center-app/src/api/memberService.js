@@ -1,6 +1,27 @@
 import apiClient from './apiClient';
 import { ENDPOINTS } from './endpoints';
 
+// Yeniden deneme fonksiyonu
+const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
+      
+      if (attempt < maxRetries) {
+        // Yeniden denemeden önce bekle, her seferinde bekleme süresini artır
+        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+      }
+    }
+  }
+  
+  throw lastError;
+};
+
 const memberService = {
   // Member methods
   getMembers: async (page = 1, pageSize = 10) => {
@@ -97,6 +118,7 @@ const memberService = {
   
   createMembership: async (membershipData) => {
     try {
+      // API beklediği formatta veri gönderiliyor
       const apiData = {
         membershipName: membershipData.name,
         description: membershipData.description,
@@ -105,6 +127,7 @@ const memberService = {
         isActive: membershipData.active
       };
       
+      console.log('[Membership Service] Creating membership with data:', apiData);
       const response = await apiClient.post(ENDPOINTS.memberships, apiData);
       return response.data;
     } catch (error) {
@@ -115,6 +138,12 @@ const memberService = {
   
   updateMembership: async (id, membershipData) => {
     try {
+      if (!id) {
+        console.error('Invalid membership ID for update');
+        throw new Error('Invalid membership ID');
+      }
+      
+      // API beklediği formatta veri gönderiliyor
       const apiData = {
         membershipName: membershipData.name,
         description: membershipData.description,
@@ -123,6 +152,7 @@ const memberService = {
         isActive: membershipData.active
       };
       
+      console.log(`[Membership Service] Updating membership ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.memberships}/${id}`, apiData);
       return response.data;
     } catch (error) {
@@ -216,6 +246,87 @@ const memberService = {
       return null;
     }
   },
+  
+  createBenefit: async (benefitData) => {
+    try {
+      const response = await apiClient.post(ENDPOINTS.benefits, benefitData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create benefit:', error);
+      throw error;
+    }
+  },
+  
+  updateBenefit: async (id, benefitData) => {
+    try {
+      const response = await apiClient.put(`${ENDPOINTS.benefits}/${id}`, benefitData);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update benefit ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  deleteBenefit: async (id) => {
+    try {
+      await apiClient.delete(`${ENDPOINTS.benefits}/${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete benefit ${id}:`, error);
+      return false;
+    }
+  },
+  
+  // Assessment operations
+  getAssessments: async (memberId) => {
+    try {
+      const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/assessments`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch assessments for member ${memberId}:`, error);
+      return [];
+    }
+  },
+  
+  getAssessment: async (id) => {
+    try {
+      const response = await apiClient.get(`${ENDPOINTS.assessments}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch assessment ${id}:`, error);
+      return null;
+    }
+  },
+  
+  createAssessment: async (assessmentData) => {
+    try {
+      const response = await apiClient.post(ENDPOINTS.assessments, assessmentData);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to create assessment:', error);
+      throw error;
+    }
+  },
+  
+  updateAssessment: async (id, assessmentData) => {
+    try {
+      const response = await apiClient.put(`${ENDPOINTS.assessments}/${id}`, assessmentData);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update assessment ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  deleteAssessment: async (id) => {
+    try {
+      await apiClient.delete(`${ENDPOINTS.assessments}/${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete assessment ${id}:`, error);
+      return false;
+    }
+  },
 
   // Membership assignment operations
   assignMembershipToMember: async (membershipData) => {
@@ -278,27 +389,6 @@ const memberService = {
       return false;
     }
   },
-};
-
-// Yeniden deneme fonksiyonu
-const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
-  let lastError;
-  
-  for (let attempt = 0; attempt <= maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
-      
-      if (attempt < maxRetries) {
-        // Yeniden denemeden önce bekle, her seferinde bekleme süresini artır
-        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
-      }
-    }
-  }
-  
-  throw lastError;
 };
 
 export default memberService;

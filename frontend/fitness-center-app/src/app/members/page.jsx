@@ -12,6 +12,8 @@ import DeleteMemberConfirm from '@/components/members/DeleteMemberConfirm';
 import AddMemberModal from '@/components/members/AddMemberModal';
 import AssignMembershipModal from '@/components/members/AssignMembershipModal';
 import MemberDetailsModal from '@/components/members/MemberDetailsModal'; // Yeni eklendi
+import EditMembershipModal from '@/components/members/EditMembershipModal';
+import DeleteMembershipConfirm from '@/components/members/DeleteMembershipConfirm';
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -48,6 +50,12 @@ const Members = () => {
 
   // State for membership statistics
   const [membershipStats, setMembershipStats] = useState([]);
+
+  // States for membership types
+  const [membershipsData, setMembershipsData] = useState([]);
+  const [loadingMemberships, setLoadingMemberships] = useState(false);
+  const [editMembership, setEditMembership] = useState(null);
+  const [deleteMembershipConfirm, setDeleteMembershipConfirm] = useState(null);
 
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
@@ -86,6 +94,19 @@ const Members = () => {
       }
     } catch (err) {
       console.error("[Members Page] Error fetching statistics data:", err);
+    }
+  };
+
+  // Function to fetch membership types
+  const fetchMemberships = async () => {
+    setLoadingMemberships(true);
+    try {
+      const data = await memberService.getMemberships();
+      setMembershipsData(data || []);
+    } catch (err) {
+      console.error('Error fetching memberships:', err);
+    } finally {
+      setLoadingMemberships(false);
     }
   };
 
@@ -237,6 +258,9 @@ const Members = () => {
     
     // Update statistics when the application starts
     fetchAndUpdateStats();
+
+    // Fetch membership types
+    fetchMemberships();
   }, [currentPage, pageSize]); // Add pageSize to dependencies to refetch data when it changes
 
   // Function to change page size
@@ -334,6 +358,55 @@ const Members = () => {
     } catch (err) {
       console.error('Error assigning membership:', err);
       setError('An error occurred while assigning membership');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Membership delete function
+  const handleDeleteMembership = async (id) => {
+    setActionLoading(true);
+    try {
+      const success = await memberService.deleteMembership(id);
+      if (success) {
+        console.log('[Members] Membership deleted:', id);
+        
+        // Refresh memberships
+        await fetchMemberships();
+      } else {
+        setError('Failed to delete membership');
+      }
+    } catch (err) {
+      console.error('Error deleting membership:', err);
+      setError('An error occurred while deleting the membership');
+    } finally {
+      setActionLoading(false);
+      setDeleteMembershipConfirm(null);
+    }
+  };
+
+  // Membership update function
+  const handleUpdateMembership = async (id, data) => {
+    setActionLoading(true);
+    try {
+      // Eğer id varsa güncelleme, yoksa yeni oluşturma
+      if (id) {
+        await memberService.updateMembership(id, data);
+        console.log('[Members] Membership updated:', id);
+      } else {
+        // Yeni üyelik oluştur
+        const newMembership = await memberService.createMembership(data);
+        console.log('[Members] New membership created:', newMembership);
+      }
+      
+      // Refresh memberships
+      await fetchMemberships();
+      
+      // Close modal
+      setEditMembership(null);
+    } catch (err) {
+      console.error('Error updating/creating membership:', err);
+      setError('An error occurred while updating/creating the membership');
     } finally {
       setActionLoading(false);
     }
@@ -468,6 +541,108 @@ const Members = () => {
         </div>
       </Card>
 
+      {/* Membership Types Cards */}
+      <Card title="Membership Types">
+        {loadingMemberships ? (
+          <div className="p-4">
+            <Loader size="small" message="Loading membership types..." />
+          </div>
+        ) : (
+          <div className="p-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {membershipsData.length > 0 ? (
+                membershipsData.map(membership => (
+                  <div 
+                    key={membership.id} 
+                    className={`border rounded-lg shadow p-4 ${membership.isActive ? 'border-green-200' : 'border-gray-200'}`}
+                  >
+                    <div className="flex justify-between items-start">
+                      <h4 className="text-lg font-medium">{membership.membershipName}</h4>
+                      <div>
+                        {membership.isActive ? (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Inactive
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="mt-3 space-y-2">
+                      <p className="text-gray-600 text-sm">{membership.description || 'No description'}</p>
+                      
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-gray-500 text-xs">Duration</span>
+                          <p className="font-medium">{membership.duration} month{membership.duration !== 1 ? 's' : ''}</p>
+                        </div>
+                        <div>
+                          <span className="text-gray-500 text-xs">Price</span>
+                          <p className="font-medium text-right">${membership.price}</p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="mt-4 flex justify-end space-x-2">
+                      <button
+                        className="px-3 py-1 text-sm border rounded text-blue-500 hover:bg-blue-50"
+                        onClick={() => setEditMembership(membership)}
+                      >
+                        Edit
+                      </button>
+                      
+                      <button
+                        className="px-3 py-1 text-sm border rounded text-red-500 hover:bg-red-50"
+                        onClick={() => setDeleteMembershipConfirm(membership)}
+                      >
+                        Delete
+                      </button>
+                      
+                      <button
+                        className={`px-3 py-1 text-sm border rounded ${membership.isActive ? 'text-amber-500 hover:bg-amber-50' : 'text-green-500 hover:bg-green-50'}`}
+                        onClick={async () => {
+                          await memberService.updateMembershipStatus(membership.id, { isActive: !membership.isActive });
+                          fetchMemberships();
+                        }}
+                      >
+                        {membership.isActive ? 'Deactivate' : 'Activate'}
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full p-4 text-center text-gray-500 border rounded-lg border-dashed">
+                  <p>No membership types found.</p>
+                  <button
+                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                    onClick={() => setEditMembership({})} // Boş bir nesne ile düzenleyici modalını aç
+                  >
+                    Add New Membership Type
+                  </button>
+                </div>
+              )}
+              
+              {/* Yeni Üyelik Tipi Ekleme Kartı */}
+              {membershipsData.length > 0 && (
+                <div className="border border-dashed rounded-lg p-4 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setEditMembership({})} // Boş bir nesne ile düzenleyici modalını aç
+                >
+                  <div className="text-center">
+                    <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
+                      <Plus size={24} className="text-blue-500" />
+                    </div>
+                    <h4 className="mt-2 font-medium text-blue-500">Add New Membership Type</h4>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
+
       {/* Using EditMemberModal component */}
       {editMember && (
         <EditMemberModal
@@ -512,6 +687,34 @@ const Members = () => {
         <MemberDetailsModal
           member={detailsMember}
           onClose={() => setDetailsMember(null)}
+        />
+      )}
+
+      {/* Membership edit modal */}
+      {editMembership && (
+        <EditMembershipModal
+          membership={editMembership}
+          onClose={() => setEditMembership(null)}
+          onSave={(data) => {
+            if (Object.keys(editMembership).length === 0) {
+              // Yeni ekleme
+              handleUpdateMembership(null, data);
+            } else {
+              // Güncelleme
+              handleUpdateMembership(editMembership.id, data);
+            }
+          }}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Membership delete confirmation modal */}
+      {deleteMembershipConfirm && (
+        <DeleteMembershipConfirm
+          membership={deleteMembershipConfirm}
+          onClose={() => setDeleteMembershipConfirm(null)}
+          onConfirm={() => handleDeleteMembership(deleteMembershipConfirm.id)}
+          isLoading={actionLoading}
         />
       )}
     </div>
