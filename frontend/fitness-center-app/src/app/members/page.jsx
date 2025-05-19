@@ -17,6 +17,10 @@ import DeleteMembershipConfirm from '@/components/members/DeleteMembershipConfir
 import EditBenefitModal from '@/components/members/EditBenefitModal';
 import DeleteBenefitConfirm from '@/components/members/DeleteBenefitConfirm';
 import BenefitTypesList from '@/components/members/BenefitTypesList'; 
+import MemberAssessmentsModal from '@/components/members/MemberAssessmentsModal';
+import AddAssessmentModal from '@/components/members/AddAssessmentModal';
+import EditAssessmentModal from '@/components/members/EditAssessmentModal';
+import DeleteAssessmentConfirm from '@/components/members/DeleteAssessmentConfirm';
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -65,6 +69,14 @@ const Members = () => {
   const [loadingBenefits, setLoadingBenefits] = useState(false);
   const [editBenefit, setEditBenefit] = useState(null);
   const [deleteBenefitConfirm, setDeleteBenefitConfirm] = useState(null);
+
+  // Assessment modals for state
+  const [viewAssessmentsMember, setViewAssessmentsMember] = useState(null);
+  const [addAssessmentMember, setAddAssessmentMember] = useState(null);
+  const [memberAssessments, setMemberAssessments] = useState([]);
+  const [loadingAssessments, setLoadingAssessments] = useState(false);
+  const [editAssessment, setEditAssessment] = useState(null);
+  const [deleteAssessmentConfirm, setDeleteAssessmentConfirm] = useState(null);
 
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
@@ -144,6 +156,97 @@ const Members = () => {
       console.error('Error fetching benefits:', err);
     } finally {
       setLoadingBenefits(false);
+    }
+  };
+
+  // Function to fetch member assessments
+  const fetchMemberAssessments = async (memberId) => {
+    if (!memberId) return;
+    
+    setLoadingAssessments(true);
+    try {
+      const assessments = await memberService.getMemberAssessments(memberId);
+      setMemberAssessments(assessments || []);
+    } catch (err) {
+      console.error(`Error fetching assessments for member ${memberId}:`, err);
+      setMemberAssessments([]);
+    } finally {
+      setLoadingAssessments(false);
+    }
+  };
+
+  // Function to view assessments
+  const handleViewAssessments = (member) => {
+    setViewAssessmentsMember(member);
+    fetchMemberAssessments(member.id);
+  };
+
+  // Function to add assessment
+  const handleAddAssessment = async (formData) => {
+    setActionLoading(true);
+    try {
+      await memberService.createAssessment(formData);
+      console.log('[Members] Assessment created for member:', formData.memberId);
+      
+      // Reload assessments
+      await fetchMemberAssessments(formData.memberId);
+      
+      // Close modal
+      setAddAssessmentMember(null);
+    } catch (err) {
+      console.error('Error creating assessment:', err);
+      setError('An error occurred while creating the assessment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Değerlendirme düzenleme fonksiyonu
+  const handleEditAssessment = async (formData) => {
+    if (!formData || !formData.id) return;
+    
+    setActionLoading(true);
+    try {
+      await memberService.updateAssessment(formData.id, formData);
+      console.log('[Members] Assessment updated:', formData.id);
+      
+      // Reload assessments to reflect changes
+      await fetchMemberAssessments(formData.memberId);
+      
+      // Close modal
+      setEditAssessment(null);
+    } catch (err) {
+      console.error('Error updating assessment:', err);
+      setError('An error occurred while updating the assessment');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Değerlendirme silme fonksiyonu
+  const handleDeleteAssessment = async (id) => {
+    if (!id || !viewAssessmentsMember) return;
+    
+    setActionLoading(true);
+    try {
+      const success = await memberService.deleteAssessment(id);
+      
+      if (success) {
+        console.log('[Members] Assessment deleted:', id);
+        
+        // Reload assessments to reflect changes
+        await fetchMemberAssessments(viewAssessmentsMember.id);
+      } else {
+        setError('Failed to delete assessment');
+      }
+      
+      // Close delete confirmation modal
+      setDeleteAssessmentConfirm(null);
+    } catch (err) {
+      console.error('Error deleting assessment:', err);
+      setError('An error occurred while deleting the assessment');
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -583,7 +686,7 @@ const Members = () => {
             <Loader size="small" message="Refreshing data..." />
           ) : (
             <>
-              {/* Using the MemberList component with new onViewDetails prop */}
+              {/* Using the MemberList component with new onViewAssessments prop */}
               <MemberList 
                 members={members} 
                 onEdit={(member) => setEditMember(member)}
@@ -592,7 +695,8 @@ const Members = () => {
                   setDeleteConfirm(member);
                 }}
                 onAssignMembership={(member) => setAssignMembershipMember(member)}
-                onViewDetails={(member) => setDetailsMember(member)} // Yeni eklendi
+                onViewDetails={(member) => setDetailsMember(member)}
+                onViewAssessments={handleViewAssessments} // Yeni assessment butonunun click handler'ı
               />
               
               <div className="mt-4 flex justify-between items-center">
@@ -885,6 +989,48 @@ const Members = () => {
           benefit={deleteBenefitConfirm}
           onClose={() => setDeleteBenefitConfirm(null)}
           onConfirm={() => handleDeleteBenefit(deleteBenefitConfirm.id || deleteBenefitConfirm.benefit_id)}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Assessment modals */}
+      {viewAssessmentsMember && (
+        <MemberAssessmentsModal
+          member={viewAssessmentsMember}
+          assessments={memberAssessments}
+          isLoading={loadingAssessments}
+          onClose={() => setViewAssessmentsMember(null)}
+          onAddAssessment={setAddAssessmentMember}
+          onEditAssessment={setEditAssessment}
+          onDeleteAssessment={setDeleteAssessmentConfirm}
+        />
+      )}
+
+      {addAssessmentMember && (
+        <AddAssessmentModal
+          member={addAssessmentMember}
+          onClose={() => setAddAssessmentMember(null)}
+          onSave={handleAddAssessment}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Yeni eklenen Değerlendirme düzenleme modalı */}
+      {editAssessment && (
+        <EditAssessmentModal
+          assessment={editAssessment}
+          onClose={() => setEditAssessment(null)}
+          onSave={handleEditAssessment}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Yeni eklenen Değerlendirme silme onayı modalı */}
+      {deleteAssessmentConfirm && (
+        <DeleteAssessmentConfirm
+          assessment={deleteAssessmentConfirm}
+          onClose={() => setDeleteAssessmentConfirm(null)}
+          onConfirm={handleDeleteAssessment}
           isLoading={actionLoading}
         />
       )}

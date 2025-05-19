@@ -1,9 +1,9 @@
 import React from 'react';
-import { Edit, Trash2, CreditCard, Info } from 'lucide-react';
+import { Edit, Trash2, CreditCard, Info, ActivitySquare } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 import { formatDate } from '../../utils/formatters';
 
-const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onViewDetails }) => {
+const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onViewDetails, onViewAssessments }) => {
   if (!members.length) {
     return (
       <div className="py-4 text-center text-gray-500">
@@ -105,14 +105,22 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
                   <button 
                     className="p-1 text-purple-500 hover:bg-purple-50 rounded"
                     onClick={() => onViewDetails && onViewDetails(member)}
-                    title="View Details"
+                    title="Üye Detayları"
                   >
                     <Info size={16} />
+                  </button>
+                  {/* Değerlendirme (Assessment) Butonu */}
+                  <button 
+                    className="p-1 text-amber-500 hover:bg-amber-50 rounded"
+                    onClick={() => onViewAssessments && onViewAssessments(member)}
+                    title="Değerlendirmeleri Görüntüle"
+                  >
+                    <ActivitySquare size={16} />
                   </button>
                   <button 
                     className="p-1 text-red-500 hover:bg-red-50 rounded"
                     onClick={() => onDelete && onDelete(member.id)}
-                    title="Delete Member"
+                    title="Üyeyi Sil"
                   >
                     <Trash2 size={16} />
                   </button>
