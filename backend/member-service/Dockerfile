@@ -11,7 +11,9 @@ WORKDIR /app
 COPY go.mod go.sum ./
 
 # Download dependencies
-RUN go mod download
+RUN go mod download && \
+    # Verify godotenv dependency is present
+    go list -m github.com/joho/godotenv >/dev/null 2>&1 || go get github.com/joho/godotenv
 
 # Copy the source code
 COPY . .
