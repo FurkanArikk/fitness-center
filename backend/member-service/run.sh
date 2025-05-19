@@ -481,9 +481,6 @@ if [ "$SAMPLE_DATA_OPTION" != "keep" ]; then
     handle_database_setup
 fi
 
-# Display sample data instructions
-display_sample_data_instructions
-
 # Start the service
 start_service
 
