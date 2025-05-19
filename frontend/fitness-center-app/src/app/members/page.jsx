@@ -36,157 +36,43 @@ const Members = () => {
     averageAttendance: 0
   });
 
-  // Member add function
-  const handleAddMember = async (formData) => {
-    setActionLoading(true);
+  // Function to update statistics
+  const fetchAndUpdateStats = async () => {
     try {
-      const newMember = await memberService.createMember(formData);
-      console.log('[Members] Member added:', newMember);
+      console.log('[Members Page] Fetching all members for statistics');
+      const data = await memberService.getAllMembers();
       
-      // Update state - add the new member to the list
-      setMembers([newMember, ...members]);
-      
-      // Update statistics based on status
-      setMemberStats(prev => {
-        // Destruct current values with default 0
-        const { activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
+      if (data) {
+        const membersArray = Array.isArray(data) ? data : (data.members && Array.isArray(data.members) ? data.members : []);
+        const totalCount = Array.isArray(data) ? data.length : (data.totalCount || membersArray.length);
         
-        // Determine which count to increment based on status
-        const updatedStats = {
-          ...prev,
-          totalMembers: prev.totalMembers + 1,
-          newMembersThisMonth: prev.newMembersThisMonth + 1
-        };
+        // Calculate counts based on member status
+        const activeCount = membersArray.filter(member => member.status === 'active').length;
+        const inactiveCount = membersArray.filter(member => member.status === 'de_active').length;
+        const holdCount = membersArray.filter(member => member.status === 'hold_on').length;
         
-        // Update the specific status count
-        if (formData.status === 'active') {
-          updatedStats.activeMembers = activeMembers + 1;
-        } else if (formData.status === 'de_active') {
-          updatedStats.inactiveMembers = inactiveMembers + 1;
-        } else if (formData.status === 'hold_on') {
-          updatedStats.holdMembers = holdMembers + 1;
-        }
+        // Calculate new members this month
+        const currentDate = new Date();
+        const newMembersCount = membersArray.filter(m => {
+          const joinDate = new Date(m.joinDate);
+          return joinDate.getMonth() === currentDate.getMonth() && 
+                 joinDate.getFullYear() === currentDate.getFullYear();
+        }).length;
         
-        return updatedStats;
-      });
-      
-      // Close modal
-      setShowAddModal(false);
-    } catch (err) {
-      console.error('Error adding member:', err);
-      setError('An error occurred while adding the member');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Member edit function
-  const handleEditMember = async (formData) => {
-    if (!editMember) return;
-
-    setActionLoading(true);
-    try {
-      const updatedMember = await memberService.updateMember(editMember.id, formData);
-      console.log('[Members] Member updated:', updatedMember);
-      
-      // Update state
-      setMembers(members.map(member => 
-        member.id === updatedMember.id ? updatedMember : member
-      ));
-      
-      // Status değişimi olduğunda istatistikleri güncelle
-      if (editMember.status !== formData.status) {
-        setMemberStats(prev => {
-          // Destruct current values with default 0
-          const { activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
-          
-          const updatedStats = { ...prev };
-          
-          // Decrease count for old status
-          if (editMember.status === 'active') {
-            updatedStats.activeMembers = Math.max(0, activeMembers - 1);
-          } else if (editMember.status === 'de_active') {
-            updatedStats.inactiveMembers = Math.max(0, inactiveMembers - 1);
-          } else if (editMember.status === 'hold_on') {
-            updatedStats.holdMembers = Math.max(0, holdMembers - 1);
-          }
-          
-          // Increase count for new status
-          if (formData.status === 'active') {
-            updatedStats.activeMembers = activeMembers + 1;
-          } else if (formData.status === 'de_active') {
-            updatedStats.inactiveMembers = inactiveMembers + 1;
-          } else if (formData.status === 'hold_on') {
-            updatedStats.holdMembers = holdMembers + 1;
-          }
-          
-          return updatedStats;
+        // Update statistics
+        setMemberStats({
+          totalMembers: totalCount,
+          activeMembers: activeCount,
+          inactiveMembers: inactiveCount,
+          holdMembers: holdCount,
+          newMembersThisMonth: newMembersCount,
+          averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
         });
-      }
-      
-      // Close modal
-      setEditMember(null);
-    } catch (err) {
-      console.error('Error updating member:', err);
-      setError('An error occurred while updating the member');
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  // Member delete function
-  const handleDeleteMember = async (id) => {
-    setActionLoading(true);
-    try {
-      const success = await memberService.deleteMember(id);
-      if (success) {
-        console.log('[Members] Member deleted:', id);
         
-        // Find the member before removing from list
-        const deletedMember = members.find(m => m.id === id);
-        
-        // Remove deleted member from the list
-        setMembers(members.filter(member => member.id !== id));
-        
-        // Update statistics based on deleted member's status
-        if (deletedMember) {
-          setMemberStats(prev => {
-            // Destruct current values with default 0
-            const { totalMembers = 0, activeMembers = 0, inactiveMembers = 0, holdMembers = 0 } = prev;
-            
-            const updatedStats = {
-              ...prev,
-              totalMembers: Math.max(0, totalMembers - 1)
-            };
-            
-            // Decrease appropriate status count
-            if (deletedMember.status === 'active') {
-              updatedStats.activeMembers = Math.max(0, activeMembers - 1);
-            } else if (deletedMember.status === 'de_active') {
-              updatedStats.inactiveMembers = Math.max(0, inactiveMembers - 1);
-            } else if (deletedMember.status === 'hold_on') {
-              updatedStats.holdMembers = Math.max(0, holdMembers - 1);
-            }
-            
-            // If it was a member added this month, decrease that count too
-            const joinDate = new Date(deletedMember.joinDate);
-            const now = new Date();
-            if (joinDate.getMonth() === now.getMonth() && joinDate.getFullYear() === now.getFullYear()) {
-              updatedStats.newMembersThisMonth = Math.max(0, prev.newMembersThisMonth - 1);
-            }
-            
-            return updatedStats;
-          });
-        }
-      } else {
-        setError('Failed to delete member');
+        console.log('[Members Page] Statistics updated:', totalCount, 'members');
       }
     } catch (err) {
-      console.error('Error deleting member:', err);
-      setError('An error occurred while deleting the member');
-    } finally {
-      setActionLoading(false);
-      setDeleteConfirm(null);
+      console.error("[Members Page] Error fetching statistics data:", err);
     }
   };
 
@@ -197,12 +83,39 @@ const Members = () => {
       
       try {
         console.log(`[Members Page] Fetching members, page: ${currentPage}`);
-        const data = await memberService.getMembers(currentPage, 10);
+        const data = await memberService.getMembers(currentPage, 2);
         
         console.log('[Members Page] API Response:', data);
         
         if (data) {
-          if (Array.isArray(data)) {
+          // Handle the specific API response format with members array
+          if (data.members && Array.isArray(data.members)) {
+            // Use members array from the response
+            setMembers(data.members);
+            
+            // Use pagination data from the response
+            setTotalPages(data.totalPages || 1);
+            
+            // Update statistics data with status breakdown
+            const membersArray = data.members;
+            const activeCount = membersArray.filter(member => member.status === 'active').length;
+            const inactiveCount = membersArray.filter(member => member.status === 'de_active').length;
+            const holdCount = membersArray.filter(member => member.status === 'hold_on').length;
+            
+            setMemberStats({
+              totalMembers: data.totalCount || membersArray.length,
+              activeMembers: activeCount,
+              inactiveMembers: inactiveCount,
+              holdMembers: holdCount,
+              newMembersThisMonth: membersArray.filter(m => {
+                const joinDate = new Date(m.joinDate);
+                const now = new Date();
+                return joinDate.getMonth() === now.getMonth() && 
+                       joinDate.getFullYear() === now.getFullYear();
+              }).length,
+              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+            });
+          } else if (Array.isArray(data)) {
             setMembers(data);
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
             
@@ -217,32 +130,6 @@ const Members = () => {
               inactiveMembers: inactiveCount,
               holdMembers: holdCount,
               newMembersThisMonth: data.filter(m => {
-                const joinDate = new Date(m.joinDate);
-                const now = new Date();
-                return joinDate.getMonth() === now.getMonth() && 
-                       joinDate.getFullYear() === now.getFullYear();
-              }).length,
-              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
-            });
-          } else if (data.items || data.data) {
-            const items = data.items || data.data || [];
-            setMembers(items);
-            
-            const total = data.totalPages || 
-                         (data.total ? Math.ceil(data.total / 10) : 1);
-            setTotalPages(total);
-            
-            // Update statistics data with status breakdown
-            const activeCount = items.filter(member => member.status === 'active').length;
-            const inactiveCount = items.filter(member => member.status === 'de_active').length;
-            const holdCount = items.filter(member => member.status === 'hold_on').length;
-            
-            setMemberStats({
-              totalMembers: items.length,
-              activeMembers: activeCount,
-              inactiveMembers: inactiveCount,
-              holdMembers: holdCount,
-              newMembersThisMonth: items.filter(m => {
                 const joinDate = new Date(m.joinDate);
                 const now = new Date();
                 return joinDate.getMonth() === now.getMonth() && 
@@ -269,7 +156,85 @@ const Members = () => {
     };
 
     fetchMembers();
+    
+    // Update statistics when the application starts
+    fetchAndUpdateStats();
   }, [currentPage]);
+
+  // Member add function
+  const handleAddMember = async (formData) => {
+    setActionLoading(true);
+    try {
+      const newMember = await memberService.createMember(formData);
+      console.log('[Members] Member added:', newMember);
+      
+      // Update state - add the new member to the list
+      setMembers([newMember, ...members]);
+      
+      // Update statistics after adding a member
+      fetchAndUpdateStats();
+      
+      // Close modal
+      setShowAddModal(false);
+    } catch (err) {
+      console.error('Error adding member:', err);
+      setError('An error occurred while adding the member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Member edit function
+  const handleEditMember = async (formData) => {
+    if (!editMember) return;
+
+    setActionLoading(true);
+    try {
+      const updatedMember = await memberService.updateMember(editMember.id, formData);
+      console.log('[Members] Member updated:', updatedMember);
+      
+      // Update state
+      setMembers(members.map(member => 
+        member.id === updatedMember.id ? updatedMember : member
+      ));
+      
+      // Update statistics after editing a member
+      fetchAndUpdateStats();
+      
+      // Close modal
+      setEditMember(null);
+    } catch (err) {
+      console.error('Error updating member:', err);
+      setError('An error occurred while updating the member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Member delete function
+  const handleDeleteMember = async (id) => {
+    setActionLoading(true);
+    try {
+      const success = await memberService.deleteMember(id);
+      if (success) {
+        console.log('[Members] Member deleted:', id);
+        
+        // Remove deleted member from the list
+        setMembers(members.filter(member => member.id !== id));
+        
+        // Update statistics after deleting a member
+        fetchAndUpdateStats();
+      } else {
+        setError('Failed to delete member');
+      }
+    } catch (err) {
+      console.error('Error deleting member:', err);
+      setError('An error occurred while deleting the member');
+    } finally {
+      setActionLoading(false);
+      setDeleteConfirm(null);
+    }
+  };
 
   if (loading && members.length === 0) {
     return <Loader message="Loading members..." />;

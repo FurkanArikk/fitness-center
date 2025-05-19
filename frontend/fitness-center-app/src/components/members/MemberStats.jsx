@@ -31,67 +31,11 @@ const MemberStats = ({ stats }) => {
   // Filter out zero values to avoid empty segments in the chart
   const filteredStatusData = statusData.filter(item => item.value > 0);
   
-  // Renk kontrastına göre metin rengini belirleyen geliştirilmiş fonksiyon
-  const getContrastColor = (hexColor) => {
-    // Her dilim rengi için sabit metin rengi tanımlayalım
-    const colorMap = {
-      '#4CAF50': '#000000', // Yeşil (Active) için beyaz metin
-      '#F44336': '#000000', // Kırmızı (Inactive) için siyah metin
-      '#FF9800': '#000000'  // Turuncu (On Hold) için siyah metin
-    };
-    
-    // Eğer renk haritamızda varsa, o rengi döndür
-    if (colorMap[hexColor]) {
-      return colorMap[hexColor];
-    }
-    
-    // Haritada olmayan renkler için eskiden olduğu gibi kontrast hesaplama yap
-    // Hex rengi RGB'ye çevirme
-    const r = parseInt(hexColor.slice(1, 3), 16);
-    const g = parseInt(hexColor.slice(3, 5), 16);
-    const b = parseInt(hexColor.slice(5, 7), 16);
-    
-    // Parlaklık hesaplama (YIQ formülü)
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    
-    // 150'den büyükse koyu renk, değilse açık renk döndür
-    return (yiq >= 150) ? '#000000' : '#FFFFFF';
-  };
-  
   // Etiketleri dilim rengine göre değişen renkte gösteren özel render fonksiyonu
-  const renderCustomLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, value, name, index }) => {
-    // Eğer değer çok küçükse, etiket görüntülemeyelim
-    if (percent < 0.05) return null;
-    
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.7; // Biraz daha dışarı çıkarttım
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-    
-    // Dilimin rengine göre kontrast metin rengi seçimi
-    const color = statusData[index]?.color;
-    const textColor = color ? getContrastColor(color) : '#FFFFFF';
-    
-    // Metin içeriği
-    const text = `${name}: ${value} (${(percent * 100).toFixed(0)}%)`;
-    
-    return (
-      <text 
-        x={x}
-        y={y}
-        fill={textColor}
-        textAnchor={x > cx ? 'start' : 'end'}
-        dominantBaseline="central"
-        fontSize={11}
-        fontWeight="bold"
-        // Daha iyi okunabilirlik için hafif gölge ekleyelim
-        style={{
-          textShadow: textColor === '#FFFFFF' ? '1px 1px 1px rgba(0,0,0,0.5)' : '1px 1px 1px rgba(255,255,255,0.5)'
-        }}
-      >
-        {text}
-      </text>
-    );
+  // Artık hiçbir şey döndürmeyecek - yani etiketleri göstermeyecek
+  const renderCustomLabel = () => {
+    // Etiket gösterme - boş döndür
+    return null;
   };
 
   return (

@@ -3,10 +3,9 @@ import { ENDPOINTS } from './endpoints';
 
 const memberService = {
   // Member methods
-  getMembers: async (page = 1, size = 10) => {
+  getMembers: async (page = 1, pageSize = 10) => {
     try {
-      // Define API path directly (pay attention to URL parameters)
-      const url = `${ENDPOINTS.members}?page=${page}&size=${size}`;
+      const url = `${ENDPOINTS.members}?page=${page}&pageSize=${pageSize}`;
       console.log('[Members Service] Request:', url);
       
       // Make API request
@@ -19,6 +18,18 @@ const memberService = {
       console.error("[Members Service] Error:", error.message);
       // Throw error with message
       throw new Error(`Could not fetch member data: ${error.message}`);
+    }
+  },
+  
+  getAllMembers: async () => {
+    try {
+      console.log('[Members Service] Fetching all members');
+      const response = await apiClient.get(ENDPOINTS.members);
+      console.log('[Members Service] All members received:', response.status);
+      return response.data;
+    } catch (error) {
+      console.error("[Members Service] Error fetching all members:", error.message);
+      throw new Error(`Failed to fetch all members: ${error.message}`);
     }
   },
   
