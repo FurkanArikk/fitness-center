@@ -10,6 +10,8 @@ import MemberStats from '@/components/members/MemberStats';
 import EditMemberModal from '@/components/members/EditMemberModal';
 import DeleteMemberConfirm from '@/components/members/DeleteMemberConfirm';
 import AddMemberModal from '@/components/members/AddMemberModal';
+import AssignMembershipModal from '@/components/members/AssignMembershipModal';
+import MemberDetailsModal from '@/components/members/MemberDetailsModal'; // Yeni eklendi
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -18,8 +20,8 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(10); // Sayfa boyutu için yeni state
-  const [pageSizeOpen, setPageSizeOpen] = useState(false); // Dropdown menüsü için state
+  const [pageSize, setPageSize] = useState(10);
+  const [pageSizeOpen, setPageSizeOpen] = useState(false);
   const searchInputId = useId();
   
   // States for member operations
@@ -27,6 +29,9 @@ const Members = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // State for membership assignment
+  const [assignMembershipMember, setAssignMembershipMember] = useState(null);
   
   // Added state variable for statistics
   const [memberStats, setMemberStats] = useState({
@@ -37,6 +42,9 @@ const Members = () => {
     newMembersThisMonth: 0,
     averageAttendance: 0
   });
+
+  // State for member details modal
+  const [detailsMember, setDetailsMember] = useState(null);
 
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
@@ -90,60 +98,80 @@ const Members = () => {
         console.log('[Members Page] API Response:', data);
         
         if (data) {
+          let membersData = [];
+          
           // Handle the specific API response format with members array
           if (data.members && Array.isArray(data.members)) {
-            // Use members array from the response
-            setMembers(data.members);
-            
-            // Use pagination data from the response
+            membersData = data.members;
             setTotalPages(data.totalPages || 1);
-            
-            // Update statistics data with status breakdown
-            const membersArray = data.members;
-            const activeCount = membersArray.filter(member => member.status === 'active').length;
-            const inactiveCount = membersArray.filter(member => member.status === 'de_active').length;
-            const holdCount = membersArray.filter(member => member.status === 'hold_on').length;
-            
-            setMemberStats({
-              totalMembers: data.totalCount || membersArray.length,
-              activeMembers: activeCount,
-              inactiveMembers: inactiveCount,
-              holdMembers: holdCount,
-              newMembersThisMonth: membersArray.filter(m => {
-                const joinDate = new Date(m.joinDate);
-                const now = new Date();
-                return joinDate.getMonth() === now.getMonth() && 
-                       joinDate.getFullYear() === now.getFullYear();
-              }).length,
-              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
-            });
           } else if (Array.isArray(data)) {
-            setMembers(data);
+            membersData = data;
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
-            
-            // Update statistics data with status breakdown
-            const activeCount = data.filter(member => member.status === 'active').length;
-            const inactiveCount = data.filter(member => member.status === 'de_active').length;
-            const holdCount = data.filter(member => member.status === 'hold_on').length;
-            
-            setMemberStats({
-              totalMembers: data.length,
-              activeMembers: activeCount,
-              inactiveMembers: inactiveCount,
-              holdMembers: holdCount,
-              newMembersThisMonth: data.filter(m => {
-                const joinDate = new Date(m.joinDate);
-                const now = new Date();
-                return joinDate.getMonth() === now.getMonth() && 
-                       joinDate.getFullYear() === now.getFullYear();
-              }).length,
-              averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
-            });
           } else {
             console.warn('[Members Page] Unknown API response format:', data);
             setMembers([]);
             setTotalPages(1);
+            return;
           }
+          
+          // Üyelerin aktif üyeliklerini çek
+          const membersWithMemberships = await Promise.all(membersData.map(async (member) => {
+            try {
+              // İlk olarak üyenin tüm üyeliklerini al
+              const memberMemberships = await memberService.getMemberMemberships(member.id);
+              
+              if (Array.isArray(memberMemberships) && memberMemberships.length > 0) {
+                // ID'ye göre sıralama yap (en büyük ID'li üyelik en önce)
+                const sortedMemberships = [...memberMemberships].sort((a, b) => 
+                  b.id - a.id
+                );
+                
+                // ID'si en büyük olan üyeliği al
+                const latestMembership = sortedMemberships[0];
+                
+                if (latestMembership) {
+                  // Üyelik tipine ait detayları al
+                  try {
+                    const membershipDetails = await memberService.getMembership(latestMembership.membershipId);
+                    member.activeMembership = {
+                      ...latestMembership,
+                      membershipName: membershipDetails?.membershipName || 'Unknown',
+                      description: membershipDetails?.description || '',
+                      price: membershipDetails?.price || 0
+                    };
+                  } catch (err) {
+                    console.error(`Error fetching membership details for member ${member.id}:`, err);
+                  }
+                }
+              }
+              
+              return member;
+            } catch (err) {
+              console.error(`Error fetching memberships for member ${member.id}:`, err);
+              return member;
+            }
+          }));
+          
+          setMembers(membersWithMemberships);
+          
+          // İstatistikleri güncelle
+          const activeCount = membersWithMemberships.filter(member => member.status === 'active').length;
+          const inactiveCount = membersWithMemberships.filter(member => member.status === 'de_active').length;
+          const holdCount = membersWithMemberships.filter(member => member.status === 'hold_on').length;
+          
+          setMemberStats({
+            totalMembers: data.totalCount || membersWithMemberships.length,
+            activeMembers: activeCount,
+            inactiveMembers: inactiveCount,
+            holdMembers: holdCount,
+            newMembersThisMonth: membersWithMemberships.filter(m => {
+              const joinDate = new Date(m.joinDate);
+              const now = new Date();
+              return joinDate.getMonth() === now.getMonth() && 
+                     joinDate.getFullYear() === now.getFullYear();
+            }).length,
+            averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+          });
         } else {
           setMembers([]);
           setTotalPages(1);
@@ -161,13 +189,13 @@ const Members = () => {
     
     // Update statistics when the application starts
     fetchAndUpdateStats();
-  }, [currentPage, pageSize]); // pageSize değişikliğinde de yeniden veri çekmek için dependency'e ekliyoruz
+  }, [currentPage, pageSize]); // Add pageSize to dependencies to refetch data when it changes
 
-  // Sayfa boyutunu değiştiren fonksiyon
+  // Function to change page size
   const handlePageSizeChange = (size) => {
     setPageSize(size);
-    setCurrentPage(1); // Sayfa boyutu değiştiğinde ilk sayfaya dön
-    setPageSizeOpen(false); // Dropdown'ı kapat
+    setCurrentPage(1); // Reset to first page when page size changes
+    setPageSizeOpen(false); // Close dropdown
   };
 
   // Member add function
@@ -245,6 +273,24 @@ const Members = () => {
     }
   };
 
+  // Membership assignment
+  const handleAssignMembership = async (membershipData) => {
+    setActionLoading(true);
+    try {
+      // API call
+      const result = await memberService.assignMembershipToMember(membershipData);
+      console.log('[Members] Membership assigned:', result);
+      
+      // Successful operation
+      setAssignMembershipMember(null); // Close modal
+    } catch (err) {
+      console.error('Error assigning membership:', err);
+      setError('An error occurred while assigning membership');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading && members.length === 0) {
     return <Loader message="Loading members..." />;
   }
@@ -298,7 +344,7 @@ const Members = () => {
             <Loader size="small" message="Refreshing data..." />
           ) : (
             <>
-              {/* Using the MemberList component */}
+              {/* Using the MemberList component with new onViewDetails prop */}
               <MemberList 
                 members={members} 
                 onEdit={(member) => setEditMember(member)}
@@ -306,13 +352,15 @@ const Members = () => {
                   const member = members.find(m => m.id === id);
                   setDeleteConfirm(member);
                 }}
+                onAssignMembership={(member) => setAssignMembershipMember(member)}
+                onViewDetails={(member) => setDetailsMember(member)} // Yeni eklendi
               />
               
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-sm text-gray-500 flex items-center gap-2">
                   Showing page {currentPage} of {totalPages}
                   
-                  {/* Sayfa boyutu seçme dropdown'ı */}
+                  {/* Page size dropdown */}
                   <div className="relative ml-4">
                     <button 
                       className="border rounded px-3 py-1 flex items-center gap-1 text-sm hover:bg-gray-50"
@@ -398,6 +446,24 @@ const Members = () => {
           onClose={() => setShowAddModal(false)}
           onSave={handleAddMember}
           isLoading={actionLoading}
+        />
+      )}
+      
+      {/* Membership assignment modal */}
+      {assignMembershipMember && (
+        <AssignMembershipModal
+          member={assignMembershipMember}
+          onClose={() => setAssignMembershipMember(null)}
+          onSave={handleAssignMembership}
+          isLoading={actionLoading}
+        />
+      )}
+
+      {/* Member details modal */}
+      {detailsMember && (
+        <MemberDetailsModal
+          member={detailsMember}
+          onClose={() => setDetailsMember(null)}
         />
       )}
     </div>

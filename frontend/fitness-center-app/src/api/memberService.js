@@ -76,7 +76,7 @@ const memberService = {
   // Membership methods
   getMemberships: async (active = null) => {
     try {
-      const url = active !== null ? `${ENDPOINTS.memberships}?active=${active}` : ENDPOINTS.memberships;
+      const url = active !== null ? `${ENDPOINTS.memberships}?isActive=${active}` : ENDPOINTS.memberships;
       const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
@@ -97,7 +97,15 @@ const memberService = {
   
   createMembership: async (membershipData) => {
     try {
-      const response = await apiClient.post(ENDPOINTS.memberships, membershipData);
+      const apiData = {
+        membershipName: membershipData.name,
+        description: membershipData.description,
+        duration: membershipData.durationMonths,
+        price: membershipData.price,
+        isActive: membershipData.active
+      };
+      
+      const response = await apiClient.post(ENDPOINTS.memberships, apiData);
       return response.data;
     } catch (error) {
       console.error("Failed to create membership:", error);
@@ -107,7 +115,15 @@ const memberService = {
   
   updateMembership: async (id, membershipData) => {
     try {
-      const response = await apiClient.put(`${ENDPOINTS.memberships}/${id}`, membershipData);
+      const apiData = {
+        membershipName: membershipData.name,
+        description: membershipData.description,
+        duration: membershipData.durationMonths,
+        price: membershipData.price,
+        isActive: membershipData.active
+      };
+      
+      const response = await apiClient.put(`${ENDPOINTS.memberships}/${id}`, apiData);
       return response.data;
     } catch (error) {
       console.error(`Failed to update membership ${id}:`, error);
@@ -138,7 +154,7 @@ const memberService = {
   getMembershipBenefits: async (membershipId) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.memberships}/${membershipId}/benefits`);
-      return response.data;
+      return response.data.benefits || [];
     } catch (error) {
       console.error(`Failed to fetch benefits for membership ${membershipId}:`, error);
       return [];
@@ -184,6 +200,68 @@ const memberService = {
     } catch (error) {
       console.error(`Failed to fetch benefit ${id}:`, error);
       return null;
+    }
+  },
+
+  // Membership assignment operations
+  assignMembershipToMember: async (membershipData) => {
+    try {
+      // API'nin beklediği formata dönüştür
+      const apiData = {
+        memberId: membershipData.memberId,
+        membershipId: membershipData.membershipId,
+        startDate: membershipData.startDate + "T00:00:00Z",
+        endDate: membershipData.endDate + "T00:00:00Z",
+        paymentStatus: membershipData.paymentMethod === "cash" ? "paid" : "pending",
+        contractSigned: true
+      };
+      
+      console.log("[Member Membership] Sending data:", apiData);
+      
+      const response = await apiClient.post(`${ENDPOINTS.memberMemberships}`, apiData);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to assign membership to member:`, error);
+      throw error;
+    }
+  },
+  
+  getMemberMembershipById: async (id) => {
+    try {
+      const response = await apiClient.get(`${ENDPOINTS.memberMemberships}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch member-membership ${id}:`, error);
+      return null;
+    }
+  },
+  
+  updateMemberMembership: async (id, data) => {
+    try {
+      const apiData = {
+        member_id: data.memberId,
+        membership_id: data.membershipId,
+        start_date: data.startDate + "T00:00:00Z",
+        end_date: data.endDate + "T00:00:00Z",
+        payment_status: data.paymentStatus,
+        contract_signed: data.contractSigned
+      };
+      
+      const response = await apiClient.put(`${ENDPOINTS.memberMemberships}/${id}`, apiData);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update member-membership ${id}:`, error);
+      throw error;
+    }
+  },
+  
+  deleteMemberMembership: async (id) => {
+    try {
+      await apiClient.delete(`${ENDPOINTS.memberMemberships}/${id}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete member-membership ${id}:`, error);
+      return false;
     }
   },
 };
