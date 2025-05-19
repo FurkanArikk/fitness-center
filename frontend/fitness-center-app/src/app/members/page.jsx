@@ -29,8 +29,7 @@ const Members = () => {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [pageSizeOpen, setPageSizeOpen] = useState(false);
+  const [pageSize] = useState(10);
   const searchInputId = useId();
   
   // States for member operations
@@ -406,13 +405,6 @@ const Members = () => {
     fetchBenefits();
   }, [currentPage, pageSize]); // Add pageSize to dependencies to refetch data when it changes
 
-  // Function to change page size
-  const handlePageSizeChange = (size) => {
-    setPageSize(size);
-    setCurrentPage(1); // Reset to first page when page size changes
-    setPageSizeOpen(false); // Close dropdown
-  };
-
   // Member add function
   const handleAddMember = async (formData) => {
     setActionLoading(true);
@@ -736,31 +728,6 @@ const Members = () => {
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-sm text-gray-500 flex items-center gap-2">
                   Showing page {currentPage} of {totalPages}
-                  
-                  {/* Page size dropdown */}
-                  <div className="relative ml-4">
-                    <button 
-                      className="border rounded px-3 py-1 flex items-center gap-1 text-sm hover:bg-gray-50"
-                      onClick={() => setPageSizeOpen(!pageSizeOpen)}
-                    >
-                      {pageSize} per page
-                      <ChevronDown size={14} />
-                    </button>
-                    
-                    {pageSizeOpen && (
-                      <div className="absolute top-full left-0 mt-1 bg-white shadow-lg border rounded-md z-10">
-                        {[10, 25, 50].map(size => (
-                          <button
-                            key={size}
-                            className={`block w-full text-left px-4 py-2 hover:bg-gray-50 ${pageSize === size ? 'bg-blue-50 text-blue-600' : ''}`}
-                            onClick={() => handlePageSizeChange(size)}
-                          >
-                            {size} per page
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
                 </div>
                 <div className="flex space-x-2">
                   <button 
