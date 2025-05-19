@@ -46,6 +46,9 @@ const Members = () => {
   // State for member details modal
   const [detailsMember, setDetailsMember] = useState(null);
 
+  // State for membership statistics
+  const [membershipStats, setMembershipStats] = useState([]);
+
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
     try {
@@ -118,9 +121,20 @@ const Members = () => {
           const membersWithMemberships = await Promise.all(membersData.map(async (member) => {
             try {
               // İlk olarak üyenin tüm üyeliklerini al
-              const memberMemberships = await memberService.getMemberMemberships(member.id);
+              let memberMemberships = [];
               
-              if (Array.isArray(memberMemberships) && memberMemberships.length > 0) {
+              try {
+                memberMemberships = await memberService.getMemberMemberships(member.id);
+                if (!Array.isArray(memberMemberships)) {
+                  console.warn(`Unexpected response format for member ${member.id} memberships:`, memberMemberships);
+                  memberMemberships = [];
+                }
+              } catch (err) {
+                console.error(`Error fetching memberships for member ${member.id}:`, err);
+                memberMemberships = [];
+              }
+              
+              if (memberMemberships.length > 0) {
                 // ID'ye göre sıralama yap (en büyük ID'li üyelik en önce)
                 const sortedMemberships = [...memberMemberships].sort((a, b) => 
                   b.id - a.id
@@ -133,12 +147,14 @@ const Members = () => {
                   // Üyelik tipine ait detayları al
                   try {
                     const membershipDetails = await memberService.getMembership(latestMembership.membershipId);
-                    member.activeMembership = {
-                      ...latestMembership,
-                      membershipName: membershipDetails?.membershipName || 'Unknown',
-                      description: membershipDetails?.description || '',
-                      price: membershipDetails?.price || 0
-                    };
+                    if (membershipDetails) {
+                      member.activeMembership = {
+                        ...latestMembership,
+                        membershipName: membershipDetails?.membershipName || 'Unknown',
+                        description: membershipDetails?.description || '',
+                        price: membershipDetails?.price || 0
+                      };
+                    }
                   } catch (err) {
                     console.error(`Error fetching membership details for member ${member.id}:`, err);
                   }
@@ -147,12 +163,44 @@ const Members = () => {
               
               return member;
             } catch (err) {
-              console.error(`Error fetching memberships for member ${member.id}:`, err);
+              console.error(`Error processing member ${member.id}:`, err);
               return member;
             }
           }));
           
           setMembers(membersWithMemberships);
+          
+          // Üyelik dağılımı istatistiklerini hesapla
+          const membershipColors = {
+            'basic': '#3B82F6',    // Mavi
+            'premium': '#8B5CF6',  // Mor
+            'gold': '#F59E0B',     // Amber
+            'platinum': '#6B7280', // Gri
+          };
+          
+          // Üyelik tipine göre sayım yap
+          const membershipCounts = {};
+          
+          membersWithMemberships.forEach(member => {
+            if (member.activeMembership?.membershipName) {
+              const membershipName = member.activeMembership.membershipName;
+              
+              if (!membershipCounts[membershipName]) {
+                membershipCounts[membershipName] = 1;
+              } else {
+                membershipCounts[membershipName]++;
+              }
+            }
+          });
+          
+          // Üyelik istatistiklerini oluştur
+          const membershipStatsData = Object.keys(membershipCounts).map(name => ({
+            name,
+            value: membershipCounts[name],
+            color: membershipColors[name.toLowerCase()] || '#60A5FA'
+          }));
+          
+          setMembershipStats(membershipStatsData);
           
           // İstatistikleri güncelle
           const activeCount = membersWithMemberships.filter(member => member.status === 'active').length;
@@ -309,7 +357,7 @@ const Members = () => {
       </div>
       
       {/* Added statistics cards */}
-      <MemberStats stats={memberStats} />
+      <MemberStats stats={memberStats} membershipStats={membershipStats} />
       
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg">

@@ -163,23 +163,37 @@ const memberService = {
   
   // Member specific operations
   getMemberMemberships: async (memberId) => {
-    try {
-      const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/memberships`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch memberships for member ${memberId}:`, error);
-      return [];
-    }
+    return retryOperation(async () => {
+      try {
+        console.log(`[Member Service] Fetching memberships for member ${memberId}`);
+        const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/memberships`);
+        console.log(`[Member Service] Retrieved ${response.data.length || 0} memberships for member ${memberId}`);
+        return response.data;
+      } catch (error) {
+        console.error(`Failed to fetch memberships for member ${memberId}:`, error);
+        if (error.response && error.response.status === 500) {
+          console.warn(`Server error when fetching memberships for member ${memberId}, returning empty array`);
+          return []; // 500 hatası durumunda boş dizi döndür
+        }
+        throw error;
+      }
+    });
   },
   
   getMemberActiveMembership: async (memberId) => {
-    try {
-      const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/active-membership`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch active membership for member ${memberId}:`, error);
-      return null;
-    }
+    return retryOperation(async () => {
+      try {
+        const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/active-membership`);
+        return response.data;
+      } catch (error) {
+        console.error(`Failed to fetch active membership for member ${memberId}:`, error);
+        if (error.response && error.response.status === 500) {
+          console.warn(`Server error when fetching active membership for member ${memberId}, returning null`);
+          return null; // 500 hatası durumunda null döndür
+        }
+        throw error;
+      }
+    });
   },
   
   getMemberAssessments: async (memberId) => {
@@ -264,6 +278,27 @@ const memberService = {
       return false;
     }
   },
+};
+
+// Yeniden deneme fonksiyonu
+const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
+  let lastError;
+  
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
+      
+      if (attempt < maxRetries) {
+        // Yeniden denemeden önce bekle, her seferinde bekleme süresini artır
+        await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
+      }
+    }
+  }
+  
+  throw lastError;
 };
 
 export default memberService;
