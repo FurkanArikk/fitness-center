@@ -18,10 +18,15 @@ const EditBenefitModal = ({ benefit, onClose, onSave, memberships = [], isLoadin
       });
     } else {
       // Yeni oluşturma durumunda varsayılan değerler
+      // Eğer benefit objesinde membership_id varsa (filtreden geliyorsa) onu kullan, 
+      // yoksa ve memberships dizisi doluysa ilk membership'i kullan
       setFormData({
         benefit_name: '',
         benefit_description: '',
-        membership_id: memberships.length > 0 ? memberships[0].id : '',
+        membership_id: 
+          (benefit && benefit.membership_id) ? 
+          benefit.membership_id : 
+          (memberships.length > 0 ? memberships[0].id : '')
       });
     }
   }, [benefit, memberships]);

@@ -11,11 +11,12 @@ import EditMemberModal from '@/components/members/EditMemberModal';
 import DeleteMemberConfirm from '@/components/members/DeleteMemberConfirm';
 import AddMemberModal from '@/components/members/AddMemberModal';
 import AssignMembershipModal from '@/components/members/AssignMembershipModal';
-import MemberDetailsModal from '@/components/members/MemberDetailsModal'; // Yeni eklendi
+import MemberDetailsModal from '@/components/members/MemberDetailsModal';
 import EditMembershipModal from '@/components/members/EditMembershipModal';
 import DeleteMembershipConfirm from '@/components/members/DeleteMembershipConfirm';
 import EditBenefitModal from '@/components/members/EditBenefitModal';
 import DeleteBenefitConfirm from '@/components/members/DeleteBenefitConfirm';
+import BenefitTypesList from '@/components/members/BenefitTypesList'; 
 import { memberService } from '@/api';
 
 const Members = () => {
@@ -775,88 +776,13 @@ const Members = () => {
       </Card>
 
       {/* Benefit Types Cards */}
-      <Card title="Benefit Types">
-        {loadingBenefits ? (
-          <div className="p-4">
-            <Loader size="small" message="Loading benefit types..." />
-          </div>
-        ) : (
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {benefitsData.length > 0 ? (
-                benefitsData.map(benefit => {
-                  // İlgili membership'i bulalım
-                  const benefitMembershipId = benefit.membershipId || benefit.membership_id;
-                  const relatedMembership = membershipsData.find(m => m.id === benefitMembershipId);
-                  const membershipName = relatedMembership ? relatedMembership.membershipName : `Membership #${benefitMembershipId}`;
-                  
-                  return (
-                    <div 
-                      key={benefit.id || benefit.benefit_id} 
-                      className="border rounded-lg shadow p-4 border-indigo-200"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-lg font-medium">{benefit.benefitName || benefit.benefit_name}</h4>
-                        {benefitMembershipId && (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {membershipName}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div className="mt-3 space-y-2">
-                        <p className="text-gray-600 text-sm">
-                          {benefit.benefitDescription || benefit.benefit_description || 'No description'}
-                        </p>
-                      </div>
-                      
-                      <div className="mt-4 flex justify-end space-x-2">
-                        <button
-                          className="px-3 py-1 text-sm border rounded text-blue-500 hover:bg-blue-50"
-                          onClick={() => setEditBenefit(benefit)}
-                        >
-                          Edit
-                        </button>
-                        
-                        <button
-                          className="px-3 py-1 text-sm border rounded text-red-500 hover:bg-red-50"
-                          onClick={() => setDeleteBenefitConfirm(benefit)}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              ) : (
-                <div className="col-span-full p-4 text-center text-gray-500 border rounded-lg border-dashed">
-                  <p>No benefit types found.</p>
-                  <button
-                    className="mt-2 px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600"
-                    onClick={() => setEditBenefit({})} // Boş bir nesne ile düzenleyici modalını aç
-                  >
-                    Add New Benefit Type
-                  </button>
-                </div>
-              )}
-              
-              {/* Yeni Benefit Tipi Ekleme Kartı */}
-              {benefitsData.length > 0 && (
-                <div className="border border-dashed rounded-lg p-4 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setEditBenefit({})} // Boş bir nesne ile düzenleyici modalını aç
-                >
-                  <div className="text-center">
-                    <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-indigo-100">
-                      <Plus size={24} className="text-indigo-500" />
-                    </div>
-                    <h4 className="mt-2 font-medium text-indigo-500">Add New Benefit Type</h4>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Card>
+      <BenefitTypesList
+        benefits={benefitsData}
+        memberships={membershipsData}
+        loading={loadingBenefits}
+        onEdit={setEditBenefit}
+        onDelete={setDeleteBenefitConfirm}
+      />
 
       {/* Using EditMemberModal component */}
       {editMember && (
