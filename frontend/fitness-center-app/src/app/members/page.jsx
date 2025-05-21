@@ -647,7 +647,7 @@ const Members = () => {
 
   // Only filter by status and search term
   const filteredMembers = members.filter(member => {
-    const fullName = `${member.firstName} ${member.lastName}`.toLowerCase();
+    const fullName = `${member.firstName} ${member.lastName}, ${member.email}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase());
     const matchesStatus = !filterStatus || member.status === filterStatus;
     return matchesSearch && matchesStatus;
