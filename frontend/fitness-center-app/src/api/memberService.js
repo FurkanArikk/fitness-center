@@ -1,7 +1,7 @@
 import apiClient from './apiClient';
 import { ENDPOINTS } from './endpoints';
 
-// Yeniden deneme fonksiyonu
+// Retry function
 const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
   let lastError;
   
@@ -13,7 +13,7 @@ const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
       console.warn(`Operation failed (attempt ${attempt + 1}/${maxRetries + 1}):`, error);
       
       if (attempt < maxRetries) {
-        // Yeniden denemeden önce bekle, her seferinde bekleme süresini artır
+        // Wait before retrying, increasing the delay each time
         await new Promise(resolve => setTimeout(resolve, delay * (attempt + 1)));
       }
     }
@@ -118,7 +118,7 @@ const memberService = {
   
   createMembership: async (membershipData) => {
     try {
-      // API beklediği formatta veri gönderiliyor
+      // Send data in the format expected by the API
       const apiData = {
         membershipName: membershipData.name,
         description: membershipData.description,
@@ -143,7 +143,7 @@ const memberService = {
         throw new Error('Invalid membership ID');
       }
       
-      // API beklediği formatta veri gönderiliyor
+      // Send data in the format expected by the API
       const apiData = {
         membershipName: membershipData.name,
         description: membershipData.description,
@@ -185,14 +185,14 @@ const memberService = {
     try {
       const response = await apiClient.get(`${ENDPOINTS.memberships}/${membershipId}/benefits`);
       
-      // API'den gelen yanıta bakalım ve uygun şekilde işleyelim
+      // Check the response from the API and process accordingly
       let benefits = [];
       if (response.data) {
-        // Eğer 'benefits' adında bir dizi döndürüyorsa
+        // If it returns an array named 'benefits'
         if (response.data.benefits && Array.isArray(response.data.benefits)) {
           benefits = response.data.benefits;
         }
-        // Eğer doğrudan dizi döndürüyorsa
+        // If it directly returns an array
         else if (Array.isArray(response.data)) {
           benefits = response.data;
         }
@@ -217,7 +217,7 @@ const memberService = {
         console.error(`Failed to fetch memberships for member ${memberId}:`, error);
         if (error.response && error.response.status === 500) {
           console.warn(`Server error when fetching memberships for member ${memberId}, returning empty array`);
-          return []; // 500 hatası durumunda boş dizi döndür
+          return []; // Return empty array in case of 500 error
         }
         throw error;
       }
@@ -233,7 +233,7 @@ const memberService = {
         console.error(`Failed to fetch active membership for member ${memberId}:`, error);
         if (error.response && error.response.status === 500) {
           console.warn(`Server error when fetching active membership for member ${memberId}, returning null`);
-          return null; // 500 hatası durumunda null döndür
+          return null; // Return null in case of 500 error
         }
         throw error;
       }
@@ -273,7 +273,7 @@ const memberService = {
   
   createBenefit: async (benefitData) => {
     try {
-      // API'nin beklediği formata dönüştürme (snake_case -> camelCase)
+      // Convert to the format expected by the API (snake_case -> camelCase)
       const apiData = {
         membershipId: parseInt(benefitData.membership_id, 10),
         benefitName: benefitData.benefit_name,
@@ -291,7 +291,7 @@ const memberService = {
   
   updateBenefit: async (id, benefitData) => {
     try {
-      // API'nin beklediği formata dönüştürme (snake_case -> camelCase)
+      // Convert to the format expected by the API (snake_case -> camelCase)
       const apiData = {
         membershipId: parseInt(benefitData.membership_id, 10),
         benefitName: benefitData.benefit_name,
@@ -314,6 +314,54 @@ const memberService = {
     } catch (error) {
       console.error(`Failed to delete benefit ${id}:`, error);
       return false;
+    }
+  },
+  
+  // Function to delete a membership type and its associated benefits
+  deleteMembershipWithBenefits: async (membershipId) => {
+    try {
+      console.log(`[Membership Service] Deleting membership ${membershipId} with its benefits`);
+      
+      // First get all benefits of this membership type
+      const benefits = await memberService.getMembershipBenefits(membershipId);
+      console.log(`[Membership Service] Found ${benefits.length} benefits to delete for membership ${membershipId}`);
+      
+      // Delete all benefits
+      const benefitDeleteResults = await Promise.all(
+        benefits.map(async (benefit) => {
+          const benefitId = benefit.id || benefit.benefit_id;
+          if (!benefitId) {
+            console.warn(`[Membership Service] Benefit without ID found, skipping:`, benefit);
+            return false;
+          }
+          
+          console.log(`[Membership Service] Deleting benefit ${benefitId}`);
+          return await memberService.deleteBenefit(benefitId);
+        })
+      );
+      
+      // Check if all benefits were successfully deleted
+      const allBenefitsDeleted = benefitDeleteResults.every(result => result === true);
+      if (!allBenefitsDeleted) {
+        console.warn('[Membership Service] Some benefits could not be deleted');
+      }
+      
+      // Now delete the membership type
+      console.log(`[Membership Service] Now deleting membership ${membershipId}`);
+      await apiClient.delete(`${ENDPOINTS.memberships}/${membershipId}`);
+      
+      return { 
+        success: true,
+        message: `Membership and ${benefits.length} benefits deleted successfully`
+      };
+      
+    } catch (error) {
+      console.error(`[Membership Service] Failed to delete membership ${membershipId} with benefits:`, error);
+      
+      return { 
+        success: false,
+        error: `Error deleting membership: ${error.message || 'Unknown error'}` 
+      };
     }
   },
   
@@ -371,7 +419,7 @@ const memberService = {
   // Membership assignment operations
   assignMembershipToMember: async (membershipData) => {
     try {
-      // API'nin beklediği formata dönüştür
+      // Convert to the format expected by the API
       const apiData = {
         memberId: membershipData.memberId,
         membershipId: membershipData.membershipId,

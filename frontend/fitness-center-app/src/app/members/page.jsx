@@ -532,12 +532,14 @@ const Members = () => {
   const handleDeleteMembership = async (id) => {
     setActionLoading(true);
     try {
-      const result = await memberService.deleteMembership(id);
+      const result = await memberService.deleteMembershipWithBenefits(id);
+      
       if (result.success) {
         console.log('[Members] Membership deleted:', id);
         
-        // Refresh memberships
+        // Update both membership types and benefit types
         await fetchMemberships();
+        await fetchBenefits();
         
         setDeleteMembershipConfirm(null);
       } else {
@@ -549,7 +551,7 @@ const Members = () => {
       }
     } catch (err) {
       console.error('Error deleting membership:', err);
-      setError('An error occurred while deleting the membership');
+      setError('An error occurred while deleting the membership: ' + err.message);
     } finally {
       setActionLoading(false);
     }
