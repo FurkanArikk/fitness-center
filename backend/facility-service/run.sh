@@ -416,12 +416,9 @@ start_service() {
     print_header "Starting Facility Service"
     
     if [ "$USE_DOCKER" = "true" ]; then
-        # Update dependencies before building Docker image
-        print_info "Updating Go dependencies..."
-        if ! ./scripts/update-deps.sh; then
-            print_error "Failed to update dependencies"
-            exit 1
-        fi
+        # Skip dependency updates when running in Docker mode
+        # The Docker build process will handle dependencies
+        print_info "Skipping dependency updates for Docker mode"
         
         # Create Docker-specific environment file if it doesn't exist
         if [ ! -f ".env.docker" ]; then
@@ -527,6 +524,29 @@ display_usage_instructions() {
         echo -e "   ${YELLOW}docker-compose stop postgres${NC}"
         echo -e ""
     fi
+}
+
+# Function to update Go dependencies
+update_dependencies() {
+    # Skip dependency updates when running in Docker mode
+    if [ "$USE_DOCKER" = "true" ]; then
+        print_header "Skipping Go Dependencies Check"
+        print_info "Running in Docker mode - dependencies will be handled during Docker build"
+        return 0
+    fi
+
+    print_header "Updating Go Dependencies"
+    
+    print_info "Updating Go module dependencies..."
+    if go mod tidy; then
+        print_success "Dependencies updated successfully"
+    else
+        print_error "Failed to update dependencies"
+        exit 1
+    fi
+    
+    # Rest of dependency checks if any
+    # ...existing code...
 }
 
 # Main execution starts here
