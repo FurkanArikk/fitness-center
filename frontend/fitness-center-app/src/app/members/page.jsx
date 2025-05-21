@@ -632,7 +632,11 @@ const Members = () => {
         console.log('[Members] New benefit created:', newBenefit);
       }
       
+      // Fetch updated benefits
       await fetchBenefits();
+      
+      // Also fetch memberships to update the membership cards with latest benefit info
+      await fetchMemberships();
       
       setEditBenefit(null);
     } catch (err) {
