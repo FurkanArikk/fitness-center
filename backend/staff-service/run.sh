@@ -561,26 +561,6 @@ display_usage_instructions() {
     fi
 }
 
-# Function to display manual sample data loading instructions
-display_sample_data_instructions() {
-    print_header "How to Load Sample Data Manually"
-    
-    echo -e "${MAGENTA}If you want to load sample data later, follow these steps:${NC}"
-    echo -e ""
-    echo -e "${CYAN}1. Make sure the database is running:${NC}"
-    echo -e "   ${YELLOW}docker-compose ps postgres${NC}"
-    echo -e ""
-    echo -e "${CYAN}2. Connect to the database and execute the sample data SQL file:${NC}"
-    echo -e "   ${YELLOW}docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < ./migrations/002_sample_data.sql${NC}"
-    echo -e ""
-    echo -e "${CYAN}3. Or use db-connect script if it exists:${NC}"
-    echo -e "   ${YELLOW}./scripts/db-connect.sh -f ./migrations/002_sample_data.sql${NC}"
-    echo -e ""
-    echo -e "${CYAN}4. Verify the data was loaded:${NC}"
-    echo -e "   ${YELLOW}docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -c \"SELECT COUNT(*) FROM staff\"${NC}"
-    echo -e ""
-}
-
 # Main execution starts here
 clear
 echo -e "${MAGENTA}==========================================${NC}"
@@ -607,8 +587,6 @@ handle_database_setup
 # Verify migrations have been properly applied and check if tables are populated
 verify_migrations
 
-# Show manual sample data loading instructions
-display_sample_data_instructions
 
 # Start the service
 start_service
