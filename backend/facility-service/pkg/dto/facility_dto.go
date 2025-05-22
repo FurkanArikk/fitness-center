@@ -16,6 +16,7 @@ type FacilityResponse struct {
 	Status      string    `json:"status"`
 	OpeningHour time.Time `json:"opening_hour"`
 	ClosingHour time.Time `json:"closing_hour"`
+	IsDeleted   bool      `json:"is_deleted,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
 }
@@ -101,6 +102,7 @@ func FacilityResponseFromModel(model model.Facility) FacilityResponse {
 		Status:      model.Status,
 		OpeningHour: model.OpeningHour,
 		ClosingHour: model.ClosingHour,
+		IsDeleted:   model.IsDeleted,
 		CreatedAt:   model.CreatedAt,
 		UpdatedAt:   model.UpdatedAt,
 	}
