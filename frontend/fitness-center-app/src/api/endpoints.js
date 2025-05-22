@@ -17,7 +17,8 @@ export const ENDPOINTS = {
   memberships: `${API_BASE_URL}/memberships`,
   assessments: `${API_BASE_URL}/assessments`,
   benefits: `${API_BASE_URL}/benefits`,
-  
+  memberMemberships: `${API_BASE_URL}/member-memberships`,
+
   // Staff endpoints
   staff: `${API_BASE_URL}/staff`,
   trainers: `${API_BASE_URL}/trainers`,

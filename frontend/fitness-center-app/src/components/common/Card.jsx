@@ -1,24 +1,15 @@
 import React from 'react';
 
-const Card = ({ 
-  children, 
-  title,
-  action,
-  className = '',
-  contentClassName = '',
-  noPadding = false
-}) => {
+const Card = ({ title, children, className = '', headerContent = null }) => {
   return (
-    <div className={`bg-white rounded-lg shadow ${className}`}>
+    <div className={`bg-white rounded-lg shadow-sm overflow-hidden ${className}`}>
       {title && (
-        <div className="p-4 border-b flex justify-between items-center">
+        <div className="flex justify-between items-center p-4 border-b">
           <h3 className="font-semibold">{title}</h3>
-          {action && action}
+          {headerContent}
         </div>
       )}
-      <div className={`${noPadding ? '' : 'p-4'} ${contentClassName}`}>
-        {children}
-      </div>
+      {children}
     </div>
   );
 };

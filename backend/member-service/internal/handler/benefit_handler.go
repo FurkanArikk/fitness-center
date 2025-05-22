@@ -23,8 +23,16 @@ func (h *BenefitHandler) GetBenefits(c *gin.Context) {
 			return
 		}
 		benefits, err = h.service.List(c.Request.Context(), membershipID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	} else {
 		benefits, err = h.service.ListAll(c.Request.Context())
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 	}
 
 	if err != nil {

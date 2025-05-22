@@ -1,9 +1,11 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { formatDate } from '../../utils/formatters';
 
-const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
-  if (!member) return null;
+const DeleteBenefitConfirm = ({ benefit, onClose, onConfirm, isLoading }) => {
+  if (!benefit) return null;
+
+  const benefitName = benefit.benefitName || benefit.benefit_name || 'this benefit';
+  const benefitId = benefit.id || benefit.benefit_id;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -11,44 +13,31 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
         <div className="space-y-4">
           <div className="flex items-center space-x-3 text-amber-600">
             <AlertTriangle size={24} />
-            <h3 className="font-medium text-lg">Delete Member Confirmation</h3>
+            <h3 className="font-medium text-lg">Delete Benefit Type</h3>
           </div>
           
-          <p>Are you sure you want to delete this member?</p>
+          <p>Are you sure you want to delete this benefit type?</p>
           
           <div className="bg-gray-50 p-4 rounded-md">
             <p>
-              <span className="font-semibold">Name:</span> {member.firstName} {member.lastName}
+              <span className="font-semibold">Name:</span> {benefitName}
             </p>
-            {member.email && (
+            {benefit.benefitDescription || benefit.benefit_description ? (
               <p>
-                <span className="font-semibold">Email:</span> {member.email}
+                <span className="font-semibold">Description:</span> {benefit.benefitDescription || benefit.benefit_description}
               </p>
-            )}
-            {member.phone && (
-              <p>
-                <span className="font-semibold">Phone:</span> {member.phone}
-              </p>
-            )}
+            ) : null}
             <p>
-              <span className="font-semibold">Join Date:</span> {formatDate(member.joinDate)}
+              <span className="font-semibold">ID:</span> {benefitId}
             </p>
-            {member.activeMembership && (
-              <p>
-                <span className="font-semibold">Active Membership:</span> {member.activeMembership.membershipName}
-              </p>
-            )}
           </div>
           
           <div className="bg-amber-50 p-3 rounded-md text-amber-800 text-sm">
             <p className="font-medium mb-1">Warning:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>This action cannot be undone.</li>
-              <li>All member data will be permanently removed from the system.</li>
-              {member.activeMembership && (
-                <li>Active membership information will also be deleted.</li>
-              )}
-              <li>Any attendance records and assessment data will be lost.</li>
+              <li>This benefit will be permanently removed from all associated memberships.</li>
+              <li>Members who have access to this benefit may be affected.</li>
             </ul>
           </div>
           
@@ -64,10 +53,10 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
             <button
               type="button"
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
-              onClick={() => onConfirm(member.id)}
+              onClick={onConfirm}
               disabled={isLoading}
             >
-              {isLoading ? 'Deleting...' : 'Delete Member'}
+              {isLoading ? 'Deleting...' : 'Delete Benefit'}
             </button>
           </div>
         </div>
@@ -76,4 +65,4 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
   );
 };
 
-export default DeleteMemberConfirm;
+export default DeleteBenefitConfirm;

@@ -1,9 +1,8 @@
 import React from 'react';
 import { AlertTriangle } from 'lucide-react';
-import { formatDate } from '../../utils/formatters';
 
-const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
-  if (!member) return null;
+const DeleteMembershipConfirm = ({ membership, onClose, onConfirm, isLoading }) => {
+  if (!membership) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -11,44 +10,32 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
         <div className="space-y-4">
           <div className="flex items-center space-x-3 text-amber-600">
             <AlertTriangle size={24} />
-            <h3 className="font-medium text-lg">Delete Member Confirmation</h3>
+            <h3 className="font-medium text-lg">Delete Membership Type</h3>
           </div>
           
-          <p>Are you sure you want to delete this member?</p>
+          <p>Are you sure you want to delete this membership type?</p>
           
           <div className="bg-gray-50 p-4 rounded-md">
             <p>
-              <span className="font-semibold">Name:</span> {member.firstName} {member.lastName}
+              <span className="font-semibold">Name:</span> {membership.membershipName}
             </p>
-            {member.email && (
-              <p>
-                <span className="font-semibold">Email:</span> {member.email}
-              </p>
-            )}
-            {member.phone && (
-              <p>
-                <span className="font-semibold">Phone:</span> {member.phone}
-              </p>
-            )}
             <p>
-              <span className="font-semibold">Join Date:</span> {formatDate(member.joinDate)}
+              <span className="font-semibold">Duration:</span> {membership.duration} month{membership.duration !== 1 ? 's' : ''}
             </p>
-            {member.activeMembership && (
-              <p>
-                <span className="font-semibold">Active Membership:</span> {member.activeMembership.membershipName}
-              </p>
-            )}
+            <p>
+              <span className="font-semibold">Price:</span> ${membership.price}
+            </p>
+            <p>
+              <span className="font-semibold">Status:</span> {membership.isActive ? 'Active' : 'Inactive'}
+            </p>
           </div>
           
           <div className="bg-amber-50 p-3 rounded-md text-amber-800 text-sm">
             <p className="font-medium mb-1">Warning:</p>
             <ul className="list-disc pl-5 space-y-1">
               <li>This action cannot be undone.</li>
-              <li>All member data will be permanently removed from the system.</li>
-              {member.activeMembership && (
-                <li>Active membership information will also be deleted.</li>
-              )}
-              <li>Any attendance records and assessment data will be lost.</li>
+              <li>All membership type data will be permanently removed.</li>
+              <li>Members who are currently using this membership type may be affected.</li>
             </ul>
           </div>
           
@@ -64,10 +51,10 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
             <button
               type="button"
               className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 disabled:opacity-50"
-              onClick={() => onConfirm(member.id)}
+              onClick={onConfirm}
               disabled={isLoading}
             >
-              {isLoading ? 'Deleting...' : 'Delete Member'}
+              {isLoading ? 'Deleting...' : 'Delete Membership'}
             </button>
           </div>
         </div>
@@ -76,4 +63,4 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
   );
 };
 
-export default DeleteMemberConfirm;
+export default DeleteMembershipConfirm;
