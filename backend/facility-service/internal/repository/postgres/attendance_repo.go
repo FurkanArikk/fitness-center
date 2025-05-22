@@ -73,7 +73,7 @@ func (r *attendanceRepository) Update(ctx context.Context, attendance *model.Att
 			facility_id = $4,
 			updated_at = NOW()
 		WHERE attendance_id = $5
-		RETURNING updated_at
+		RETURNING attendance_id, member_id, check_in_time, check_out_time, date, facility_id, created_at, updated_at
 	`
 
 	err := r.db.QueryRowContext(
@@ -84,7 +84,16 @@ func (r *attendanceRepository) Update(ctx context.Context, attendance *model.Att
 		attendance.CheckOutTime,
 		attendance.FacilityID,
 		attendance.AttendanceID,
-	).Scan(&attendance.UpdatedAt)
+	).Scan(
+		&attendance.AttendanceID,
+		&attendance.MemberID,
+		&attendance.CheckInTime,
+		&attendance.CheckOutTime,
+		&attendance.Date,
+		&attendance.FacilityID,
+		&attendance.CreatedAt,
+		&attendance.UpdatedAt,
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("updating attendance: %w", err)

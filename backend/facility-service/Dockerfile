@@ -47,9 +47,6 @@ RUN if [ -d /app/builder/configs ]; then cp -r /app/builder/configs/* /app/confi
 # Copy environment files
 COPY --from=builder /app/.env* ./
 
-# Make scripts executable
-RUN chmod +x ./scripts/*.sh
-
 # Create directories for app user to write to
 RUN mkdir -p /app/tmp /app/logs && chown -R appuser:appgroup /app/tmp /app/logs
 

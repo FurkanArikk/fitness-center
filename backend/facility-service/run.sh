@@ -442,11 +442,13 @@ start_service() {
             ensure_env_vars
         fi
 
-        # Start the service using docker-compose
-        print_info "Starting facility service in Docker container..."
+        # Build and start the service using docker-compose with --build flag
+        print_info "Building Docker image for facility service..."
+        print_warning "This may take a few moments as the Docker image is being rebuilt..."
         print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-        if docker-compose up -d facility-service; then
-            print_success "Facility service container started successfully"
+        
+        if docker-compose up -d --build facility-service; then
+            print_success "Facility service container built and started successfully"
             print_info "The service is running at http://${FACILITY_SERVICE_HOST:-0.0.0.0}:${FACILITY_SERVICE_PORT:-8004}"
             print_info "To view logs, run: docker-compose logs -f facility-service"
             
@@ -454,7 +456,7 @@ start_service() {
             print_header "Container Status"
             docker-compose ps
         else
-            print_error "Failed to start facility service container"
+            print_error "Failed to build and start facility service container"
             exit 1
         fi
     else
