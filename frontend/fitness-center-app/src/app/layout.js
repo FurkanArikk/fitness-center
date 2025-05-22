@@ -1,17 +1,14 @@
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import MainLayout from "@/layouts/MainLayout";
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <head />
       <body className="bg-gray-100">
-        <div>
-          <Navbar />
+        <MainLayout>
           {children}
-          <Footer />
-        </div>
+        </MainLayout>
       </body>
     </html>
   );
