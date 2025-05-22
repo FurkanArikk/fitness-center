@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
@@ -21,46 +22,73 @@ type FacilityResponse struct {
 
 // FacilityCreateRequest represents the request for creating a facility
 type FacilityCreateRequest struct {
-	Name        string    `json:"name" binding:"required"`
-	Description string    `json:"description"`
-	Capacity    int       `json:"capacity" binding:"required,min=1"`
-	Status      string    `json:"status" binding:"required"`
-	OpeningHour time.Time `json:"opening_hour" binding:"required"`
-	ClosingHour time.Time `json:"closing_hour" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	Capacity    int    `json:"capacity" binding:"required,min=1"`
+	Status      string `json:"status" binding:"required"`
+	OpeningHour string `json:"opening_hour" binding:"required"`
+	ClosingHour string `json:"closing_hour" binding:"required"`
 }
 
 // FacilityUpdateRequest represents the request for updating a facility
 type FacilityUpdateRequest struct {
-	Name        string    `json:"name" binding:"required"`
-	Description string    `json:"description"`
-	Capacity    int       `json:"capacity" binding:"required,min=1"`
-	Status      string    `json:"status" binding:"required"`
-	OpeningHour time.Time `json:"opening_hour" binding:"required"`
-	ClosingHour time.Time `json:"closing_hour" binding:"required"`
+	Name        string `json:"name" binding:"required"`
+	Description string `json:"description"`
+	Capacity    int    `json:"capacity" binding:"required,min=1"`
+	Status      string `json:"status" binding:"required"`
+	OpeningHour string `json:"opening_hour" binding:"required"`
+	ClosingHour string `json:"closing_hour" binding:"required"`
+}
+
+// parseTimeFromString converts time string (HH:MM:SS) to time.Time with today's date
+func parseTimeFromString(timeStr string) (time.Time, error) {
+	// Use a reference date and combine with the time
+	today := time.Now().Format("2006-01-02")
+	return time.Parse("2006-01-02 15:04:05", today+" "+timeStr)
 }
 
 // ToModel converts FacilityCreateRequest to model.Facility
-func (r *FacilityCreateRequest) ToModel() model.Facility {
+func (r *FacilityCreateRequest) ToModel() (model.Facility, error) {
+	openingTime, err := parseTimeFromString(r.OpeningHour)
+	if err != nil {
+		return model.Facility{}, fmt.Errorf("invalid opening hour format: %w", err)
+	}
+
+	closingTime, err := parseTimeFromString(r.ClosingHour)
+	if err != nil {
+		return model.Facility{}, fmt.Errorf("invalid closing hour format: %w", err)
+	}
+
 	return model.Facility{
 		Name:        r.Name,
 		Description: r.Description,
 		Capacity:    r.Capacity,
 		Status:      r.Status,
-		OpeningHour: r.OpeningHour,
-		ClosingHour: r.ClosingHour,
-	}
+		OpeningHour: openingTime,
+		ClosingHour: closingTime,
+	}, nil
 }
 
 // ToModel converts FacilityUpdateRequest to model.Facility
-func (r *FacilityUpdateRequest) ToModel() model.Facility {
+func (r *FacilityUpdateRequest) ToModel() (model.Facility, error) {
+	openingTime, err := parseTimeFromString(r.OpeningHour)
+	if err != nil {
+		return model.Facility{}, fmt.Errorf("invalid opening hour format: %w", err)
+	}
+
+	closingTime, err := parseTimeFromString(r.ClosingHour)
+	if err != nil {
+		return model.Facility{}, fmt.Errorf("invalid closing hour format: %w", err)
+	}
+
 	return model.Facility{
 		Name:        r.Name,
 		Description: r.Description,
 		Capacity:    r.Capacity,
 		Status:      r.Status,
-		OpeningHour: r.OpeningHour,
-		ClosingHour: r.ClosingHour,
-	}
+		OpeningHour: openingTime,
+		ClosingHour: closingTime,
+	}, nil
 }
 
 // FromModel converts model.Facility to FacilityResponse

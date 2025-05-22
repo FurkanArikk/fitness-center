@@ -89,7 +89,7 @@ func (r *facilityRepository) Update(ctx context.Context, facility *model.Facilit
 			closing_hour = $6,
 			updated_at = NOW()
 		WHERE facility_id = $7
-		RETURNING updated_at
+		RETURNING updated_at, created_at
 	`
 
 	err := r.db.QueryRowContext(
@@ -102,7 +102,7 @@ func (r *facilityRepository) Update(ctx context.Context, facility *model.Facilit
 		facility.OpeningHour,
 		facility.ClosingHour,
 		facility.FacilityID,
-	).Scan(&facility.UpdatedAt)
+	).Scan(&facility.UpdatedAt, &facility.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("updating facility: %w", err)
