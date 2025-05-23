@@ -1,10 +1,11 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +17,9 @@ func (h *StaffHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, staff)
+	// Convert to response DTOs
+	response := dto.StaffListFromModel(staff)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetByID returns a specific staff member
@@ -33,37 +36,37 @@ func (h *StaffHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, staff)
+	// Convert to response DTO
+	response := dto.StaffFromModel(staff)
+	c.JSON(http.StatusOK, response)
 }
 
 // Create creates a new staff member
 func (h *StaffHandler) Create(c *gin.Context) {
-	var staff struct {
-		FirstName string  `json:"firstName" binding:"required"`
-		LastName  string  `json:"lastName" binding:"required"`
-		Email     string  `json:"email" binding:"required,email"`
-		Phone     string  `json:"phone"`
-		Address   string  `json:"address"`
-		Position  string  `json:"position" binding:"required"`
-		HireDate  string  `json:"hireDate"`
-		Salary    float64 `json:"salary"`
-		Status    string  `json:"status"`
-	}
+	var staffRequest dto.StaffRequest
 
-	if err := c.ShouldBindJSON(&staff); err != nil {
+	if err := c.ShouldBindJSON(&staffRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Convert to model and call service
-	// This is simplified - you'd need to convert the struct properly
-	newStaff, err := h.service.Create(nil) // Replace with proper conversion
+	// Convert DTO to model
+	staffModel, err := staffRequest.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid date format: %s", err.Error())})
+		return
+	}
+
+	// Call service to create staff
+	newStaff, err := h.service.Create(staffModel)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, newStaff)
+	// Convert model back to response DTO
+	response := dto.StaffFromModel(newStaff)
+	c.JSON(http.StatusCreated, response)
 }
 
 // Update updates an existing staff member
@@ -74,36 +77,22 @@ func (h *StaffHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var staffRequest struct {
-		FirstName string  `json:"firstName"`
-		LastName  string  `json:"lastName"`
-		Email     string  `json:"email"`
-		Phone     string  `json:"phone"`
-		Address   string  `json:"address"`
-		Position  string  `json:"position"`
-		HireDate  string  `json:"hireDate"`
-		Salary    float64 `json:"salary"`
-		Status    string  `json:"status"`
-	}
+	var staffRequest dto.StaffRequest
 
 	if err := c.ShouldBindJSON(&staffRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	// Create a proper staff model to pass to the service
-	staffModel := &model.Staff{
-		StaffID:   id, // Changed from ID to StaffID
-		FirstName: staffRequest.FirstName,
-		LastName:  staffRequest.LastName,
-		Email:     staffRequest.Email,
-		Phone:     staffRequest.Phone,
-		Address:   staffRequest.Address,
-		Position:  staffRequest.Position,
-		// Convert HireDate from string to time.Time if needed
-		Salary: staffRequest.Salary,
-		Status: staffRequest.Status,
+	// Convert DTO to model
+	staffModel, err := staffRequest.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Invalid date format: %s", err.Error())})
+		return
 	}
+
+	// Set the ID for the update operation
+	staffModel.StaffID = id
 
 	// Now pass the model object to the service
 	updatedStaff, err := h.service.Update(staffModel)
@@ -112,7 +101,9 @@ func (h *StaffHandler) Update(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, updatedStaff)
+	// Convert model back to response DTO
+	response := dto.StaffFromModel(updatedStaff)
+	c.JSON(http.StatusOK, response)
 }
 
 // Delete deletes a staff member
