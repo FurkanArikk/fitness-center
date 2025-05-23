@@ -119,5 +119,5 @@ func (h *StaffHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Staff member deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Staff member status updated to Terminated"})
 }

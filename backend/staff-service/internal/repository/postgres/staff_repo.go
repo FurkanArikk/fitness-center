@@ -145,11 +145,16 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
 
 // Delete removes a staff member from the database
 func (r *StaffRepository) Delete(id int64) error {
-	query := `DELETE FROM staff WHERE staff_id = $1`
+	// Instead of deleting, update the status to "Inactive" or "Terminated"
+	query := `
+		UPDATE staff 
+		SET status = 'Terminated', updated_at = NOW() 
+		WHERE staff_id = $1
+	`
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
-		return fmt.Errorf("error deleting staff: %w", err)
+		return fmt.Errorf("error updating staff status: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
