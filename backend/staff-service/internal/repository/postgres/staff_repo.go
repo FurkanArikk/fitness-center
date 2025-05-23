@@ -118,7 +118,8 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
             address = $5, position = $6, hire_date = $7, salary = $8, 
             status = $9, updated_at = $10
         WHERE staff_id = $11
-        RETURNING updated_at
+        RETURNING staff_id, first_name, last_name, email, phone, address, 
+                 position, hire_date, salary, status, created_at, updated_at
     `
 
 	now := time.Now()
@@ -126,7 +127,11 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
 		query, staff.FirstName, staff.LastName, staff.Email, staff.Phone,
 		staff.Address, staff.Position, staff.HireDate, staff.Salary,
 		staff.Status, now, staff.StaffID,
-	).Scan(&staff.UpdatedAt)
+	).Scan(
+		&staff.StaffID, &staff.FirstName, &staff.LastName, &staff.Email,
+		&staff.Phone, &staff.Address, &staff.Position, &staff.HireDate,
+		&staff.Salary, &staff.Status, &staff.CreatedAt, &staff.UpdatedAt,
+	)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
