@@ -83,7 +83,7 @@ func (r *QualificationUpdateRequest) ToModel(existing *model.Qualification) (*mo
 	if r.IssueDate != nil {
 		issueDate, err := time.Parse("2006-01-02", *r.IssueDate)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse IssueDate '%s': %w", *r.IssueDate, err)
 		}
 		qualification.IssueDate = issueDate
 	}
