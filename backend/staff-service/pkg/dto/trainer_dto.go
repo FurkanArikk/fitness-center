@@ -14,6 +14,7 @@ type TrainerResponse struct {
 	Certification  string         `json:"certification"`
 	Experience     int            `json:"experience"`
 	Rating         float64        `json:"rating"`
+	IsActive       bool           `json:"is_active"`
 	CreatedAt      time.Time      `json:"created_at"`
 	UpdatedAt      time.Time      `json:"updated_at"`
 	Staff          *StaffResponse `json:"staff,omitempty"`
@@ -26,6 +27,7 @@ type TrainerRequest struct {
 	Certification  string  `json:"certification" validate:"required"`
 	Experience     int     `json:"experience" validate:"required,gte=0"`
 	Rating         float64 `json:"rating" validate:"required,gte=0,lte=5"`
+	IsActive       bool    `json:"is_active"`
 }
 
 // ToModel converts a TrainerRequest to a Trainer model
@@ -36,6 +38,7 @@ func (r *TrainerRequest) ToModel() *model.Trainer {
 		Certification:  r.Certification,
 		Experience:     r.Experience,
 		Rating:         r.Rating,
+		IsActive:       r.IsActive,
 	}
 }
 
@@ -48,6 +51,7 @@ func TrainerFromModel(t *model.Trainer) *TrainerResponse {
 		Certification:  t.Certification,
 		Experience:     t.Experience,
 		Rating:         t.Rating,
+		IsActive:       t.IsActive,
 		CreatedAt:      t.CreatedAt,
 		UpdatedAt:      t.UpdatedAt,
 	}

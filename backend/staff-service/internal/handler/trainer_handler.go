@@ -109,7 +109,7 @@ func (h *TrainerHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Trainer deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Trainer deactivated successfully"})
 }
 
 // GetBySpecialization returns trainers filtered by specialization

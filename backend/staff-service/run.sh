@@ -404,13 +404,14 @@ check_empty_tables_and_offer_sample_data() {
         print_warning "Tables are empty. No data available."
         
         # Ask if sample data should be loaded
-        print_info "Do you want to load sample data? (y/n)"
-        read -r load_sample_data_response
-        if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+        print_info "Do you want to load sample data? (y/n) [y]"
+        read -r -t 10 load_sample_data_response
+        # Default to yes if no response in 10 seconds
+        if [ -z "$load_sample_data_response" ] || [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
             # Use the migrate.sh script if available
             if [ -f "./scripts/migrate.sh" ]; then
                 print_info "Running migrate.sh script to load sample data..."
-                ./scripts/migrate.sh sample
+                bash ./scripts/migrate.sh sample
             else
                 # Fallback to direct loading
                 print_info "Loading sample data directly..."
@@ -452,6 +453,8 @@ handle_database_setup() {
             ensure_database_running
             # Apply migrations to ensure schema is up to date
             apply_migrations
+            # Check if tables are empty and load sample data if needed
+            check_empty_tables_and_offer_sample_data
             ;;
     esac
 }
@@ -564,6 +567,9 @@ handle_database_setup
 
 # Verify migrations have been properly applied and check if tables are populated
 verify_migrations
+
+# Check if tables are empty and offer to load sample data if they are
+check_empty_tables_and_offer_sample_data
 
 
 # Start the service

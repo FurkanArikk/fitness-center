@@ -12,6 +12,7 @@ type Trainer struct {
 	Certification  string    `json:"certification" db:"certification"`
 	Experience     int       `json:"experience" db:"experience"` // in years
 	Rating         float64   `json:"rating" db:"rating"`
+	IsActive       bool      `json:"is_active" db:"is_active"`
 	CreatedAt      time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
 

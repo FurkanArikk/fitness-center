@@ -21,12 +21,13 @@ func NewTrainerRepository(db *sql.DB) *TrainerRepository {
 	return &TrainerRepository{db: db}
 }
 
-// GetAll retrieves all trainers from the database
+// GetAll retrieves all active trainers from the database
 func (r *TrainerRepository) GetAll() ([]model.Trainer, error) {
 	query := `
         SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, created_at, updated_at
+               experience, rating, is_active, created_at, updated_at
         FROM trainers
+        WHERE is_active = true
         ORDER BY rating DESC
     `
 
@@ -41,7 +42,7 @@ func (r *TrainerRepository) GetAll() ([]model.Trainer, error) {
 		var t model.Trainer
 		if err := rows.Scan(
 			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning trainer: %w", err)
 		}
@@ -55,19 +56,19 @@ func (r *TrainerRepository) GetAll() ([]model.Trainer, error) {
 	return trainers, nil
 }
 
-// GetByID retrieves a trainer by ID
+// GetByID retrieves an active trainer by ID
 func (r *TrainerRepository) GetByID(id int64) (*model.Trainer, error) {
 	query := `
         SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, created_at, updated_at
+               experience, rating, is_active, created_at, updated_at
         FROM trainers
-        WHERE trainer_id = $1
+        WHERE trainer_id = $1 AND is_active = true
     `
 
 	var t model.Trainer
 	err := r.db.QueryRow(query, id).Scan(
 		&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-		&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+		&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 	)
 
 	if err != nil {
@@ -80,19 +81,19 @@ func (r *TrainerRepository) GetByID(id int64) (*model.Trainer, error) {
 	return &t, nil
 }
 
-// GetByStaffID retrieves a trainer by staff ID
+// GetByStaffID retrieves an active trainer by staff ID
 func (r *TrainerRepository) GetByStaffID(staffID int64) (*model.Trainer, error) {
 	query := `
         SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, created_at, updated_at
+               experience, rating, is_active, created_at, updated_at
         FROM trainers
-        WHERE staff_id = $1
+        WHERE staff_id = $1 AND is_active = true
     `
 
 	var t model.Trainer
 	err := r.db.QueryRow(query, staffID).Scan(
 		&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-		&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+		&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 	)
 
 	if err != nil {
@@ -109,14 +110,17 @@ func (r *TrainerRepository) GetByStaffID(staffID int64) (*model.Trainer, error) 
 func (r *TrainerRepository) Create(trainer *model.Trainer) (*model.Trainer, error) {
 	query := `
         INSERT INTO trainers (staff_id, specialization, certification, 
-                             experience, rating)
-        VALUES ($1, $2, $3, $4, $5)
+                             experience, rating, is_active)
+        VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING trainer_id, created_at, updated_at
     `
 
+	// Set trainer as active by default
+	trainer.IsActive = true
+
 	err := r.db.QueryRow(
 		query, trainer.StaffID, trainer.Specialization, trainer.Certification,
-		trainer.Experience, trainer.Rating,
+		trainer.Experience, trainer.Rating, trainer.IsActive,
 	).Scan(&trainer.TrainerID, &trainer.CreatedAt, &trainer.UpdatedAt)
 
 	if err != nil {
@@ -138,20 +142,20 @@ func (r *TrainerRepository) Update(trainer *model.Trainer) (*model.Trainer, erro
 	query := `
         UPDATE trainers
         SET staff_id = $1, specialization = $2, certification = $3, 
-            experience = $4, rating = $5, updated_at = $6
-        WHERE trainer_id = $7
+            experience = $4, rating = $5, is_active = $6, updated_at = $7
+        WHERE trainer_id = $8 AND is_active = true
         RETURNING updated_at
     `
 
 	now := time.Now()
 	err := r.db.QueryRow(
 		query, trainer.StaffID, trainer.Specialization, trainer.Certification,
-		trainer.Experience, trainer.Rating, now, trainer.TrainerID,
+		trainer.Experience, trainer.Rating, trainer.IsActive, now, trainer.TrainerID,
 	).Scan(&trainer.UpdatedAt)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("trainer not found: %w", err)
+			return nil, fmt.Errorf("trainer not found or already deleted: %w", err)
 		}
 		return nil, fmt.Errorf("error updating trainer: %w", err)
 	}
@@ -159,13 +163,18 @@ func (r *TrainerRepository) Update(trainer *model.Trainer) (*model.Trainer, erro
 	return trainer, nil
 }
 
-// Delete removes a trainer from the database
+// Delete soft deletes a trainer by setting is_active to false
 func (r *TrainerRepository) Delete(id int64) error {
-	query := `DELETE FROM trainers WHERE trainer_id = $1`
+	query := `
+        UPDATE trainers 
+        SET is_active = false, updated_at = $1
+        WHERE trainer_id = $2 AND is_active = true
+    `
 
-	result, err := r.db.Exec(query, id)
+	now := time.Now()
+	result, err := r.db.Exec(query, now, id)
 	if err != nil {
-		return fmt.Errorf("error deleting trainer: %w", err)
+		return fmt.Errorf("error soft deleting trainer: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -174,7 +183,7 @@ func (r *TrainerRepository) Delete(id int64) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("trainer not found")
+		return fmt.Errorf("trainer not found or already deleted")
 	}
 
 	return nil
@@ -184,9 +193,9 @@ func (r *TrainerRepository) Delete(id int64) error {
 func (r *TrainerRepository) GetBySpecialization(specialization string) ([]model.Trainer, error) {
 	query := `
         SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, created_at, updated_at
+               experience, rating, is_active, created_at, updated_at
         FROM trainers
-        WHERE specialization = $1
+        WHERE specialization = $1 AND is_active = true
         ORDER BY rating DESC
     `
 
@@ -201,7 +210,7 @@ func (r *TrainerRepository) GetBySpecialization(specialization string) ([]model.
 		var t model.Trainer
 		if err := rows.Scan(
 			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning trainer: %w", err)
 		}
@@ -219,8 +228,9 @@ func (r *TrainerRepository) GetBySpecialization(specialization string) ([]model.
 func (r *TrainerRepository) GetTopRated(limit int) ([]model.Trainer, error) {
 	query := `
         SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, created_at, updated_at
+               experience, rating, is_active, created_at, updated_at
         FROM trainers
+        WHERE is_active = true
         ORDER BY rating DESC
         LIMIT $1
     `
@@ -236,7 +246,7 @@ func (r *TrainerRepository) GetTopRated(limit int) ([]model.Trainer, error) {
 		var t model.Trainer
 		if err := rows.Scan(
 			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning trainer: %w", err)
 		}
@@ -254,10 +264,11 @@ func (r *TrainerRepository) GetTopRated(limit int) ([]model.Trainer, error) {
 func (r *TrainerRepository) GetWithStaffDetails() ([]model.Trainer, error) {
 	query := `
         SELECT t.trainer_id, t.staff_id, t.specialization, t.certification, 
-               t.experience, t.rating, t.created_at, t.updated_at,
+               t.experience, t.rating, t.is_active, t.created_at, t.updated_at,
                s.first_name, s.last_name, s.email, s.phone, s.position
         FROM trainers t
         JOIN staff s ON t.staff_id = s.staff_id
+        WHERE t.is_active = true
         ORDER BY t.rating DESC
     `
 
@@ -274,7 +285,7 @@ func (r *TrainerRepository) GetWithStaffDetails() ([]model.Trainer, error) {
 
 		if err := rows.Scan(
 			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.CreatedAt, &t.UpdatedAt,
+			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
 			&firstName, &lastName, &email, &phone, &position,
 		); err != nil {
 			return nil, fmt.Errorf("error scanning trainer with staff details: %w", err)
