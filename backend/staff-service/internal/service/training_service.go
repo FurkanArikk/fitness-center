@@ -51,6 +51,11 @@ func (s *PersonalTrainingService) GetByStatus(status string) ([]model.PersonalTr
 	return s.repo.GetByStatus(status)
 }
 
+// GetByStatusAndDate retrieves all personal training sessions with a specific status on a specific date
+func (s *PersonalTrainingService) GetByStatusAndDate(status string, date time.Time) ([]model.PersonalTraining, error) {
+	return s.repo.GetByStatusAndDate(status, date)
+}
+
 // Create adds a new personal training session
 func (s *PersonalTrainingService) Create(training *model.PersonalTraining) (*model.PersonalTraining, error) {
 	// Verify the trainer exists

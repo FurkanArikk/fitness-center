@@ -53,10 +53,15 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 	var trainingSessions []model.PersonalTraining
 	var fetchErr error
 
-	if status != "" {
+	// Using both status and date for filtering
+	if status != "" && !date.IsZero() {
+		// Both status and date parameters are present, use them together
+		trainingSessions, fetchErr = h.service.GetByStatusAndDate(status, date)
+	} else if status != "" {
+		// Only status parameter is present
 		trainingSessions, fetchErr = h.service.GetByStatus(status)
 	} else if !date.IsZero() {
-		// Use appropriate service method for date filtering
+		// Only date parameter is present
 		trainingSessions, fetchErr = h.service.GetByDateRange(date, date.AddDate(0, 0, 1))
 	} else if trainerID > 0 {
 		trainingSessions, fetchErr = h.service.GetByTrainerID(trainerID)

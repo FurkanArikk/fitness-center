@@ -255,6 +255,50 @@ func (r *PersonalTrainingRepository) GetByStatus(status string) ([]model.Persona
 	return sessions, nil
 }
 
+// GetByStatusAndDate retrieves all personal training sessions with a specific status on a specific date
+func (r *PersonalTrainingRepository) GetByStatusAndDate(status string, date time.Time) ([]model.PersonalTraining, error) {
+	// Create date range for the specified date (start of day to end of day)
+	endDate := date.AddDate(0, 0, 1)
+
+	query := `
+        SELECT session_id, member_id, trainer_id, session_date, start_time, 
+               end_time, notes, status, price, created_at, updated_at
+        FROM personal_training
+        WHERE status = $1 AND session_date >= $2 AND session_date < $3
+        ORDER BY session_date ASC, start_time ASC
+    `
+
+	rows, err := r.db.Query(query, status, date, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("error querying training sessions by status and date: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.PersonalTraining
+	for rows.Next() {
+		var t model.PersonalTraining
+		if err := rows.Scan(
+			&t.SessionID, &t.MemberID, &t.TrainerID, &t.SessionDate,
+			&t.StartTime, &t.EndTime, &t.Notes, &t.Status, &t.Price,
+			&t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning training session: %w", err)
+		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
+		sessions = append(sessions, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating training session rows: %w", err)
+	}
+
+	return sessions, nil
+}
+
 // Create adds a new personal training session to the database
 func (r *PersonalTrainingRepository) Create(training *model.PersonalTraining) (*model.PersonalTraining, error) {
 	query := `

@@ -30,6 +30,7 @@ type PersonalTrainingRepository interface {
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)
 	GetByDateRange(startDate, endDate time.Time) ([]PersonalTraining, error)
 	GetByStatus(status string) ([]PersonalTraining, error)
+	GetByStatusAndDate(status string, date time.Time) ([]PersonalTraining, error)
 	Create(training *PersonalTraining) (*PersonalTraining, error)
 	Update(training *PersonalTraining) (*PersonalTraining, error)
 	Delete(id int64) error
@@ -44,6 +45,7 @@ type PersonalTrainingService interface {
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)
 	GetByDateRange(startDate, endDate time.Time) ([]PersonalTraining, error)
 	GetByStatus(status string) ([]PersonalTraining, error)
+	GetByStatusAndDate(status string, date time.Time) ([]PersonalTraining, error)
 	Create(training *PersonalTraining) (*PersonalTraining, error)
 	Update(training *PersonalTraining) (*PersonalTraining, error)
 	Delete(id int64) error
