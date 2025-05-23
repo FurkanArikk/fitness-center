@@ -80,6 +80,18 @@ print_warning() {
     echo -e "${MAGENTA}⚠ $1${NC}"
 }
 
+# Function to ensure .env file exists
+ensure_env_vars() {
+    local env_file=".env"
+    
+    if [ -f "$env_file" ]; then
+        print_success ".env file exists"
+    else
+        print_error ".env file not found. Please create an .env file before running the script."
+        exit 1
+    fi
+}
+
 # Load environment variables from the service-specific .env file
 load_env_vars() {
     print_header "Loading Environment Variables"
@@ -90,8 +102,8 @@ load_env_vars() {
         source "$SERVICE_ENV_PATH"
         print_success "Loaded environment from: $SERVICE_ENV_PATH"
     else
-        print_warning "No service-specific .env file found at $SERVICE_ENV_PATH"
-        print_info "Using default environment variables"
+        print_warning "No .env file found at $SERVICE_ENV_PATH"
+        print_info "Will create .env file with default environment variables"
     fi
 }
 
@@ -416,52 +428,27 @@ start_service() {
     print_header "Starting Facility Service"
     
     if [ "$USE_DOCKER" = "true" ]; then
-        # Update dependencies before building Docker image
-        print_info "Updating Go dependencies..."
-        if ! ./scripts/update-deps.sh; then
-            print_error "Failed to update dependencies"
-            exit 1
-        fi
+        # Skip dependency updates when running in Docker mode
+        # The Docker build process will handle dependencies
+        print_info "Skipping dependency updates for Docker mode"
         
-        # Create Docker-specific environment file if it doesn't exist
-        if [ ! -f ".env.docker" ]; then
-            print_info "Creating Docker-specific environment file (.env.docker)..."
-            cat > ".env.docker" << EOF
-# Facility Service Configuration
-FACILITY_SERVICE_DB_NAME=${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
-FACILITY_SERVICE_DB_PORT=5432
-FACILITY_SERVICE_PORT=${FACILITY_SERVICE_PORT:-8004}
-FACILITY_SERVICE_HOST=${FACILITY_SERVICE_HOST:-0.0.0.0}
-FACILITY_SERVICE_CONTAINER_NAME=${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db}
-FACILITY_SERVICE_READ_TIMEOUT=15s
-FACILITY_SERVICE_WRITE_TIMEOUT=15s
-FACILITY_SERVICE_IDLE_TIMEOUT=60s
-
-# Common Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_SSLMODE=${DB_SSLMODE:-disable}
-
-# Docker Configuration
-DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME:-fitness-network}
-
-# Authentication Configuration
-JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
-JWT_EXPIRATION=24h
-
-# Logging Configuration
-LOG_LEVEL=${LOG_LEVEL:-debug}
-EOF
-            print_success "Created .env.docker file"
+        # Check if .env file exists
+        if [ ! -f ".env" ]; then
+            print_error "No .env file found. Please create a .env file with required configuration."
+            exit 1
+        else
+            print_success "Found .env file"
+            # Ensure all required variables are set with defaults if missing
+            ensure_env_vars
         fi
 
-        # Start the service using docker-compose
-        print_info "Starting facility service in Docker container..."
+        # Build and start the service using docker-compose with --build flag
+        print_info "Building Docker image for facility service..."
+        print_warning "This may take a few moments as the Docker image is being rebuilt..."
         print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-        if docker-compose up -d facility-service; then
-            print_success "Facility service container started successfully"
+        
+        if docker-compose up -d --build facility-service; then
+            print_success "Facility service container built and started successfully"
             print_info "The service is running at http://${FACILITY_SERVICE_HOST:-0.0.0.0}:${FACILITY_SERVICE_PORT:-8004}"
             print_info "To view logs, run: docker-compose logs -f facility-service"
             
@@ -469,13 +456,13 @@ EOF
             print_header "Container Status"
             docker-compose ps
         else
-            print_error "Failed to start facility service container"
+            print_error "Failed to build and start facility service container"
             exit 1
         fi
     else
         # Update dependencies before building locally
         print_info "Updating Go dependencies..."
-        if ! ./scripts/update-deps.sh; then
+        if ! go mod tidy; then
             print_error "Failed to update dependencies"
             exit 1
         fi

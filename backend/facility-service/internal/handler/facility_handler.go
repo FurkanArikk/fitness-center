@@ -17,7 +17,11 @@ func (h *Handler) CreateFacility(c *gin.Context) {
 	}
 
 	// Convert DTO to model
-	facility := facilityReq.ToModel()
+	facility, err := facilityReq.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	createdFacility, err := h.repo.Facility().Create(c.Request.Context(), &facility)
 	if err != nil {
@@ -64,7 +68,11 @@ func (h *Handler) UpdateFacility(c *gin.Context) {
 	}
 
 	// Convert DTO to model
-	facility := facilityReq.ToModel()
+	facility, err := facilityReq.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	facility.FacilityID = id
 
 	updatedFacility, err := h.repo.Facility().Update(c.Request.Context(), &facility)

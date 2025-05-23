@@ -34,9 +34,8 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/facility-service .
 
-# Copy migrations and scripts
+# Copy migrations
 COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/scripts ./scripts
 
 # Create configs directory
 RUN mkdir -p /app/configs
@@ -46,9 +45,6 @@ RUN if [ -d /app/builder/configs ]; then cp -r /app/builder/configs/* /app/confi
 
 # Copy environment files
 COPY --from=builder /app/.env* ./
-
-# Make scripts executable
-RUN chmod +x ./scripts/*.sh
 
 # Create directories for app user to write to
 RUN mkdir -p /app/tmp /app/logs && chown -R appuser:appgroup /app/tmp /app/logs

@@ -55,7 +55,7 @@ func (r *facilityRepository) Create(ctx context.Context, facility *model.Facilit
 func (r *facilityRepository) GetByID(ctx context.Context, id int) (*model.Facility, error) {
 	facility := &model.Facility{}
 
-	query := `SELECT * FROM facilities WHERE facility_id = $1`
+	query := `SELECT * FROM facilities WHERE facility_id = $1 AND is_deleted = FALSE`
 
 	if err := r.db.GetContext(ctx, facility, query, id); err != nil {
 		return nil, fmt.Errorf("getting facility by ID: %w", err)
@@ -68,7 +68,7 @@ func (r *facilityRepository) GetByID(ctx context.Context, id int) (*model.Facili
 func (r *facilityRepository) GetByName(ctx context.Context, name string) (*model.Facility, error) {
 	facility := &model.Facility{}
 
-	query := `SELECT * FROM facilities WHERE name = $1`
+	query := `SELECT * FROM facilities WHERE name = $1 AND is_deleted = FALSE`
 
 	if err := r.db.GetContext(ctx, facility, query, name); err != nil {
 		return nil, fmt.Errorf("getting facility by name: %w", err)
@@ -89,7 +89,7 @@ func (r *facilityRepository) Update(ctx context.Context, facility *model.Facilit
 			closing_hour = $6,
 			updated_at = NOW()
 		WHERE facility_id = $7
-		RETURNING updated_at
+		RETURNING updated_at, created_at
 	`
 
 	err := r.db.QueryRowContext(
@@ -102,7 +102,7 @@ func (r *facilityRepository) Update(ctx context.Context, facility *model.Facilit
 		facility.OpeningHour,
 		facility.ClosingHour,
 		facility.FacilityID,
-	).Scan(&facility.UpdatedAt)
+	).Scan(&facility.UpdatedAt, &facility.CreatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("updating facility: %w", err)
@@ -113,11 +113,11 @@ func (r *facilityRepository) Update(ctx context.Context, facility *model.Facilit
 
 // Delete removes a facility record
 func (r *facilityRepository) Delete(ctx context.Context, id int) error {
-	query := `DELETE FROM facilities WHERE facility_id = $1`
+	query := `UPDATE facilities SET is_deleted = TRUE, updated_at = NOW() WHERE facility_id = $1`
 
 	result, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("deleting facility: %w", err)
+		return fmt.Errorf("soft deleting facility: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -134,7 +134,7 @@ func (r *facilityRepository) Delete(ctx context.Context, id int) error {
 
 // List retrieves facilities with filters
 func (r *facilityRepository) List(ctx context.Context, filter map[string]interface{}, page, pageSize int) ([]*model.Facility, int, error) {
-	where := []string{}
+	where := []string{"is_deleted = FALSE"}
 	args := []interface{}{}
 	argID := 1
 

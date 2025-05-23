@@ -9,10 +9,10 @@ echo "Setting up class service environment..."
 # Create necessary directories
 mkdir -p ../bin ../logs
 
-# Install dependencies
-echo "Installing dependencies..."
-cd ..
-go mod tidy
+# Install dependencies (removed for Docker-based setup)
+# echo "Installing dependencies..."
+# cd ..
+# go mod tidy
 
 # Create .env file if it doesn't exist
 SERVICE_ENV_PATH="$(pwd)/.env"

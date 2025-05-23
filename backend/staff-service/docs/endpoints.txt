@@ -11,15 +11,15 @@ POST /api/v1/staff                             # Create a new staff member
 curl -X POST http://localhost:8002/api/v1/staff \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "John",
-    "lastName": "Smith",
-    "email": "john.smith@fitness.com",
-    "phone": "+1-555-1234",
-    "address": "123 Main St, New York, NY",
-    "position": "Manager",
-    "hireDate": "2020-01-15T00:00:00Z",
-    "salary": 65000.00,
-    "status": "Active"
+    "firstName": "John",                  bistouri # string
+    "lastName": "Smith",                  bistouri # string
+    "email": "john.smith@example.com",    bistouri # string (valid email format, e.g., user@example.com)
+    "phone": "+1-555-1234",               bistouri # string
+    "address": "123 Main St, New York, NY", # string
+    "position": "Manager",                bistouri # string
+    "hireDate": "2020-01-15T00:00:00Z",   bistouri # string (ISO 8601 datetime)
+    "salary": 65000.00,                   bistouri # number
+    "status": "Active"                    bistouri # string (e.g., "Active", "Inactive")
   }'
 
 GET /api/v1/staff                              # List all staff members
@@ -38,17 +38,20 @@ curl -X GET http://localhost:8002/api/v1/staff/1
 
 PUT /api/v1/staff/{id}                         # Update a staff member 
 # Update a staff member
+# Request body should contain all fields to be updated.
+# Below is an example updating all fields:
 curl -X PUT http://localhost:8002/api/v1/staff/1 \
   -H "Content-Type: application/json" \
   -d '{
-    "firstName": "John",
-    "lastName": "Smith",
-    "email": "john.smith@fitness.com",
-    "phone": "+1-555-9876",
-    "address": "456 Oak Ave, New York, NY",
-    "position": "Senior Manager",
-    "salary": 70000.00,
-    "status": "Active"
+    "firstName": "Jane",                bistouri # string
+    "lastName": "Doe",                  bistouri # string
+    "email": "jane.doe@fitness.com",    bistouri # string
+    "phone": "+1-555-5678",             bistouri # string
+    "address": "789 Pine St, New York, NY", # string
+    "position": "Lead Trainer",         bistouri # string
+    "hireDate": "2022-03-10T00:00:00Z", # string (ISO 8601 datetime)
+    "salary": 72000.00,                 bistouri # number
+    "status": "Active"                  bistouri # string (e.g., "Active", "Inactive", "On Leave")
   }'
 
 DELETE /api/v1/staff/{id}                      # Delete a staff member
@@ -62,6 +65,22 @@ curl -X GET http://localhost:8002/api/v1/staff/2/qualifications
 ## TRAINER ENDPOINTS
 POST /api/v1/trainers                          # Create a new trainer
 # Create a new trainer
+# Note: First create a staff member, then use the returned staffId to create a trainer
+# Step 1: Create staff member
+curl -X POST http://localhost:8002/api/v1/staff \
+  -H "Content-Type: application/json" \
+  -d '{
+    "firstName": "Helin",
+    "lastName": "Aslanoglu", 
+    "email": "helin@example.com",
+    "phone": "+1-555-1234",
+    "address": "IAU",
+    "position": "Trainer",
+    "hireDate": "2023-05-15T17:32:00Z",
+    "salary": 6485.00,
+    "status": "Active"
+  }'
+# Step 2: Create trainer with staffId from step 1 response
 curl -X POST http://localhost:8002/api/v1/trainers \
   -H "Content-Type: application/json" \
   -d '{

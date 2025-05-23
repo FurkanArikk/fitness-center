@@ -169,6 +169,13 @@ load_sample_data() {
 
 # Function to update Go dependencies
 update_dependencies() {
+    # Skip dependency updates when running in Docker mode
+    if [ "$USE_DOCKER" = "true" ]; then
+        print_header "Skipping Go Dependencies Check"
+        print_info "Running in Docker mode - dependencies will be handled during Docker build"
+        return 0
+    fi
+
     print_header "Updating Go Dependencies"
     
     print_info "Downloading required Go modules..."

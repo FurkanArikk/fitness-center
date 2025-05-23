@@ -28,10 +28,10 @@ services:
       dockerfile: Dockerfile
     container_name: fitness-facility-service
     env_file:
-      - .env.docker
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      FACILITY_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       FACILITY_SERVICE_DB_NAME: ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
@@ -40,6 +40,8 @@ services:
       DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "${FACILITY_SERVICE_PORT:-8004}:8004"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.facility-service.rule=PathPrefix(`/api/v1/facilities`) || PathPrefix(`/api/v1/equipment`) || PathPrefix(`/api/v1/attendance`) || PathPrefix(`/api/v1/admin/db-status`)"
