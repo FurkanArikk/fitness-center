@@ -1,4 +1,4 @@
-module github.com/furkan/fitness-center/backend/payment-service
+module github.com/FurkanArikk/fitness-center/backend/payment-service
 
 go 1.23
 

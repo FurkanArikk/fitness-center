@@ -18,9 +18,12 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 	trainerIDStr := c.Query("trainer_id") // Changed from trainerId to trainer_id to match endpoint docs
 	memberIDStr := c.Query("member_id")   // Changed from memberId to member_id to match endpoint docs
 
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
+	var err error
+
 	// Handle date parameter
 	var date time.Time
-	var err error
 	if dateStr != "" {
 		date, err = time.Parse("2006-01-02", dateStr)
 		if err != nil {
@@ -67,6 +70,27 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 		trainingSessions, fetchErr = h.service.GetByTrainerID(trainerID)
 	} else if memberID > 0 {
 		trainingSessions, fetchErr = h.service.GetByMemberID(memberID)
+	} else if params.IsPagined {
+		// Use pagination when specifically requested and no other filters applied
+		var totalCount int
+		trainingSessions, totalCount, fetchErr = h.service.GetAllPaginated(params.Offset, params.PageSize)
+
+		if fetchErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fetchErr.Error()})
+			return
+		}
+
+		// Return an empty array instead of null when no sessions are found
+		if trainingSessions == nil {
+			trainingSessions = []model.PersonalTraining{}
+		}
+
+		// Convert to response DTOs
+		trainingsDTO := dto.TrainingListFromModel(trainingSessions)
+		response := CreatePaginatedResponse(trainingsDTO, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
 	} else {
 		trainingSessions, fetchErr = h.service.GetAll()
 	}

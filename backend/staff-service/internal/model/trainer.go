@@ -23,6 +23,7 @@ type Trainer struct {
 // TrainerRepository defines the methods to interact with trainer data
 type TrainerRepository interface {
 	GetAll() ([]Trainer, error)
+	GetAllPaginated(offset, limit int) ([]Trainer, int, error)
 	GetByID(id int64) (*Trainer, error)
 	GetByStaffID(staffID int64) (*Trainer, error)
 	Create(trainer *Trainer) (*Trainer, error)
@@ -36,6 +37,7 @@ type TrainerRepository interface {
 // TrainerService defines the business logic for trainer operations
 type TrainerService interface {
 	GetAll() ([]Trainer, error)
+	GetAllPaginated(offset, limit int) ([]Trainer, int, error)
 	GetByID(id int64) (*Trainer, error)
 	GetByStaffID(staffID int64) (*Trainer, error)
 	Create(trainer *Trainer) (*Trainer, error)

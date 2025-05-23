@@ -16,8 +16,36 @@ Response:
 
 ### 1. Get All Staff
 Endpoint: GET /staff
-Description: Retrieves all staff members
-Response:
+Description: Retrieves all staff members with optional pagination
+Query Parameters:
+- page: Page number (default: 1)
+- pageSize: Number of items per page (default: 10)
+Response (with pagination):
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "first_name": "John",
+      "last_name": "Smith",
+      "email": "john.smith@fitness.com",
+      "phone": "+1-555-1234",
+      "address": "123 Main St, New York, NY",
+      "position": "Manager",
+      "hire_date": "2020-01-15",
+      "salary": 65000.00,
+      "status": "Active",
+      "created_at": "2023-06-01T09:00:00Z",
+      "updated_at": "2023-06-01T09:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 15,
+  "totalPages": 2
+}
+```
+Response (without pagination):
 ```json
 [
   {
@@ -133,8 +161,34 @@ Error Responses:
 
 ### 1. Get All Qualifications
 Endpoint: GET /qualifications
-Description: Retrieves all staff qualifications
-Response:
+Description: Retrieves all staff qualifications with optional pagination
+Query Parameters:
+- page: Page number (default: 1)
+- pageSize: Number of items per page (default: 10)
+
+Response (with pagination):
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "staff_id": 2,
+      "qualification_name": "Personal Trainer Certification",
+      "issue_date": "2019-05-15",
+      "expiry_date": "2023-05-15",
+      "issuing_authority": "National Academy of Sports Medicine",
+      "created_at": "2023-06-01T09:00:00Z",
+      "updated_at": "2023-06-01T09:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 12,
+  "totalPages": 2
+}
+```
+
+Response (without pagination):
 ```json
 [
   {
@@ -468,8 +522,41 @@ Error Responses:
 
 ### 1. Get All Training Sessions
 Endpoint: GET /trainings
-Description: Retrieves all personal training sessions
-Response:
+Description: Retrieves all personal training sessions with optional pagination and filtering
+Query Parameters:
+- status: Filter by status (e.g., "Scheduled", "Completed", "Cancelled") (optional)
+- date: Filter by specific date (format: YYYY-MM-DD) (optional)
+- trainer_id: Filter by trainer ID (optional)
+- member_id: Filter by member ID (optional)
+- page: Page number (default: 1)
+- pageSize: Number of items per page (default: 10)
+
+Response (with pagination):
+```json
+{
+  "data": [
+    {
+      "id": 1,
+      "member_id": 1,
+      "trainer_id": 1,
+      "session_date": "2023-07-10",
+      "start_time": "09:00:00",
+      "end_time": "10:00:00",
+      "notes": "Focus on cardio and core strength",
+      "status": "Completed",
+      "price": 75.00,
+      "created_at": "2023-06-01T09:00:00Z",
+      "updated_at": "2023-06-01T09:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 24,
+  "totalPages": 3
+}
+```
+
+Response (without pagination):
 ```json
 [
   {
@@ -755,8 +842,66 @@ curl -X POST \
 ```
 
 ### Get all trainers
+Endpoint: GET /api/v1/trainers
+Description: Retrieves all trainers with optional pagination and filtering
+Query Parameters:
+- specialization: Filter trainers by specialization (optional)
+- page: Page number (default: 1)
+- pageSize: Number of items per page (default: 10)
+
+Response (with pagination):
+```json
+{
+  "data": [
+    {
+      "trainer_id": 1,
+      "staff_id": 2,
+      "specialization": "Weight Training",
+      "certification": "NASM CPT",
+      "experience": 5,
+      "rating": 4.8,
+      "is_active": true,
+      "created_at": "2023-06-01T09:00:00Z",
+      "updated_at": "2023-06-01T09:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 8,
+  "totalPages": 1
+}
+```
+
+Response (without pagination):
+```json
+[
+  {
+    "trainer_id": 1,
+    "staff_id": 2,
+    "specialization": "Weight Training",
+    "certification": "NASM CPT",
+    "experience": 5,
+    "rating": 4.8,
+    "is_active": true,
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+
+Example:
 ```bash
 curl -X GET http://localhost:8002/api/v1/trainers
+```
+
+With pagination:
+```bash
+curl -X GET "http://localhost:8002/api/v1/trainers?page=1&pageSize=5"
+```
+
+With specialization filter:
+```bash
+curl -X GET "http://localhost:8002/api/v1/trainers?specialization=Yoga"
 ```
 
 ### Get top 3 rated trainers
@@ -791,8 +936,59 @@ curl -X PUT http://localhost:8002/api/v1/trainings/1/cancel
 ```
 
 ### Get qualifications for a staff member
+Endpoint: GET /api/v1/staff/{id}/qualifications
+Description: Retrieves qualifications for a specific staff member with optional pagination
+Path Parameters:
+- id: Staff ID (integer)
+Query Parameters:
+- page: Page number (default: 1)
+- pageSize: Number of items per page (default: 10)
+
+Response (with pagination):
+```json
+{
+  "data": [
+    {
+      "qualification_id": 1,
+      "staff_id": 2,
+      "qualification_name": "NASM CPT",
+      "issue_date": "2020-03-10T00:00:00Z",
+      "expiry_date": "2022-03-10T00:00:00Z",
+      "issuing_authority": "National Academy of Sports Medicine",
+      "created_at": "2023-06-01T09:00:00Z",
+      "updated_at": "2023-06-01T09:00:00Z"
+    }
+  ],
+  "page": 1,
+  "pageSize": 10,
+  "totalItems": 3,
+  "totalPages": 1
+}
+```
+
+Response (without pagination):
+```json
+[
+  {
+    "qualification_id": 1,
+    "staff_id": 2,
+    "qualification_name": "NASM CPT",
+    "issue_date": "2020-03-10T00:00:00Z",
+    "expiry_date": "2022-03-10T00:00:00Z",
+    "issuing_authority": "National Academy of Sports Medicine",
+    "created_at": "2023-06-01T09:00:00Z",
+    "updated_at": "2023-06-01T09:00:00Z"
+  }
+]
+```
+
+Examples:
 ```bash
+# Without pagination
 curl -X GET http://localhost:8002/api/v1/staff/2/qualifications
+
+# With pagination
+curl -X GET "http://localhost:8002/api/v1/staff/2/qualifications?page=1&pageSize=5"
 ```
 
 ### Add a qualification to a staff member

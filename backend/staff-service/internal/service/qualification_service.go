@@ -19,6 +19,11 @@ func (s *QualificationService) GetAll() ([]model.Qualification, error) {
 	return s.repo.GetAll()
 }
 
+// GetAllPaginated retrieves qualifications with pagination
+func (s *QualificationService) GetAllPaginated(offset, limit int) ([]model.Qualification, int, error) {
+	return s.repo.GetAllPaginated(offset, limit)
+}
+
 // GetByID retrieves a qualification by ID
 func (s *QualificationService) GetByID(id int64) (*model.Qualification, error) {
 	return s.repo.GetByID(id)
@@ -27,6 +32,11 @@ func (s *QualificationService) GetByID(id int64) (*model.Qualification, error) {
 // GetByStaffID retrieves all qualifications for a staff member
 func (s *QualificationService) GetByStaffID(staffID int64) ([]model.Qualification, error) {
 	return s.repo.GetByStaffID(staffID)
+}
+
+// GetByStaffIDPaginated retrieves qualifications for a staff member with pagination
+func (s *QualificationService) GetByStaffIDPaginated(staffID int64, offset, limit int) ([]model.Qualification, int, error) {
+	return s.repo.GetByStaffIDPaginated(staffID, offset, limit)
 }
 
 // Create adds a new qualification

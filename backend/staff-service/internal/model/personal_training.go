@@ -25,6 +25,7 @@ type PersonalTraining struct {
 // PersonalTrainingRepository defines the methods to interact with personal training data
 type PersonalTrainingRepository interface {
 	GetAll() ([]PersonalTraining, error)
+	GetAllPaginated(offset, limit int) ([]PersonalTraining, int, error)
 	GetByID(id int64) (*PersonalTraining, error)
 	GetByMemberID(memberID int64) ([]PersonalTraining, error)
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)
@@ -40,6 +41,7 @@ type PersonalTrainingRepository interface {
 // PersonalTrainingService defines the business logic for personal training operations
 type PersonalTrainingService interface {
 	GetAll() ([]PersonalTraining, error)
+	GetAllPaginated(offset, limit int) ([]PersonalTraining, int, error)
 	GetByID(id int64) (*PersonalTraining, error)
 	GetByMemberID(memberID int64) ([]PersonalTraining, error)
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)

@@ -11,6 +11,27 @@ import (
 
 // GetAll returns all staff records
 func (h *StaffHandler) GetAll(c *gin.Context) {
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
+	var err error
+
+	if params.IsPagined {
+		// Paginated response
+		staff, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Convert to response DTOs
+		staffDTOs := dto.StaffListFromModel(staff)
+		response := CreatePaginatedResponse(staffDTOs, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Non-paginated response (backward compatibility)
 	staff, err := h.service.GetAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

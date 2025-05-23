@@ -266,3 +266,48 @@ func (r *StaffRepository) GetByStatus(status string) ([]model.Staff, error) {
 
 	return staffList, nil
 }
+
+// GetAllPaginated retrieves staff members with pagination
+func (r *StaffRepository) GetAllPaginated(offset, limit int) ([]model.Staff, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM staff`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting staff: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT staff_id, first_name, last_name, email, phone, address, 
+               position, hire_date, salary, status, created_at, updated_at
+        FROM staff
+        ORDER BY last_name, first_name
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated staff: %w", err)
+	}
+	defer rows.Close()
+
+	var staffList []model.Staff
+	for rows.Next() {
+		var staff model.Staff
+		if err := rows.Scan(
+			&staff.StaffID, &staff.FirstName, &staff.LastName, &staff.Email,
+			&staff.Phone, &staff.Address, &staff.Position, &staff.HireDate,
+			&staff.Salary, &staff.Status, &staff.CreatedAt, &staff.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated staff: %w", err)
+		}
+		staffList = append(staffList, staff)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated staff rows: %w", err)
+	}
+
+	return staffList, totalCount, nil
+}

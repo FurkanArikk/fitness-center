@@ -310,3 +310,48 @@ func (r *TrainerRepository) GetWithStaffDetails() ([]model.Trainer, error) {
 
 	return trainers, nil
 }
+
+// GetAllPaginated retrieves trainers with pagination
+func (r *TrainerRepository) GetAllPaginated(offset, limit int) ([]model.Trainer, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM trainers WHERE is_active = true`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting trainers: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT trainer_id, staff_id, specialization, certification, 
+               experience, rating, is_active, created_at, updated_at
+        FROM trainers
+        WHERE is_active = true
+        ORDER BY rating DESC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated trainers: %w", err)
+	}
+	defer rows.Close()
+
+	var trainers []model.Trainer
+	for rows.Next() {
+		var t model.Trainer
+		if err := rows.Scan(
+			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
+			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated trainer: %w", err)
+		}
+		trainers = append(trainers, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated trainer rows: %w", err)
+	}
+
+	return trainers, totalCount, nil
+}

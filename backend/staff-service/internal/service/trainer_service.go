@@ -23,6 +23,11 @@ func (s *TrainerService) GetAll() ([]model.Trainer, error) {
 	return s.repo.GetAll()
 }
 
+// GetAllPaginated retrieves trainers with pagination
+func (s *TrainerService) GetAllPaginated(offset, limit int) ([]model.Trainer, int, error) {
+	return s.repo.GetAllPaginated(offset, limit)
+}
+
 // GetByID retrieves a trainer by ID
 func (s *TrainerService) GetByID(id int64) (*model.Trainer, error) {
 	trainer, err := s.repo.GetByID(id)

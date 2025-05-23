@@ -26,6 +26,11 @@ func (s *PersonalTrainingService) GetAll() ([]model.PersonalTraining, error) {
 	return s.repo.GetAll()
 }
 
+// GetAllPaginated retrieves personal training sessions with pagination
+func (s *PersonalTrainingService) GetAllPaginated(offset, limit int) ([]model.PersonalTraining, int, error) {
+	return s.repo.GetAllPaginated(offset, limit)
+}
+
 // GetByID retrieves a personal training session by ID
 func (s *PersonalTrainingService) GetByID(id int64) (*model.PersonalTraining, error) {
 	return s.repo.GetByID(id)

@@ -10,6 +10,27 @@ import (
 
 // GetAll returns all qualifications
 func (h *QualificationHandler) GetAll(c *gin.Context) {
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
+	var err error
+
+	if params.IsPagined {
+		// Paginated response
+		qualifications, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Convert models to response DTOs
+		qualificationsDTO := dto.QualificationsFromModel(qualifications)
+		response := CreatePaginatedResponse(qualificationsDTO, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Non-paginated response (backward compatibility)
 	qualifications, err := h.service.GetAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -48,6 +69,26 @@ func (h *QualificationHandler) GetByStaffID(c *gin.Context) {
 		return
 	}
 
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
+
+	if params.IsPagined {
+		// Paginated response
+		qualifications, totalCount, err := h.service.GetByStaffIDPaginated(staffID, params.Offset, params.PageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Convert models to response DTOs
+		qualificationsDTO := dto.QualificationsFromModel(qualifications)
+		response := CreatePaginatedResponse(qualificationsDTO, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Non-paginated response (backward compatibility)
 	qualifications, err := h.service.GetByStaffID(staffID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

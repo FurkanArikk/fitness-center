@@ -459,3 +459,53 @@ func ensureCorrectTimeFormat(timeStr string) string {
 	}
 	return timeStr
 }
+
+// GetAllPaginated retrieves personal training sessions with pagination
+func (r *PersonalTrainingRepository) GetAllPaginated(offset, limit int) ([]model.PersonalTraining, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM personal_training`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting training sessions: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT session_id, member_id, trainer_id, session_date, start_time, 
+               end_time, notes, status, price, created_at, updated_at
+        FROM personal_training
+        ORDER BY session_date DESC, start_time ASC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated training sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.PersonalTraining
+	for rows.Next() {
+		var t model.PersonalTraining
+		if err := rows.Scan(
+			&t.SessionID, &t.MemberID, &t.TrainerID, &t.SessionDate,
+			&t.StartTime, &t.EndTime, &t.Notes, &t.Status, &t.Price,
+			&t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated training session: %w", err)
+		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
+		sessions = append(sessions, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated training session rows: %w", err)
+	}
+
+	return sessions, totalCount, nil
+}

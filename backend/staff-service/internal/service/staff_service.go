@@ -19,6 +19,11 @@ func (s *StaffService) GetAll() ([]model.Staff, error) {
 	return s.repo.GetAll()
 }
 
+// GetAllPaginated retrieves staff members with pagination
+func (s *StaffService) GetAllPaginated(offset, limit int) ([]model.Staff, int, error) {
+	return s.repo.GetAllPaginated(offset, limit)
+}
+
 // GetByID retrieves a staff member by ID
 func (s *StaffService) GetByID(id int64) (*model.Staff, error) {
 	return s.repo.GetByID(id)

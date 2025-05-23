@@ -23,6 +23,7 @@ type Staff struct {
 // StaffRepository defines the methods to interact with the staff data
 type StaffRepository interface {
 	GetAll() ([]Staff, error)
+	GetAllPaginated(offset, limit int) ([]Staff, int, error)
 	GetByID(id int64) (*Staff, error)
 	Create(staff *Staff) (*Staff, error)
 	Update(staff *Staff) (*Staff, error)
@@ -35,6 +36,7 @@ type StaffRepository interface {
 // StaffService defines the business logic for staff operations
 type StaffService interface {
 	GetAll() ([]Staff, error)
+	GetAllPaginated(offset, limit int) ([]Staff, int, error)
 	GetByID(id int64) (*Staff, error)
 	Create(staff *Staff) (*Staff, error)
 	Update(staff *Staff) (*Staff, error)
