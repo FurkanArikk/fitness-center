@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -16,7 +16,9 @@ func (h *QualificationHandler) GetAll(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, qualifications)
+	// Convert models to response DTOs
+	response := dto.QualificationsFromModel(qualifications)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetByID returns a specific qualification
@@ -33,7 +35,9 @@ func (h *QualificationHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, qualification)
+	// Convert model to response DTO
+	response := dto.QualificationFromModel(qualification)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetByStaffID returns all qualifications for a staff member
@@ -50,24 +54,35 @@ func (h *QualificationHandler) GetByStaffID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, qualifications)
+	// Convert models to response DTOs
+	response := dto.QualificationsFromModel(qualifications)
+	c.JSON(http.StatusOK, response)
 }
 
 // Create creates a new qualification
 func (h *QualificationHandler) Create(c *gin.Context) {
-	var qualification model.Qualification
-	if err := c.ShouldBindJSON(&qualification); err != nil {
+	var request dto.QualificationRequest
+	if err := c.ShouldBindJSON(&request); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	result, err := h.service.Create(&qualification)
+	// Convert DTO to model
+	qualification, err := request.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	result, err := h.service.Create(qualification)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, result)
+	// Convert model to response DTO
+	response := dto.QualificationFromModel(result)
+	c.JSON(http.StatusCreated, response)
 }
 
 // Update updates an existing qualification
@@ -78,21 +93,37 @@ func (h *QualificationHandler) Update(c *gin.Context) {
 		return
 	}
 
-	var qualification model.Qualification
-	if err := c.ShouldBindJSON(&qualification); err != nil {
+	// First get the existing qualification
+	existingQualification, err := h.service.GetByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Qualification not found"})
+		return
+	}
+
+	// Use QualificationUpdateRequest DTO for partial updates
+	var updateRequest dto.QualificationUpdateRequest
+
+	if err := c.ShouldBindJSON(&updateRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	qualification.QualificationID = id
+	// Convert update DTO to model
+	qualification, err := updateRequest.ToModel(existingQualification)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	result, err := h.service.Update(&qualification)
+	result, err := h.service.Update(qualification)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	// Convert model to response DTO
+	response := dto.QualificationFromModel(result)
+	c.JSON(http.StatusOK, response)
 }
 
 // Delete deletes a qualification
