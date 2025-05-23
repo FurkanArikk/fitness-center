@@ -46,6 +46,11 @@ func (r *PersonalTrainingRepository) GetAll() ([]model.PersonalTraining, error) 
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -79,6 +84,10 @@ func (r *PersonalTrainingRepository) GetByID(id int64) (*model.PersonalTraining,
 		return nil, fmt.Errorf("error querying training session: %w", err)
 	}
 
+	// Ensure time fields are in the correct format (HH:MM:SS)
+	t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+	t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 	return &t, nil
 }
 
@@ -108,6 +117,11 @@ func (r *PersonalTrainingRepository) GetByMemberID(memberID int64) ([]model.Pers
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -144,6 +158,11 @@ func (r *PersonalTrainingRepository) GetByTrainerID(trainerID int64) ([]model.Pe
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -180,6 +199,11 @@ func (r *PersonalTrainingRepository) GetByDateRange(startDate, endDate time.Time
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -216,6 +240,11 @@ func (r *PersonalTrainingRepository) GetByStatus(status string) ([]model.Persona
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -258,26 +287,6 @@ func (r *PersonalTrainingRepository) Create(training *model.PersonalTraining) (*
 
 // Update modifies an existing personal training session in the database
 func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*model.PersonalTraining, error) {
-	// Ensure time formats are valid for PostgreSQL
-	// PostgreSQL TIME type expects format: HH:MM:SS
-	startTime := training.StartTime
-	endTime := training.EndTime
-
-	// If the time values contain timezone information (like T16:00:00Z), strip it down to just HH:MM:SS
-	if strings.Contains(startTime, "T") || strings.Contains(startTime, "Z") {
-		t, err := time.Parse(time.RFC3339, startTime)
-		if err == nil {
-			startTime = t.Format("15:04:05")
-		}
-	}
-
-	if strings.Contains(endTime, "T") || strings.Contains(endTime, "Z") {
-		t, err := time.Parse(time.RFC3339, endTime)
-		if err == nil {
-			endTime = t.Format("15:04:05")
-		}
-	}
-
 	query := `
         UPDATE personal_training
         SET member_id = $1, trainer_id = $2, session_date = $3, 
@@ -290,7 +299,7 @@ func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*
 	now := time.Now()
 	err := r.db.QueryRow(
 		query, training.MemberID, training.TrainerID, training.SessionDate,
-		startTime, endTime, training.Notes, training.Status,
+		ensureCorrectTimeFormat(training.StartTime), ensureCorrectTimeFormat(training.EndTime), training.Notes, training.Status,
 		training.Price, now, training.SessionID,
 	).Scan(&training.UpdatedAt)
 
@@ -341,7 +350,7 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
                pt.start_time, pt.end_time, pt.notes, pt.status, pt.price, 
                pt.created_at, pt.updated_at,
                t.specialization, t.certification, t.experience, t.rating,
-               s.first_name, s.last_name, s.email, s.phone
+               s.staff_id, s.first_name, s.last_name, s.email, s.phone
         FROM personal_training pt
         JOIN trainers t ON pt.trainer_id = t.trainer_id
         JOIN staff s ON t.staff_id = s.staff_id
@@ -352,15 +361,15 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 	var trainerSpecialization, trainerCertification string
 	var trainerExperience int
 	var trainerRating float64
-	var staffFirstName, staffLastName, staffEmail, staffPhone string
 	var staffID int64
+	var staffFirstName, staffLastName, staffEmail, staffPhone string
 
 	err := r.db.QueryRow(query, id).Scan(
 		&training.SessionID, &training.MemberID, &training.TrainerID, &training.SessionDate,
 		&training.StartTime, &training.EndTime, &training.Notes, &training.Status, &training.Price,
 		&training.CreatedAt, &training.UpdatedAt,
 		&trainerSpecialization, &trainerCertification, &trainerExperience, &trainerRating,
-		&staffFirstName, &staffLastName, &staffEmail, &staffPhone,
+		&staffID, &staffFirstName, &staffLastName, &staffEmail, &staffPhone,
 	)
 
 	if err != nil {
@@ -369,6 +378,10 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 		}
 		return nil, fmt.Errorf("error querying training session: %w", err)
 	}
+
+	// Ensure time fields are in the correct format (HH:MM:SS)
+	training.StartTime = ensureCorrectTimeFormat(training.StartTime)
+	training.EndTime = ensureCorrectTimeFormat(training.EndTime)
 
 	// Set trainer details
 	training.Trainer = &model.Trainer{
@@ -388,4 +401,17 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 	}
 
 	return &training, nil
+}
+
+// ensureCorrectTimeFormat ensures that time strings are in the correct PostgreSQL TIME format (HH:MM:SS)
+// This function is used to standardize time format across all repository methods
+func ensureCorrectTimeFormat(timeStr string) string {
+	// If the time value contains timezone information (like T16:00:00Z), strip it down to just HH:MM:SS
+	if strings.Contains(timeStr, "T") || strings.Contains(timeStr, "Z") {
+		t, err := time.Parse(time.RFC3339, timeStr)
+		if err == nil {
+			return t.Format("15:04:05")
+		}
+	}
+	return timeStr
 }
