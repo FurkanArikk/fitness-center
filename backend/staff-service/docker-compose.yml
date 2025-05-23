@@ -11,8 +11,7 @@ services:
       - "${STAFF_SERVICE_DB_PORT:-5433}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      # Comment out this line to avoid the mount issues in WSL
-      # - ./migrations:/docker-entrypoint-initdb.d:ro
+      - ./migrations:/docker-entrypoint-initdb.d:ro
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
@@ -28,15 +27,21 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: fitness-staff-service
+    env_file:
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
-      STAFF_SERVICE_DB_PORT: 5432  # Also set this explicitly for Docker network
+      STAFF_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       STAFF_SERVICE_DB_NAME: ${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
       STAFF_SERVICE_PORT: ${STAFF_SERVICE_PORT:-8002}
+      STAFF_SERVICE_HOST: ${STAFF_SERVICE_HOST:-0.0.0.0}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
+      JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "${STAFF_SERVICE_PORT:-8002}:8002"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.staff-service.rule=PathPrefix(`/api/v1/staff`) || PathPrefix(`/api/v1/trainers`) || PathPrefix(`/api/v1/qualifications`) || PathPrefix(`/api/v1/training-sessions`)"

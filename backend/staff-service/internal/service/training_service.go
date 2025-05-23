@@ -26,6 +26,11 @@ func (s *PersonalTrainingService) GetAll() ([]model.PersonalTraining, error) {
 	return s.repo.GetAll()
 }
 
+// GetAllPaginated retrieves personal training sessions with pagination
+func (s *PersonalTrainingService) GetAllPaginated(offset, limit int) ([]model.PersonalTraining, int, error) {
+	return s.repo.GetAllPaginated(offset, limit)
+}
+
 // GetByID retrieves a personal training session by ID
 func (s *PersonalTrainingService) GetByID(id int64) (*model.PersonalTraining, error) {
 	return s.repo.GetByID(id)
@@ -49,6 +54,11 @@ func (s *PersonalTrainingService) GetByDateRange(startDate, endDate time.Time) (
 // GetByStatus retrieves all personal training sessions with a specific status
 func (s *PersonalTrainingService) GetByStatus(status string) ([]model.PersonalTraining, error) {
 	return s.repo.GetByStatus(status)
+}
+
+// GetByStatusAndDate retrieves all personal training sessions with a specific status on a specific date
+func (s *PersonalTrainingService) GetByStatusAndDate(status string, date time.Time) ([]model.PersonalTraining, error) {
+	return s.repo.GetByStatusAndDate(status, date)
 }
 
 // Create adds a new personal training session
@@ -86,10 +96,24 @@ func (s *PersonalTrainingService) Create(training *model.PersonalTraining) (*mod
 
 // Update modifies an existing personal training session
 func (s *PersonalTrainingService) Update(training *model.PersonalTraining) (*model.PersonalTraining, error) {
-	// Verify the trainer exists
+	// Verify the trainer exists but allow inactive trainers for updates
 	_, err := s.trainerRepo.GetByID(training.TrainerID)
 	if err != nil {
-		return nil, fmt.Errorf("trainer not found: %w", err)
+		// Check if the error is because the trainer is inactive
+		// Try to get the training session to verify the trainer ID is valid
+		existingSession, existErr := s.repo.GetByID(training.SessionID)
+		if existErr != nil {
+			return nil, fmt.Errorf("session not found: %w", existErr)
+		}
+
+		// If the trainer ID in the update matches the existing session,
+		// don't allow update with inactive trainer, just inform the user
+		if existingSession.TrainerID == training.TrainerID {
+			return nil, fmt.Errorf("trainer is inactive and cannot be used for training sessions")
+		}
+
+		// If trying to change to a different trainer ID that's invalid/inactive
+		return nil, fmt.Errorf("trainer not found or inactive: %w", err)
 	}
 
 	// Validate time format

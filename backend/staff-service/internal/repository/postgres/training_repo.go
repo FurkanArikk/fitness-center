@@ -46,6 +46,11 @@ func (r *PersonalTrainingRepository) GetAll() ([]model.PersonalTraining, error) 
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -79,6 +84,10 @@ func (r *PersonalTrainingRepository) GetByID(id int64) (*model.PersonalTraining,
 		return nil, fmt.Errorf("error querying training session: %w", err)
 	}
 
+	// Ensure time fields are in the correct format (HH:MM:SS)
+	t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+	t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 	return &t, nil
 }
 
@@ -108,6 +117,11 @@ func (r *PersonalTrainingRepository) GetByMemberID(memberID int64) ([]model.Pers
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -144,6 +158,11 @@ func (r *PersonalTrainingRepository) GetByTrainerID(trainerID int64) ([]model.Pe
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -180,6 +199,11 @@ func (r *PersonalTrainingRepository) GetByDateRange(startDate, endDate time.Time
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -216,6 +240,55 @@ func (r *PersonalTrainingRepository) GetByStatus(status string) ([]model.Persona
 		); err != nil {
 			return nil, fmt.Errorf("error scanning training session: %w", err)
 		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
+		sessions = append(sessions, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating training session rows: %w", err)
+	}
+
+	return sessions, nil
+}
+
+// GetByStatusAndDate retrieves all personal training sessions with a specific status on a specific date
+func (r *PersonalTrainingRepository) GetByStatusAndDate(status string, date time.Time) ([]model.PersonalTraining, error) {
+	// Create date range for the specified date (start of day to end of day)
+	endDate := date.AddDate(0, 0, 1)
+
+	query := `
+        SELECT session_id, member_id, trainer_id, session_date, start_time, 
+               end_time, notes, status, price, created_at, updated_at
+        FROM personal_training
+        WHERE status = $1 AND session_date >= $2 AND session_date < $3
+        ORDER BY session_date ASC, start_time ASC
+    `
+
+	rows, err := r.db.Query(query, status, date, endDate)
+	if err != nil {
+		return nil, fmt.Errorf("error querying training sessions by status and date: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.PersonalTraining
+	for rows.Next() {
+		var t model.PersonalTraining
+		if err := rows.Scan(
+			&t.SessionID, &t.MemberID, &t.TrainerID, &t.SessionDate,
+			&t.StartTime, &t.EndTime, &t.Notes, &t.Status, &t.Price,
+			&t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("error scanning training session: %w", err)
+		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
 		sessions = append(sessions, t)
 	}
 
@@ -270,7 +343,7 @@ func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*
 	now := time.Now()
 	err := r.db.QueryRow(
 		query, training.MemberID, training.TrainerID, training.SessionDate,
-		training.StartTime, training.EndTime, training.Notes, training.Status,
+		ensureCorrectTimeFormat(training.StartTime), ensureCorrectTimeFormat(training.EndTime), training.Notes, training.Status,
 		training.Price, now, training.SessionID,
 	).Scan(&training.UpdatedAt)
 
@@ -280,6 +353,15 @@ func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*
 		}
 		return nil, fmt.Errorf("error updating training session: %w", err)
 	}
+
+	// Fetch the complete record to ensure we have all fields including created_at
+	updatedSession, err := r.GetByID(training.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving updated session: %w", err)
+	}
+
+	// Update the created_at time from the fetched record
+	training.CreatedAt = updatedSession.CreatedAt
 
 	return training, nil
 }
@@ -312,7 +394,7 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
                pt.start_time, pt.end_time, pt.notes, pt.status, pt.price, 
                pt.created_at, pt.updated_at,
                t.specialization, t.certification, t.experience, t.rating,
-               s.first_name, s.last_name, s.email, s.phone
+               s.staff_id, s.first_name, s.last_name, s.email, s.phone
         FROM personal_training pt
         JOIN trainers t ON pt.trainer_id = t.trainer_id
         JOIN staff s ON t.staff_id = s.staff_id
@@ -323,15 +405,15 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 	var trainerSpecialization, trainerCertification string
 	var trainerExperience int
 	var trainerRating float64
-	var staffFirstName, staffLastName, staffEmail, staffPhone string
 	var staffID int64
+	var staffFirstName, staffLastName, staffEmail, staffPhone string
 
 	err := r.db.QueryRow(query, id).Scan(
 		&training.SessionID, &training.MemberID, &training.TrainerID, &training.SessionDate,
 		&training.StartTime, &training.EndTime, &training.Notes, &training.Status, &training.Price,
 		&training.CreatedAt, &training.UpdatedAt,
 		&trainerSpecialization, &trainerCertification, &trainerExperience, &trainerRating,
-		&staffFirstName, &staffLastName, &staffEmail, &staffPhone,
+		&staffID, &staffFirstName, &staffLastName, &staffEmail, &staffPhone,
 	)
 
 	if err != nil {
@@ -340,6 +422,10 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 		}
 		return nil, fmt.Errorf("error querying training session: %w", err)
 	}
+
+	// Ensure time fields are in the correct format (HH:MM:SS)
+	training.StartTime = ensureCorrectTimeFormat(training.StartTime)
+	training.EndTime = ensureCorrectTimeFormat(training.EndTime)
 
 	// Set trainer details
 	training.Trainer = &model.Trainer{
@@ -359,4 +445,67 @@ func (r *PersonalTrainingRepository) GetWithTrainerDetails(id int64) (*model.Per
 	}
 
 	return &training, nil
+}
+
+// ensureCorrectTimeFormat ensures that time strings are in the correct PostgreSQL TIME format (HH:MM:SS)
+// This function is used to standardize time format across all repository methods
+func ensureCorrectTimeFormat(timeStr string) string {
+	// If the time value contains timezone information (like T16:00:00Z), strip it down to just HH:MM:SS
+	if strings.Contains(timeStr, "T") || strings.Contains(timeStr, "Z") {
+		t, err := time.Parse(time.RFC3339, timeStr)
+		if err == nil {
+			return t.Format("15:04:05")
+		}
+	}
+	return timeStr
+}
+
+// GetAllPaginated retrieves personal training sessions with pagination
+func (r *PersonalTrainingRepository) GetAllPaginated(offset, limit int) ([]model.PersonalTraining, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM personal_training`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting training sessions: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT session_id, member_id, trainer_id, session_date, start_time, 
+               end_time, notes, status, price, created_at, updated_at
+        FROM personal_training
+        ORDER BY session_date DESC, start_time ASC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated training sessions: %w", err)
+	}
+	defer rows.Close()
+
+	var sessions []model.PersonalTraining
+	for rows.Next() {
+		var t model.PersonalTraining
+		if err := rows.Scan(
+			&t.SessionID, &t.MemberID, &t.TrainerID, &t.SessionDate,
+			&t.StartTime, &t.EndTime, &t.Notes, &t.Status, &t.Price,
+			&t.CreatedAt, &t.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated training session: %w", err)
+		}
+
+		// Ensure time fields are in the correct format (HH:MM:SS)
+		t.StartTime = ensureCorrectTimeFormat(t.StartTime)
+		t.EndTime = ensureCorrectTimeFormat(t.EndTime)
+
+		sessions = append(sessions, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated training session rows: %w", err)
+	}
+
+	return sessions, totalCount, nil
 }

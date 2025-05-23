@@ -10,8 +10,8 @@ type PersonalTraining struct {
 	MemberID    int64     `json:"member_id" db:"member_id"`
 	TrainerID   int64     `json:"trainer_id" db:"trainer_id"`
 	SessionDate time.Time `json:"session_date" db:"session_date"`
-	StartTime   string    `json:"start_time" db:"start_time"` // Using string as it's TIME in PostgreSQL
-	EndTime     string    `json:"end_time" db:"end_time"`     // Using string as it's TIME in PostgreSQL
+	StartTime   string    `json:"start_time" db:"start_time"` // Using string as it's TIME in PostgreSQL (HH:MM:SS format)
+	EndTime     string    `json:"end_time" db:"end_time"`     // Using string as it's TIME in PostgreSQL (HH:MM:SS format)
 	Notes       string    `json:"notes" db:"notes"`
 	Status      string    `json:"status" db:"status"`
 	Price       float64   `json:"price" db:"price"`
@@ -25,11 +25,13 @@ type PersonalTraining struct {
 // PersonalTrainingRepository defines the methods to interact with personal training data
 type PersonalTrainingRepository interface {
 	GetAll() ([]PersonalTraining, error)
+	GetAllPaginated(offset, limit int) ([]PersonalTraining, int, error)
 	GetByID(id int64) (*PersonalTraining, error)
 	GetByMemberID(memberID int64) ([]PersonalTraining, error)
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)
 	GetByDateRange(startDate, endDate time.Time) ([]PersonalTraining, error)
 	GetByStatus(status string) ([]PersonalTraining, error)
+	GetByStatusAndDate(status string, date time.Time) ([]PersonalTraining, error)
 	Create(training *PersonalTraining) (*PersonalTraining, error)
 	Update(training *PersonalTraining) (*PersonalTraining, error)
 	Delete(id int64) error
@@ -39,11 +41,13 @@ type PersonalTrainingRepository interface {
 // PersonalTrainingService defines the business logic for personal training operations
 type PersonalTrainingService interface {
 	GetAll() ([]PersonalTraining, error)
+	GetAllPaginated(offset, limit int) ([]PersonalTraining, int, error)
 	GetByID(id int64) (*PersonalTraining, error)
 	GetByMemberID(memberID int64) ([]PersonalTraining, error)
 	GetByTrainerID(trainerID int64) ([]PersonalTraining, error)
 	GetByDateRange(startDate, endDate time.Time) ([]PersonalTraining, error)
 	GetByStatus(status string) ([]PersonalTraining, error)
+	GetByStatusAndDate(status string, date time.Time) ([]PersonalTraining, error)
 	Create(training *PersonalTraining) (*PersonalTraining, error)
 	Update(training *PersonalTraining) (*PersonalTraining, error)
 	Delete(id int64) error

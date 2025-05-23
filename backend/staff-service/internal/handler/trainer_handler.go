@@ -13,17 +13,51 @@ func (h *TrainerHandler) GetAll(c *gin.Context) {
 	// Check for specialization filter
 	specialization := c.Query("specialization")
 
-	var trainers []model.Trainer
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
 	var err error
 
 	if specialization != "" {
 		// If specialization is provided, use the specialized method
-		trainers, err = h.service.GetBySpecialization(specialization)
-	} else {
-		// Otherwise, get all trainers
-		trainers, err = h.service.GetAll()
+		// Note: We would need to implement pagination for specialized search too,
+		// but for now we'll keep specialization without pagination
+		trainers, err := h.service.GetBySpecialization(specialization)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Return an empty array instead of null when no trainers are found
+		if trainers == nil {
+			trainers = []model.Trainer{}
+		}
+
+		c.JSON(http.StatusOK, trainers)
+		return
 	}
 
+	// Check if pagination is requested
+	if params.IsPagined {
+		// Paginated response
+		trainers, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		// Return an empty array instead of null when no trainers are found
+		if trainers == nil {
+			trainers = []model.Trainer{}
+		}
+
+		response := CreatePaginatedResponse(trainers, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Non-paginated response (backward compatibility)
+	trainers, err := h.service.GetAll()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -109,7 +143,7 @@ func (h *TrainerHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Trainer deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Trainer deactivated successfully"})
 }
 
 // GetBySpecialization returns trainers filtered by specialization

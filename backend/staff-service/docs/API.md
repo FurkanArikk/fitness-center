@@ -630,6 +630,8 @@ Updates an existing personal training session.
 }
 ```
 
+**Note:** When updating a training session, you don't need to include `member_id` and `trainer_id`. These values will be preserved from the existing session.
+
 **Response (200 OK):**
 ```json
 {

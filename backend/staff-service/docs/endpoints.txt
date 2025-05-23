@@ -26,11 +26,17 @@ GET /api/v1/staff                              # List all staff members
 # List all staff members
 curl -X GET http://localhost:8002/api/v1/staff
 
+# List staff with pagination
+curl -X GET "http://localhost:8002/api/v1/staff?page=1&pageSize=10"
+
 # List staff with position filter
 curl -X GET "http://localhost:8002/api/v1/staff?position=Trainer"
 
 # List staff with status filter
 curl -X GET "http://localhost:8002/api/v1/staff?status=Active"
+
+# List staff with filtering and pagination combined
+curl -X GET "http://localhost:8002/api/v1/staff?position=Trainer&page=1&pageSize=5"
 
 GET /api/v1/staff/{id}                         # Get a specific staff member
 # Get a specific staff member
@@ -95,8 +101,14 @@ GET /api/v1/trainers                           # Get all trainers
 # Get all trainers
 curl -X GET http://localhost:8002/api/v1/trainers
 
+# Get trainers with pagination
+curl -X GET "http://localhost:8002/api/v1/trainers?page=1&pageSize=5"
+
 # Get trainers with specialization filter
 curl -X GET "http://localhost:8002/api/v1/trainers?specialization=Yoga"
+
+# Get trainers with specialization filter and pagination
+curl -X GET "http://localhost:8002/api/v1/trainers?specialization=Yoga&page=1&pageSize=5"
 
 GET /api/v1/trainers/{id}                      # Get a specific trainer
 # Get a specific trainer
@@ -118,6 +130,13 @@ DELETE /api/v1/trainers/{id}                   # Delete a trainer
 curl -X DELETE http://localhost:8002/api/v1/trainers/1
 
 ## QUALIFICATION ENDPOINTS
+GET /api/v1/qualifications                     # Get all qualifications
+# Get all qualifications
+curl -X GET http://localhost:8002/api/v1/qualifications
+
+# Get qualifications with pagination
+curl -X GET "http://localhost:8002/api/v1/qualifications?page=1&pageSize=10"
+
 POST /api/v1/qualifications                    # Add a qualification
 # Add a qualification
 curl -X POST http://localhost:8002/api/v1/qualifications \
@@ -165,8 +184,14 @@ GET /api/v1/training-sessions                  # Get all training sessions
 # Get all training sessions
 curl -X GET http://localhost:8002/api/v1/training-sessions
 
+# Get training sessions with pagination
+curl -X GET "http://localhost:8002/api/v1/training-sessions?page=1&pageSize=10"
+
 # Get sessions with filters
 curl -X GET "http://localhost:8002/api/v1/training-sessions?status=Scheduled&date=2023-07-20"
+
+# Get sessions with filters and pagination
+curl -X GET "http://localhost:8002/api/v1/training-sessions?status=Scheduled&date=2023-07-20&page=1&pageSize=5"
 
 # Get sessions for a specific trainer
 curl -X GET "http://localhost:8002/api/v1/training-sessions?trainer_id=2"

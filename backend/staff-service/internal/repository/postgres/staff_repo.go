@@ -118,7 +118,8 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
             address = $5, position = $6, hire_date = $7, salary = $8, 
             status = $9, updated_at = $10
         WHERE staff_id = $11
-        RETURNING updated_at
+        RETURNING staff_id, first_name, last_name, email, phone, address, 
+                 position, hire_date, salary, status, created_at, updated_at
     `
 
 	now := time.Now()
@@ -126,7 +127,11 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
 		query, staff.FirstName, staff.LastName, staff.Email, staff.Phone,
 		staff.Address, staff.Position, staff.HireDate, staff.Salary,
 		staff.Status, now, staff.StaffID,
-	).Scan(&staff.UpdatedAt)
+	).Scan(
+		&staff.StaffID, &staff.FirstName, &staff.LastName, &staff.Email,
+		&staff.Phone, &staff.Address, &staff.Position, &staff.HireDate,
+		&staff.Salary, &staff.Status, &staff.CreatedAt, &staff.UpdatedAt,
+	)
 
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -140,11 +145,16 @@ func (r *StaffRepository) Update(staff *model.Staff) (*model.Staff, error) {
 
 // Delete removes a staff member from the database
 func (r *StaffRepository) Delete(id int64) error {
-	query := `DELETE FROM staff WHERE staff_id = $1`
+	// Instead of deleting, update the status to "Inactive" or "Terminated"
+	query := `
+		UPDATE staff 
+		SET status = 'Terminated', updated_at = NOW() 
+		WHERE staff_id = $1
+	`
 
 	result, err := r.db.Exec(query, id)
 	if err != nil {
-		return fmt.Errorf("error deleting staff: %w", err)
+		return fmt.Errorf("error updating staff status: %w", err)
 	}
 
 	rowsAffected, err := result.RowsAffected()
@@ -255,4 +265,49 @@ func (r *StaffRepository) GetByStatus(status string) ([]model.Staff, error) {
 	}
 
 	return staffList, nil
+}
+
+// GetAllPaginated retrieves staff members with pagination
+func (r *StaffRepository) GetAllPaginated(offset, limit int) ([]model.Staff, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM staff`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting staff: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT staff_id, first_name, last_name, email, phone, address, 
+               position, hire_date, salary, status, created_at, updated_at
+        FROM staff
+        ORDER BY last_name, first_name
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated staff: %w", err)
+	}
+	defer rows.Close()
+
+	var staffList []model.Staff
+	for rows.Next() {
+		var staff model.Staff
+		if err := rows.Scan(
+			&staff.StaffID, &staff.FirstName, &staff.LastName, &staff.Email,
+			&staff.Phone, &staff.Address, &staff.Position, &staff.HireDate,
+			&staff.Salary, &staff.Status, &staff.CreatedAt, &staff.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated staff: %w", err)
+		}
+		staffList = append(staffList, staff)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated staff rows: %w", err)
+	}
+
+	return staffList, totalCount, nil
 }

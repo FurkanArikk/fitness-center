@@ -225,3 +225,92 @@ func (r *QualificationRepository) GetExpiringSoon(days int) ([]model.Qualificati
 
 	return qualifications, nil
 }
+
+// GetAllPaginated retrieves qualifications with pagination
+func (r *QualificationRepository) GetAllPaginated(offset, limit int) ([]model.Qualification, int, error) {
+	// First get the total count
+	countQuery := `SELECT COUNT(*) FROM staff_qualifications`
+	var totalCount int
+	err := r.db.QueryRow(countQuery).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting qualifications: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT qualification_id, staff_id, qualification_name, issue_date, 
+               expiry_date, issuing_authority, created_at, updated_at
+        FROM staff_qualifications
+        ORDER BY expiry_date DESC
+        LIMIT $1 OFFSET $2
+    `
+
+	rows, err := r.db.Query(query, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated qualifications: %w", err)
+	}
+	defer rows.Close()
+
+	var qualifications []model.Qualification
+	for rows.Next() {
+		var q model.Qualification
+		if err := rows.Scan(
+			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
+			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated qualification: %w", err)
+		}
+		qualifications = append(qualifications, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated qualification rows: %w", err)
+	}
+
+	return qualifications, totalCount, nil
+}
+
+// GetByStaffIDPaginated retrieves qualifications for a specific staff member with pagination
+func (r *QualificationRepository) GetByStaffIDPaginated(staffID int64, offset, limit int) ([]model.Qualification, int, error) {
+	// First get the total count for this staff member
+	countQuery := `SELECT COUNT(*) FROM staff_qualifications WHERE staff_id = $1`
+	var totalCount int
+	err := r.db.QueryRow(countQuery, staffID).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error counting qualifications for staff: %w", err)
+	}
+
+	// Then get the paginated data
+	query := `
+        SELECT qualification_id, staff_id, qualification_name, issue_date, 
+               expiry_date, issuing_authority, created_at, updated_at
+        FROM staff_qualifications
+        WHERE staff_id = $1
+        ORDER BY expiry_date DESC
+        LIMIT $2 OFFSET $3
+    `
+
+	rows, err := r.db.Query(query, staffID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error querying paginated qualifications by staff ID: %w", err)
+	}
+	defer rows.Close()
+
+	var qualifications []model.Qualification
+	for rows.Next() {
+		var q model.Qualification
+		if err := rows.Scan(
+			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
+			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("error scanning paginated qualification: %w", err)
+		}
+		qualifications = append(qualifications, q)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating paginated qualification rows: %w", err)
+	}
+
+	return qualifications, totalCount, nil
+}

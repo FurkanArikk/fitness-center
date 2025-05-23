@@ -19,8 +19,10 @@ type Qualification struct {
 // QualificationRepository defines the methods to interact with qualification data
 type QualificationRepository interface {
 	GetAll() ([]Qualification, error)
+	GetAllPaginated(offset, limit int) ([]Qualification, int, error)
 	GetByID(id int64) (*Qualification, error)
 	GetByStaffID(staffID int64) ([]Qualification, error)
+	GetByStaffIDPaginated(staffID int64, offset, limit int) ([]Qualification, int, error)
 	Create(qualification *Qualification) (*Qualification, error)
 	Update(qualification *Qualification) (*Qualification, error)
 	Delete(id int64) error
@@ -30,8 +32,10 @@ type QualificationRepository interface {
 // QualificationService defines the business logic for qualification operations
 type QualificationService interface {
 	GetAll() ([]Qualification, error)
+	GetAllPaginated(offset, limit int) ([]Qualification, int, error)
 	GetByID(id int64) (*Qualification, error)
 	GetByStaffID(staffID int64) ([]Qualification, error)
+	GetByStaffIDPaginated(staffID int64, offset, limit int) ([]Qualification, int, error)
 	Create(qualification *Qualification) (*Qualification, error)
 	Update(qualification *Qualification) (*Qualification, error)
 	Delete(id int64) error
