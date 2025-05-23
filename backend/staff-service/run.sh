@@ -103,7 +103,6 @@ load_env_vars() {
         print_success "Loaded environment from: $SERVICE_ENV_PATH"
     else
         print_warning "No .env file found at $SERVICE_ENV_PATH"
-        print_info "Will create .env file with default environment variables"
     fi
 }
 
