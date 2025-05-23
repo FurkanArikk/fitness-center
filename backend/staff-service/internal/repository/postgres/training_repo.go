@@ -258,6 +258,26 @@ func (r *PersonalTrainingRepository) Create(training *model.PersonalTraining) (*
 
 // Update modifies an existing personal training session in the database
 func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*model.PersonalTraining, error) {
+	// Ensure time formats are valid for PostgreSQL
+	// PostgreSQL TIME type expects format: HH:MM:SS
+	startTime := training.StartTime
+	endTime := training.EndTime
+
+	// If the time values contain timezone information (like T16:00:00Z), strip it down to just HH:MM:SS
+	if strings.Contains(startTime, "T") || strings.Contains(startTime, "Z") {
+		t, err := time.Parse(time.RFC3339, startTime)
+		if err == nil {
+			startTime = t.Format("15:04:05")
+		}
+	}
+
+	if strings.Contains(endTime, "T") || strings.Contains(endTime, "Z") {
+		t, err := time.Parse(time.RFC3339, endTime)
+		if err == nil {
+			endTime = t.Format("15:04:05")
+		}
+	}
+
 	query := `
         UPDATE personal_training
         SET member_id = $1, trainer_id = $2, session_date = $3, 
@@ -270,7 +290,7 @@ func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*
 	now := time.Now()
 	err := r.db.QueryRow(
 		query, training.MemberID, training.TrainerID, training.SessionDate,
-		training.StartTime, training.EndTime, training.Notes, training.Status,
+		startTime, endTime, training.Notes, training.Status,
 		training.Price, now, training.SessionID,
 	).Scan(&training.UpdatedAt)
 
@@ -280,6 +300,15 @@ func (r *PersonalTrainingRepository) Update(training *model.PersonalTraining) (*
 		}
 		return nil, fmt.Errorf("error updating training session: %w", err)
 	}
+
+	// Fetch the complete record to ensure we have all fields including created_at
+	updatedSession, err := r.GetByID(training.SessionID)
+	if err != nil {
+		return nil, fmt.Errorf("error retrieving updated session: %w", err)
+	}
+
+	// Update the created_at time from the fetched record
+	training.CreatedAt = updatedSession.CreatedAt
 
 	return training, nil
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -75,7 +76,9 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 		trainingSessions = []model.PersonalTraining{}
 	}
 
-	c.JSON(http.StatusOK, trainingSessions)
+	// Convert to response DTOs
+	response := dto.TrainingListFromModel(trainingSessions)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetTrainingSessionByID returns a specific training session
@@ -92,25 +95,36 @@ func (h *TrainingHandler) GetTrainingSessionByID(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, trainingSession)
+	// Convert to response DTO
+	response := dto.TrainingFromModel(trainingSession)
+	c.JSON(http.StatusOK, response)
 }
 
 // CreateTrainingSession creates a new training session
 func (h *TrainingHandler) CreateTrainingSession(c *gin.Context) {
-	var trainingSession model.PersonalTraining
-	if err := c.ShouldBindJSON(&trainingSession); err != nil {
+	var trainingRequest dto.TrainingRequest
+	if err := c.ShouldBindJSON(&trainingRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert DTO to model
+	trainingSession, err := trainingRequest.ToModel()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Use ScheduleSession for appropriate business logic
-	result, err := h.service.ScheduleSession(&trainingSession)
+	result, err := h.service.ScheduleSession(trainingSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, result)
+	// Convert model back to response DTO
+	response := dto.TrainingFromModel(result)
+	c.JSON(http.StatusCreated, response)
 }
 
 // UpdateTrainingSession updates an existing training session
@@ -121,27 +135,62 @@ func (h *TrainingHandler) UpdateTrainingSession(c *gin.Context) {
 		return
 	}
 
-	// Get the existing training session first
+	// Get the existing training session first to preserve member_id and trainer_id
 	existingSession, err := h.service.GetByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Training session not found: " + err.Error()})
 		return
 	}
 
+	// Create a partial request object that doesn't require member_id and trainer_id
+	type PartialTrainingRequest struct {
+		SessionDate string  `json:"session_date" validate:"datetime=2006-01-02"`
+		StartTime   string  `json:"start_time"`
+		EndTime     string  `json:"end_time"`
+		Notes       string  `json:"notes"`
+		Status      string  `json:"status" validate:"oneof=Scheduled Completed Cancelled"`
+		Price       float64 `json:"price" validate:"gte=0"`
+	}
+
 	// Bind the updated data from JSON request
-	if err := c.ShouldBindJSON(existingSession); err != nil {
+	var partialRequest PartialTrainingRequest
+	if err := c.ShouldBindJSON(&partialRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Create a complete request by combining partial request with existing data
+	completeRequest := dto.TrainingRequest{
+		MemberID:    existingSession.MemberID,  // Preserve existing member ID
+		TrainerID:   existingSession.TrainerID, // Preserve existing trainer ID
+		SessionDate: partialRequest.SessionDate,
+		StartTime:   partialRequest.StartTime,
+		EndTime:     partialRequest.EndTime,
+		Notes:       partialRequest.Notes,
+		Status:      partialRequest.Status,
+		Price:       partialRequest.Price,
+	}
+
+	// Convert request to model
+	updatedSession, err := completeRequest.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Keep the original ID
+	updatedSession.SessionID = id
+
 	// Now update the session
-	result, err := h.service.Update(existingSession)
+	result, err := h.service.Update(updatedSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	// Convert result back to response DTO
+	response := dto.TrainingFromModel(result)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteTrainingSession deletes a training session
@@ -214,5 +263,7 @@ func (h *TrainingHandler) GetTrainingSessionsByDate(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, trainingSessions)
+	// Convert to response DTOs
+	response := dto.TrainingListFromModel(trainingSessions)
+	c.JSON(http.StatusOK, response)
 }
