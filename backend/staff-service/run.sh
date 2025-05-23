@@ -80,6 +80,18 @@ print_warning() {
     echo -e "${MAGENTA}⚠ $1${NC}"
 }
 
+# Function to ensure .env file exists
+ensure_env_vars() {
+    local env_file=".env"
+    
+    if [ -f "$env_file" ]; then
+        print_success ".env file exists"
+    else
+        print_error ".env file not found. Please create an .env file before running the script."
+        exit 1
+    fi
+}
+
 # Load environment variables from the service-specific .env file
 load_env_vars() {
     print_header "Loading Environment Variables"
@@ -90,8 +102,8 @@ load_env_vars() {
         source "$SERVICE_ENV_PATH"
         print_success "Loaded environment from: $SERVICE_ENV_PATH"
     else
-        print_warning "No service-specific .env file found at $SERVICE_ENV_PATH"
-        print_info "Using default environment variables"
+        print_warning "No .env file found at $SERVICE_ENV_PATH"
+        print_info "Will create .env file with default environment variables"
     fi
 }
 
@@ -223,8 +235,8 @@ apply_migrations() {
     print_header "Applying Database Migrations"
 
     for migration in ./migrations/*.up.sql; do
-        # Skip sample data and reset schema migrations during regular migration
-        if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
+        # Skip sample data migration files
+        if [[ "$migration" != *"sample_data"* && "$migration" != *"reset_schema_migrations"* ]]; then
             print_info "Applying migration: $(basename "$migration")"
             if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$migration"; then
                 print_error "Failed to apply migration: $(basename "$migration")"
@@ -348,7 +360,7 @@ verify_migrations() {
         # Apply migrations
         print_info "Applying database schema migrations..."
         for migration in ./migrations/*.up.sql; do
-            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"000_drop_tables.sql"* ]]; then
+            if [[ "$migration" != *"sample_data.sql"* && "$migration" != *"reset_schema_migrations.sql"* ]]; then
                 print_info "Applying migration: $(basename "$migration")"
                 if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "$migration"; then
                     print_error "Failed to apply migration: $(basename "$migration")"
@@ -358,22 +370,10 @@ verify_migrations() {
             fi
         done
         
-        print_success "Migrations have been applied"
-    else
-        print_success "Database tables exist."
-    fi
-    
-    # Check if tables are empty
-    print_info "Checking if tables contain data..."
-    local staff_count=$(docker exec ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} -t -c "SELECT COUNT(*) FROM staff" | xargs)
-    
-    if [ "$staff_count" = "0" ]; then
-        print_warning "Tables are empty. No data available."
-        
         # Ask if sample data should be loaded
         print_info "Do you want to load sample data? (y/n)"
-        read -r load_sample_data_response
-        if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+        read -r load_sample_data
+        if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
             print_info "Loading sample data..."
             if [ -f "./migrations/002_sample_data.sql" ]; then
                 if ! docker exec -i ${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db} psql -U ${DB_USER:-fitness_user} -d ${STAFF_SERVICE_DB_NAME:-fitness_staff_db} < "./migrations/002_sample_data.sql"; then
@@ -384,11 +384,11 @@ verify_migrations() {
             else
                 print_warning "Sample data file not found at ./migrations/002_sample_data.sql"
             fi
-        else
-            print_info "Skipping sample data loading"
         fi
+        
+        print_success "Migrations have been applied"
     else
-        print_success "Tables contain data. Found $staff_count staff records."
+        print_success "Database tables exist. No migration needed."
     fi
 }
 
@@ -461,45 +461,23 @@ start_service() {
     print_header "Starting Staff Service"
     
     if [ "$USE_DOCKER" = "true" ]; then
-        # Create Docker-specific environment file if it doesn't exist
-        if [ ! -f ".env.docker" ]; then
-            print_info "Creating Docker-specific environment file (.env.docker)..."
-            cat > ".env.docker" << EOF
-# Staff Service Configuration
-STAFF_SERVICE_DB_NAME=${STAFF_SERVICE_DB_NAME:-fitness_staff_db}
-STAFF_SERVICE_DB_PORT=5432
-STAFF_SERVICE_PORT=${STAFF_SERVICE_PORT:-8002}
-STAFF_SERVICE_HOST=${STAFF_SERVICE_HOST:-0.0.0.0}
-STAFF_SERVICE_CONTAINER_NAME=${STAFF_SERVICE_CONTAINER_NAME:-fitness-staff-db}
-STAFF_SERVICE_READ_TIMEOUT=15s
-STAFF_SERVICE_WRITE_TIMEOUT=15s
-STAFF_SERVICE_IDLE_TIMEOUT=60s
-STAFF_SERVICE_SHUTDOWN_TIMEOUT=${STAFF_SERVICE_SHUTDOWN_TIMEOUT:-5s}
-
-# Common Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_SSLMODE=${DB_SSLMODE:-disable}
-
-# Docker Configuration
-DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME:-fitness-network}
-
-# Authentication Configuration
-JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
-JWT_EXPIRATION=24h
-
-# Logging Configuration
-LOG_LEVEL=${LOG_LEVEL:-debug}
-EOF
-            print_success "Created .env.docker file"
+        # Skip dependency updates when running in Docker mode
+        # The Docker build process will handle dependencies
+        print_info "Skipping dependency updates for Docker mode"
+        
+        # Check if .env file exists
+        if [ ! -f ".env" ]; then
+            print_error "No .env file found. Please create a .env file with required configuration."
+            exit 1
+        else
+            print_success "Found .env file"
         fi
 
-        # Start the service using docker-compose
-        print_info "Starting staff service in Docker container..."
+        # Build and start the service using docker-compose with --build flag
+        print_info "Building Docker image for staff service..."
+        print_warning "This may take a few moments as the Docker image is being rebuilt..."
         print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-        if docker-compose up -d staff-service; then
+        if docker-compose up -d --build staff-service; then
             print_success "Staff service container started successfully"
             print_info "The service is running at http://${STAFF_SERVICE_HOST:-0.0.0.0}:${STAFF_SERVICE_PORT:-8002}"
             print_info "To view logs, run: docker-compose logs -f staff-service"
