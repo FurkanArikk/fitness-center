@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"time"
 )
 
@@ -45,4 +46,29 @@ type BookingResponse struct {
 	DayOfWeek string `json:"day_of_week"`
 	StartTime string `json:"start_time"`
 	TrainerID int    `json:"trainer_id"`
+}
+
+// BookingRepository defines the operations for booking data access
+type BookingRepository interface {
+	GetAll(ctx context.Context, status string, date string) ([]BookingResponse, error)
+	GetAllPaginated(ctx context.Context, status string, date string, offset, limit int) ([]BookingResponse, int, error)
+	GetByID(ctx context.Context, id int) (BookingResponse, error)
+	GetByMemberID(ctx context.Context, memberID int) ([]BookingResponse, error)
+	Create(ctx context.Context, booking Booking) (Booking, error)
+	UpdateStatus(ctx context.Context, id int, status string) (Booking, error)
+	AddFeedback(ctx context.Context, id int, rating int, comment string) (Booking, error)
+	Cancel(ctx context.Context, id int) (Booking, error)
+	CheckCapacity(ctx context.Context, scheduleID int) (int, int, error)
+}
+
+// BookingService defines operations for managing bookings
+type BookingService interface {
+	GetBookings(ctx context.Context, status string, date string) ([]BookingResponse, error)
+	GetBookingsPaginated(ctx context.Context, status string, date string, offset, limit int) ([]BookingResponse, int, error)
+	GetBookingByID(ctx context.Context, id int) (BookingResponse, error)
+	GetBookingsByMemberID(ctx context.Context, memberID int) ([]BookingResponse, error)
+	CreateBooking(ctx context.Context, req BookingRequest) (Booking, error)
+	UpdateBookingStatus(ctx context.Context, id int, status string) (Booking, error)
+	AddBookingFeedback(ctx context.Context, id int, req FeedbackRequest) (Booking, error)
+	CancelBooking(ctx context.Context, id int) (Booking, error)
 }

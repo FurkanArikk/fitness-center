@@ -16,7 +16,7 @@ func (h *Handler) HealthCheck(c *gin.Context) {
 
 	// Check database connectivity
 	dbStatus := "up"
-	if err := h.repo.Ping(ctx); err != nil {
+	if err := h.db.Ping(ctx); err != nil {
 		dbStatus = "down"
 	}
 

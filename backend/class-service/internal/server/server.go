@@ -2,107 +2,99 @@ package server
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
-
-	"github.com/gin-gonic/gin"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/config"
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/handler"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository/postgres"
+	"github.com/gin-gonic/gin"
 )
 
 // Server represents the HTTP server
 type Server struct {
-	db     *sql.DB
-	router *gin.Engine
-	config config.Config
+	router     *gin.Engine
+	httpServer *http.Server
 }
 
-// NewServer creates a new server with the given config
-func NewServer(cfg config.Config) (*Server, error) {
-	// Connect to the database
-	db, err := postgres.NewPostgresDB(cfg.Database)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize database: %w", err)
-	}
-
-	// Create router
+// NewServer creates a new server instance
+func NewServer(cfg *config.Config, h *handler.Handler) *Server {
 	router := gin.Default()
 
-	// Create server
-	server := &Server{
-		db:     db,
+	// Add middleware
+	router.Use(corsMiddleware())
+	router.Use(contentTypeMiddleware())
+	router.Use(loggingMiddleware())
+
+	// Set up routes using the function from router.go
+	setupRoutes(router, h)
+
+	srv := &Server{
 		router: router,
-		config: cfg,
+		httpServer: &http.Server{
+			Addr:         fmt.Sprintf(":%d", cfg.Server.Port),
+			Handler:      router,
+			ReadTimeout:  cfg.Server.ReadTimeout,
+			WriteTimeout: cfg.Server.WriteTimeout,
+			IdleTimeout:  cfg.Server.IdleTimeout,
+		},
 	}
 
-	// Set up routes
-	server.setupRoutes()
-
-	return server, nil
+	return srv
 }
 
-// setupRoutes configures all routes and middleware
-func (s *Server) setupRoutes() {
-	// Add health check endpoint
-	s.router.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "up",
-			"service": "class-service",
-			"time":    time.Now().Format(time.RFC3339),
-		})
-	})
-
-	// Create handler dependencies
-	h := handler.NewHandler(s.db)
-
-	// Setup routes using the handler
-	h.SetupRoutes(s.router)
-}
-
-// Start begins listening for requests
+// Start starts the HTTP server
 func (s *Server) Start() error {
-	// Create server
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.config.Server.Port),
-		Handler: s.router,
-	}
+	log.Printf("Server listening on port %s", s.httpServer.Addr[1:])
+	return s.httpServer.ListenAndServe()
+}
 
-	// Graceful shutdown
-	go func() {
-		// Listen for signals
-		quit := make(chan os.Signal, 1)
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		<-quit
-		log.Println("Shutting down server...")
+// Shutdown gracefully shuts down the server
+func (s *Server) Shutdown() error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	return s.httpServer.Shutdown(ctx)
+}
 
-		// Create shutdown context
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
+// corsMiddleware adds CORS headers to responses
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		// Shutdown the server
-		if err := srv.Shutdown(ctx); err != nil {
-			log.Fatalf("Server forced to shutdown: %v", err)
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+			return
 		}
 
-		// Close the database connection
-		if err := s.db.Close(); err != nil {
-			log.Fatalf("Error closing database connection: %v", err)
-		}
-	}()
-
-	// Start server
-	log.Printf("Server listening on port %d", s.config.Server.Port)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return fmt.Errorf("failed to start server: %w", err)
+		c.Next()
 	}
+}
 
-	return nil
+// contentTypeMiddleware sets the default content type for API responses
+func contentTypeMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "application/json")
+		c.Next()
+	}
+}
+
+// loggingMiddleware logs requests with timing information
+func loggingMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+
+		// Process request
+		c.Next()
+
+		// Log after request is processed
+		duration := time.Since(start)
+		method := c.Request.Method
+		path := c.Request.URL.Path
+		statusCode := c.Writer.Status()
+
+		log.Printf("%s %s %d completed in %v", method, path, statusCode, duration)
+	}
 }

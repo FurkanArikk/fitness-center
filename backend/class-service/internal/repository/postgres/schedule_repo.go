@@ -7,16 +7,15 @@ import (
 	"fmt"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// ScheduleRepository implements repository.ScheduleRepository interface
+// ScheduleRepository implements model.ScheduleRepository interface
 type ScheduleRepository struct {
 	db *sql.DB
 }
 
 // NewScheduleRepository creates a new ScheduleRepository
-func NewScheduleRepository(db *sql.DB) repository.ScheduleRepository {
+func NewScheduleRepository(db *sql.DB) model.ScheduleRepository {
 	return &ScheduleRepository{db: db}
 }
 
@@ -64,6 +63,70 @@ func (r *ScheduleRepository) GetAll(ctx context.Context, status string) ([]model
 	}
 
 	return schedules, nil
+}
+
+// GetAllPaginated returns paginated schedules with total count
+func (r *ScheduleRepository) GetAllPaginated(ctx context.Context, status string, offset, limit int) ([]model.ScheduleResponse, int, error) {
+	// Count query
+	countQuery := `
+		SELECT COUNT(*)
+		FROM class_schedule s
+		JOIN classes c ON s.class_id = c.class_id
+	`
+
+	// Data query
+	dataQuery := `
+		SELECT s.*, c.class_name, c.duration
+		FROM class_schedule s
+		JOIN classes c ON s.class_id = c.class_id
+	`
+
+	var countArgs []interface{}
+	var dataArgs []interface{}
+
+	if status != "" {
+		countQuery += " WHERE s.status = $1"
+		dataQuery += " WHERE s.status = $1"
+		countArgs = append(countArgs, status)
+		dataArgs = append(dataArgs, status)
+	}
+
+	// Get total count
+	var total int
+	err := r.db.QueryRowContext(ctx, countQuery, countArgs...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count schedules: %w", err)
+	}
+
+	// Add pagination to data query
+	dataQuery += " ORDER BY s.day_of_week, s.start_time LIMIT $" + fmt.Sprintf("%d", len(dataArgs)+1) + " OFFSET $" + fmt.Sprintf("%d", len(dataArgs)+2)
+	dataArgs = append(dataArgs, limit, offset)
+
+	// Execute data query
+	rows, err := r.db.QueryContext(ctx, dataQuery, dataArgs...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch paginated schedules: %w", err)
+	}
+	defer rows.Close()
+
+	var schedules []model.ScheduleResponse
+	for rows.Next() {
+		var s model.ScheduleResponse
+		if err := rows.Scan(
+			&s.ScheduleID, &s.ClassID, &s.TrainerID, &s.RoomID,
+			&s.StartTime, &s.EndTime, &s.DayOfWeek, &s.Status,
+			&s.CreatedAt, &s.UpdatedAt, &s.ClassName, &s.ClassDuration,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan schedule: %w", err)
+		}
+		schedules = append(schedules, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating schedule rows: %w", err)
+	}
+
+	return schedules, total, nil
 }
 
 // GetByID returns a schedule by its ID

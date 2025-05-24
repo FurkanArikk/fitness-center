@@ -9,16 +9,15 @@ import (
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// BookingRepository implements repository.BookingRepository interface
+// BookingRepository implements model.BookingRepository interface
 type BookingRepository struct {
 	db *sql.DB
 }
 
 // NewBookingRepository creates a new BookingRepository
-func NewBookingRepository(db *sql.DB) repository.BookingRepository {
+func NewBookingRepository(db *sql.DB) model.BookingRepository {
 	return &BookingRepository{db: db}
 }
 
@@ -95,6 +94,108 @@ func (r *BookingRepository) GetAll(ctx context.Context, status string, dateStr s
 	}
 
 	return bookings, nil
+}
+
+// GetAllPaginated returns paginated bookings with total count
+func (r *BookingRepository) GetAllPaginated(ctx context.Context, status string, dateStr string, offset, limit int) ([]model.BookingResponse, int, error) {
+	// Base query for count
+	countQuery := `
+		SELECT COUNT(*)
+		FROM class_bookings b
+		JOIN class_schedule s ON b.schedule_id = s.schedule_id
+		JOIN classes c ON s.class_id = c.class_id
+	`
+
+	// Base query for data
+	dataQuery := `
+		SELECT b.*, s.day_of_week, s.start_time, s.trainer_id, c.class_name
+		FROM class_bookings b
+		JOIN class_schedule s ON b.schedule_id = s.schedule_id
+		JOIN classes c ON s.class_id = c.class_id
+	`
+
+	var conditions []string
+	var args []interface{}
+	var argCount int
+
+	if status != "" {
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("b.attendance_status = $%d", argCount))
+		args = append(args, status)
+	}
+
+	if dateStr != "" {
+		date, err := time.Parse("2006-01-02", dateStr)
+		if err != nil {
+			return nil, 0, fmt.Errorf("invalid date format, should be YYYY-MM-DD: %w", err)
+		}
+		argCount++
+		conditions = append(conditions, fmt.Sprintf("DATE(b.booking_date) = $%d", argCount))
+		args = append(args, date)
+	}
+
+	if len(conditions) > 0 {
+		whereClause := " WHERE " + strings.Join(conditions, " AND ")
+		countQuery += whereClause
+		dataQuery += whereClause
+	}
+
+	// Get total count
+	var total int
+	err := r.db.QueryRowContext(ctx, countQuery, args...).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count bookings: %w", err)
+	}
+
+	// Add pagination to data query
+	dataQuery += " ORDER BY b.booking_date DESC"
+	argCount++
+	dataQuery += fmt.Sprintf(" LIMIT $%d", argCount)
+	args = append(args, limit)
+
+	argCount++
+	dataQuery += fmt.Sprintf(" OFFSET $%d", argCount)
+	args = append(args, offset)
+
+	// Execute data query
+	rows, err := r.db.QueryContext(ctx, dataQuery, args...)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch paginated bookings: %w", err)
+	}
+	defer rows.Close()
+
+	var bookings []model.BookingResponse
+	for rows.Next() {
+		var b model.BookingResponse
+		var feedbackRating sql.NullInt32
+		var feedbackComment sql.NullString
+
+		if err := rows.Scan(
+			&b.BookingID, &b.ScheduleID, &b.MemberID, &b.BookingDate,
+			&b.AttendanceStatus, &feedbackRating, &feedbackComment,
+			&b.CreatedAt, &b.UpdatedAt, &b.DayOfWeek, &b.StartTime,
+			&b.TrainerID, &b.ClassName,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan booking: %w", err)
+		}
+
+		if feedbackRating.Valid {
+			rating := int(feedbackRating.Int32)
+			b.FeedbackRating = &rating
+		}
+
+		if feedbackComment.Valid {
+			b.FeedbackComment = feedbackComment.String
+		}
+
+		bookings = append(bookings, b)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating booking rows: %w", err)
+	}
+
+	return bookings, total, nil
 }
 
 // GetByID returns a booking by its ID

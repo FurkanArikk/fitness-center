@@ -5,17 +5,16 @@ import (
 	"errors"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// ScheduleServiceImpl implements ScheduleService interface
+// ScheduleServiceImpl implements model.ScheduleService interface
 type ScheduleServiceImpl struct {
-	repo      repository.ScheduleRepository
-	classRepo repository.ClassRepository
+	repo      model.ScheduleRepository
+	classRepo model.ClassRepository
 }
 
 // NewScheduleService creates a new ScheduleService
-func NewScheduleService(repo repository.ScheduleRepository, classRepo repository.ClassRepository) ScheduleService {
+func NewScheduleService(repo model.ScheduleRepository, classRepo model.ClassRepository) model.ScheduleService {
 	return &ScheduleServiceImpl{
 		repo:      repo,
 		classRepo: classRepo,
@@ -90,6 +89,11 @@ func (s *ScheduleServiceImpl) UpdateSchedule(ctx context.Context, id int, req mo
 	}
 
 	return s.repo.Update(ctx, id, schedule)
+}
+
+// GetSchedulesPaginated returns paginated schedules
+func (s *ScheduleServiceImpl) GetSchedulesPaginated(ctx context.Context, status string, offset, limit int) ([]model.ScheduleResponse, int, error) {
+	return s.repo.GetAllPaginated(ctx, status, offset, limit)
 }
 
 // DeleteSchedule deletes a schedule
