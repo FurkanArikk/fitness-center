@@ -22,7 +22,9 @@ func NewScheduleRepository(db *sql.DB) model.ScheduleRepository {
 // GetAll returns all schedules, optionally filtered by status
 func (r *ScheduleRepository) GetAll(ctx context.Context, status string) ([]model.ScheduleResponse, error) {
 	query := `
-		SELECT s.*, c.class_name, c.duration
+		SELECT s.schedule_id, s.class_id, s.trainer_id, s.room_id,
+			s.start_time::text, s.end_time::text, s.day_of_week, s.status,
+			s.created_at, s.updated_at, c.class_name, c.duration
 		FROM class_schedule s
 		JOIN classes c ON s.class_id = c.class_id
 	`
@@ -76,7 +78,9 @@ func (r *ScheduleRepository) GetAllPaginated(ctx context.Context, status string,
 
 	// Data query
 	dataQuery := `
-		SELECT s.*, c.class_name, c.duration
+		SELECT s.schedule_id, s.class_id, s.trainer_id, s.room_id,
+			s.start_time::text, s.end_time::text, s.day_of_week, s.status,
+			s.created_at, s.updated_at, c.class_name, c.duration
 		FROM class_schedule s
 		JOIN classes c ON s.class_id = c.class_id
 	`
@@ -132,7 +136,9 @@ func (r *ScheduleRepository) GetAllPaginated(ctx context.Context, status string,
 // GetByID returns a schedule by its ID
 func (r *ScheduleRepository) GetByID(ctx context.Context, id int) (model.ScheduleResponse, error) {
 	query := `
-		SELECT s.*, c.class_name, c.duration
+		SELECT s.schedule_id, s.class_id, s.trainer_id, s.room_id,
+			s.start_time::text, s.end_time::text, s.day_of_week, s.status,
+			s.created_at, s.updated_at, c.class_name, c.duration
 		FROM class_schedule s
 		JOIN classes c ON s.class_id = c.class_id
 		WHERE s.schedule_id = $1
@@ -157,7 +163,9 @@ func (r *ScheduleRepository) GetByID(ctx context.Context, id int) (model.Schedul
 // GetByClassID returns schedules for a specific class
 func (r *ScheduleRepository) GetByClassID(ctx context.Context, classID int) ([]model.ScheduleResponse, error) {
 	query := `
-		SELECT s.*, c.class_name, c.duration
+		SELECT s.schedule_id, s.class_id, s.trainer_id, s.room_id,
+			s.start_time::text, s.end_time::text, s.day_of_week, s.status,
+			s.created_at, s.updated_at, c.class_name, c.duration
 		FROM class_schedule s
 		JOIN classes c ON s.class_id = c.class_id
 		WHERE s.class_id = $1
@@ -219,7 +227,9 @@ func (r *ScheduleRepository) Update(ctx context.Context, id int, schedule model.
 			start_time = $4, end_time = $5, day_of_week = $6,
 			status = $7, updated_at = NOW()
 		WHERE schedule_id = $8
-		RETURNING *
+		RETURNING schedule_id, class_id, trainer_id, room_id,
+			start_time::text, end_time::text, day_of_week, status,
+			created_at, updated_at
 	`
 
 	err := r.db.QueryRowContext(

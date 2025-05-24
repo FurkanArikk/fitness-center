@@ -41,6 +41,7 @@ func setupRoutes(router *gin.Engine, handler *handler.Handler) {
 			bookings.GET("/:id", handler.BookingHandler.GetBookingByID)
 			bookings.POST("", handler.BookingHandler.CreateBooking)
 			bookings.PUT("/:id", handler.BookingHandler.UpdateBooking)
+			bookings.PUT("/:id/status", handler.BookingHandler.UpdateBooking)
 			bookings.POST("/:id/feedback", handler.BookingHandler.AddFeedback)
 			bookings.DELETE("/:id", handler.BookingHandler.DeleteBooking)
 		}

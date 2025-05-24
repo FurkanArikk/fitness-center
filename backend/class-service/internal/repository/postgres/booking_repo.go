@@ -24,7 +24,8 @@ func NewBookingRepository(db *sql.DB) model.BookingRepository {
 // GetAll returns all bookings, optionally filtered by status and date
 func (r *BookingRepository) GetAll(ctx context.Context, status string, dateStr string) ([]model.BookingResponse, error) {
 	query := `
-		SELECT b.*, s.day_of_week, s.start_time, s.trainer_id, c.class_name
+		SELECT b.booking_id, b.schedule_id, b.member_id, b.booking_date, b.attendance_status, b.feedback_rating, b.feedback_comment, b.created_at, b.updated_at,
+			s.day_of_week, s.start_time::text, s.trainer_id, c.class_name
 		FROM class_bookings b
 		JOIN class_schedule s ON b.schedule_id = s.schedule_id
 		JOIN classes c ON s.class_id = c.class_id
@@ -108,7 +109,8 @@ func (r *BookingRepository) GetAllPaginated(ctx context.Context, status string, 
 
 	// Base query for data
 	dataQuery := `
-		SELECT b.*, s.day_of_week, s.start_time, s.trainer_id, c.class_name
+		SELECT b.booking_id, b.schedule_id, b.member_id, b.booking_date, b.attendance_status, b.feedback_rating, b.feedback_comment, b.created_at, b.updated_at,
+			s.day_of_week, s.start_time::text, s.trainer_id, c.class_name
 		FROM class_bookings b
 		JOIN class_schedule s ON b.schedule_id = s.schedule_id
 		JOIN classes c ON s.class_id = c.class_id
@@ -201,7 +203,8 @@ func (r *BookingRepository) GetAllPaginated(ctx context.Context, status string, 
 // GetByID returns a booking by its ID
 func (r *BookingRepository) GetByID(ctx context.Context, id int) (model.BookingResponse, error) {
 	query := `
-		SELECT b.*, s.day_of_week, s.start_time, s.trainer_id, c.class_name
+		SELECT b.booking_id, b.schedule_id, b.member_id, b.booking_date, b.attendance_status, b.feedback_rating, b.feedback_comment, b.created_at, b.updated_at,
+			s.day_of_week, s.start_time::text, s.trainer_id, c.class_name
 		FROM class_bookings b
 		JOIN class_schedule s ON b.schedule_id = s.schedule_id
 		JOIN classes c ON s.class_id = c.class_id
@@ -240,7 +243,8 @@ func (r *BookingRepository) GetByID(ctx context.Context, id int) (model.BookingR
 // GetByMemberID returns bookings for a specific member
 func (r *BookingRepository) GetByMemberID(ctx context.Context, memberID int) ([]model.BookingResponse, error) {
 	query := `
-		SELECT b.*, s.day_of_week, s.start_time, s.trainer_id, c.class_name
+		SELECT b.booking_id, b.schedule_id, b.member_id, b.booking_date, b.attendance_status, b.feedback_rating, b.feedback_comment, b.created_at, b.updated_at,
+			s.day_of_week, s.start_time::text, s.trainer_id, c.class_name
 		FROM class_bookings b
 		JOIN class_schedule s ON b.schedule_id = s.schedule_id
 		JOIN classes c ON s.class_id = c.class_id
