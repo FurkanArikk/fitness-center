@@ -5,8 +5,8 @@ services:
       dockerfile: Dockerfile
     container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-migrations:
+        condition: service_completed_successfully
     environment:
       DB_HOST: postgres
       DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
@@ -17,7 +17,7 @@ services:
       PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-8003}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
     ports:
-      - "${STAFF_SERVICE_PORT:-8003}:8003"
+      - "${PAYMENT_SERVICE_PORT:-8003}:8003"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`) || PathPrefix(`/api/v1/payment-types`) || PathPrefix(`/api/v1/transactions`) || PathPrefix(`/api/v1/admin/db-status`)"
@@ -54,11 +54,43 @@ services:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
-      interval: 180s
+      interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
     restart: unless-stopped
+
+  # DB Migrations container - runs automatically on startup
+  db-migrations:
+    image: postgres:14
+    container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}-migrations
+    restart: "no"
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGUSER: ${DB_USER:-fitness_user}
+      PGPASSWORD: ${DB_PASSWORD:-admin}
+      PGDATABASE: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
+      PGHOST: postgres
+      PGPORT: 5432
+    command: >
+      bash -c "
+        echo 'Running database migrations...' &&
+        for migration in /migrations/*.up.sql; do
+          if [[ \"$$migration\" != *\"sample_data\"* && \"$$migration\" != *\"drop_tables\"* ]]; then
+            echo \"Applying $$(basename $$migration)\" &&
+            psql -v ON_ERROR_STOP=1 -f $$migration;
+          fi;
+        done &&
+        echo 'Running sample data migration...' &&
+        psql -v ON_ERROR_STOP=1 -f /migrations/000004_sample_data.up.sql &&
+        echo 'All migrations completed successfully!'
+      "
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
 
 networks:
   fitness-network:
