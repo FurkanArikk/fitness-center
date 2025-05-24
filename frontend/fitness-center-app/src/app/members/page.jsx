@@ -123,8 +123,11 @@ const Members = () => {
   // Function to fetch membership types
   const fetchMemberships = async () => {
     setLoadingMemberships(true);
+    setError(null); // Clear previous errors
     try {
+      console.log('[Members Page] Fetching memberships...');
       const data = await memberService.getMemberships();
+      console.log('[Members Page] Memberships fetched:', data?.length || 0);
       
       // Fetch benefits for all memberships
       if (Array.isArray(data) && data.length > 0) {
@@ -138,11 +141,14 @@ const Members = () => {
           }
         }));
         setMembershipsData(membershipsWithBenefits);
+        console.log('[Members Page] Memberships with benefits loaded:', membershipsWithBenefits.length);
       } else {
         setMembershipsData(data || []);
       }
     } catch (err) {
       console.error('Error fetching memberships:', err);
+      setError(`Failed to load memberships: ${err.message || 'Unknown error'}`);
+      setMembershipsData([]); // Set empty array on error
     } finally {
       setLoadingMemberships(false);
     }
@@ -151,11 +157,16 @@ const Members = () => {
   // Function to fetch benefit types
   const fetchBenefits = async () => {
     setLoadingBenefits(true);
+    setError(null); // Clear previous errors
     try {
+      console.log('[Members Page] Fetching benefits...');
       const data = await memberService.getBenefits();
+      console.log('[Members Page] Benefits fetched:', data?.length || 0);
       setBenefitsData(data || []);
     } catch (err) {
       console.error('Error fetching benefits:', err);
+      setError(`Failed to load benefits: ${err.message || 'Unknown error'}`);
+      setBenefitsData([]); // Set empty array on error
     } finally {
       setLoadingBenefits(false);
     }

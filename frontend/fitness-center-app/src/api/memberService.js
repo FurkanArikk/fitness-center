@@ -147,23 +147,29 @@ const memberService = {
   
   // Membership methods
   getMemberships: async (active = null) => {
-    try {
-      const url = active !== null ? `${ENDPOINTS.memberships}?active=${active}` : ENDPOINTS.memberships;
-      console.log('[Memberships Service] Request:', url);
-      
-      const response = await apiClient.get(url);
-      console.log('[Memberships Service] Response received:', response.status);
-      console.log('[Memberships Service] Response data:', response.data);
-      
-      // Convert response from snake_case to camelCase
-      const convertedData = convertSnakeToCamel(response.data);
-      console.log('[Memberships Service] Converted data:', convertedData);
-      return convertedData;
-    } catch (error) {
-      console.error("Failed to fetch memberships:", error);
-      console.error("Memberships full error:", error.response);
-      return [];
-    }
+    return retryOperation(async () => {
+      try {
+        const url = active !== null ? `${ENDPOINTS.memberships}?active=${active}` : ENDPOINTS.memberships;
+        console.log('[Memberships Service] Request:', url);
+        
+        const response = await apiClient.get(url);
+        console.log('[Memberships Service] Response received:', response.status);
+        console.log('[Memberships Service] Response data:', response.data);
+        
+        // Convert response from snake_case to camelCase
+        const convertedData = convertSnakeToCamel(response.data);
+        console.log('[Memberships Service] Converted data:', convertedData);
+        return convertedData;
+      } catch (error) {
+        console.error("Failed to fetch memberships:", error.message);
+        console.error("Memberships detailed error:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url
+        });
+        throw error; // Re-throw to allow retry mechanism to work
+      }
+    }, 3, 1500); // 3 retries with 1.5 second delay
   },
   
   getMembership: async (id) => {
@@ -326,16 +332,27 @@ const memberService = {
   
   // Benefit operations
   getBenefits: async () => {
-    try {
-      const response = await apiClient.get(ENDPOINTS.benefits);
-      
-      // Convert response from snake_case to camelCase
-      const convertedData = convertSnakeToCamel(response.data);
-      return convertedData;
-    } catch (error) {
-      console.error("Failed to fetch benefits:", error);
-      return [];
-    }
+    return retryOperation(async () => {
+      try {
+        console.log('[Benefits Service] Fetching all benefits');
+        const response = await apiClient.get(ENDPOINTS.benefits);
+        console.log('[Benefits Service] Response received:', response.status);
+        console.log('[Benefits Service] Response data:', response.data);
+        
+        // Convert response from snake_case to camelCase
+        const convertedData = convertSnakeToCamel(response.data);
+        console.log('[Benefits Service] Converted data:', convertedData);
+        return convertedData;
+      } catch (error) {
+        console.error("Failed to fetch benefits:", error.message);
+        console.error("Benefits detailed error:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url
+        });
+        throw error; // Re-throw to allow retry mechanism to work
+      }
+    }, 3, 1500); // 3 retries with 1.5 second delay
   },
   
   getBenefit: async (id) => {
