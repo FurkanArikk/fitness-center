@@ -263,3 +263,16 @@ func (r *MemberRepository) GetByEmail(ctx context.Context, email string) (*model
 
 	return &member, nil
 }
+
+// Count, toplam üye sayısını döndürür
+func (r *MemberRepository) Count(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM members`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count members: %w", err)
+	}
+
+	return count, nil
+}

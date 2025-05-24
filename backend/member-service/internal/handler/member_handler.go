@@ -10,17 +10,22 @@ import (
 
 // GetMembers returns all members
 func (h *MemberHandler) GetMembers(c *gin.Context) {
-	// Parse query parameters for pagination
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
 
-	members, err := h.service.List(c.Request.Context(), page, pageSize)
+	members, totalCount, err := h.service.List(c.Request.Context(), params.Page, params.PageSize)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, members)
+	// Return paginated response if pagination is requested, otherwise simple array
+	if params.IsPagined {
+		response := CreatePaginatedResponse(members, params, totalCount)
+		c.JSON(http.StatusOK, response)
+	} else {
+		c.JSON(http.StatusOK, members)
+	}
 }
 
 // GetMemberByID returns a specific member
@@ -43,14 +48,14 @@ func (h *MemberHandler) GetMemberByID(c *gin.Context) {
 // CreateMember creates a new member
 func (h *MemberHandler) CreateMember(c *gin.Context) {
 	var request struct {
-		FirstName             string `json:"firstName" binding:"required"`
-		LastName              string `json:"lastName" binding:"required"`
+		FirstName             string `json:"first_name" binding:"required"`
+		LastName              string `json:"last_name" binding:"required"`
 		Email                 string `json:"email" binding:"required,email"`
 		Phone                 string `json:"phone" binding:"required"`
 		Address               string `json:"address"`
-		DateOfBirth           string `json:"dateOfBirth"`
-		EmergencyContactName  string `json:"emergencyContactName"`
-		EmergencyContactPhone string `json:"emergencyContactPhone"`
+		DateOfBirth           string `json:"date_of_birth"`
+		EmergencyContactName  string `json:"emergency_contact_name"`
+		EmergencyContactPhone string `json:"emergency_contact_phone"`
 		Status                string `json:"status"`
 	}
 
@@ -79,14 +84,14 @@ func (h *MemberHandler) UpdateMember(c *gin.Context) {
 	}
 
 	var request struct {
-		FirstName             string `json:"firstName"`
-		LastName              string `json:"lastName"`
+		FirstName             string `json:"first_name"`
+		LastName              string `json:"last_name"`
 		Email                 string `json:"email"`
 		Phone                 string `json:"phone"`
 		Address               string `json:"address"`
-		DateOfBirth           string `json:"dateOfBirth"`
-		EmergencyContactName  string `json:"emergencyContactName"`
-		EmergencyContactPhone string `json:"emergencyContactPhone"`
+		DateOfBirth           string `json:"date_of_birth"`
+		EmergencyContactName  string `json:"emergency_contact_name"`
+		EmergencyContactPhone string `json:"emergency_contact_phone"`
 		Status                string `json:"status"`
 	}
 
@@ -131,14 +136,14 @@ func (h *MemberHandler) DeleteMember(c *gin.Context) {
 
 // Helper functions to convert between request and model
 func convertRequestToMember(request struct {
-	FirstName             string `json:"firstName" binding:"required"`
-	LastName              string `json:"lastName" binding:"required"`
+	FirstName             string `json:"first_name" binding:"required"`
+	LastName              string `json:"last_name" binding:"required"`
 	Email                 string `json:"email" binding:"required,email"`
 	Phone                 string `json:"phone" binding:"required"`
 	Address               string `json:"address"`
-	DateOfBirth           string `json:"dateOfBirth"`
-	EmergencyContactName  string `json:"emergencyContactName"`
-	EmergencyContactPhone string `json:"emergencyContactPhone"`
+	DateOfBirth           string `json:"date_of_birth"`
+	EmergencyContactName  string `json:"emergency_contact_name"`
+	EmergencyContactPhone string `json:"emergency_contact_phone"`
 	Status                string `json:"status"`
 }) *model.Member {
 	// Implementation details for converting request to model
@@ -157,14 +162,14 @@ func convertRequestToMember(request struct {
 }
 
 func updateMemberFromRequest(member *model.Member, request struct {
-	FirstName             string `json:"firstName"`
-	LastName              string `json:"lastName"`
+	FirstName             string `json:"first_name"`
+	LastName              string `json:"last_name"`
 	Email                 string `json:"email"`
 	Phone                 string `json:"phone"`
 	Address               string `json:"address"`
-	DateOfBirth           string `json:"dateOfBirth"`
-	EmergencyContactName  string `json:"emergencyContactName"`
-	EmergencyContactPhone string `json:"emergencyContactPhone"`
+	DateOfBirth           string `json:"date_of_birth"`
+	EmergencyContactName  string `json:"emergency_contact_name"`
+	EmergencyContactPhone string `json:"emergency_contact_phone"`
 	Status                string `json:"status"`
 }) {
 	// Implementation details for updating model from request

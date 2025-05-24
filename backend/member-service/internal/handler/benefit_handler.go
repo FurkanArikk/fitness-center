@@ -11,7 +11,7 @@ import (
 // GetBenefits returns all benefits
 func (h *BenefitHandler) GetBenefits(c *gin.Context) {
 	// Check if we need to filter by membership ID
-	membershipIDStr := c.Query("membershipId")
+	membershipIDStr := c.Query("membership_id")
 
 	var benefits []*model.MembershipBenefit
 	var err error

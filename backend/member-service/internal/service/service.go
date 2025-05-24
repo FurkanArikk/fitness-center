@@ -12,7 +12,7 @@ type MemberService interface {
 	GetByID(ctx context.Context, id int64) (*model.Member, error)
 	Update(ctx context.Context, member *model.Member) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, page, pageSize int) ([]*model.Member, error)
+	List(ctx context.Context, page, pageSize int) ([]*model.Member, int, error)
 	GetByEmail(ctx context.Context, email string) (*model.Member, error)
 }
 
@@ -22,7 +22,7 @@ type MembershipService interface {
 	GetByID(ctx context.Context, id int64) (*model.Membership, error)
 	Update(ctx context.Context, membership *model.Membership) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, page, pageSize int) ([]*model.Membership, error)
+	List(ctx context.Context, page, pageSize int) ([]*model.Membership, int, error)
 	GetActiveOnes(ctx context.Context) ([]*model.Membership, error)
 	GetAll(ctx context.Context, activeOnly bool) ([]*model.Membership, error) // Add this method
 	UpdateStatus(ctx context.Context, id int64, isActive bool) error          // Add this method

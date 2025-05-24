@@ -155,8 +155,7 @@ func (r *MembershipRepo) Delete(ctx context.Context, id int64) error {
 }
 
 // List retrieves a paginated list of memberships
-func (r *MembershipRepo) List(ctx context.Context, page, pageSize int) ([]*model.Membership, error) {
-	offset := (page - 1) * pageSize
+func (r *MembershipRepo) List(ctx context.Context, offset, limit int) ([]*model.Membership, error) {
 
 	query := `
 		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
@@ -165,7 +164,7 @@ func (r *MembershipRepo) List(ctx context.Context, page, pageSize int) ([]*model
 		LIMIT $1 OFFSET $2
 	`
 
-	rows, err := r.db.QueryContext(ctx, query, pageSize, offset)
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error listing memberships: %w", err)
 	}
@@ -323,4 +322,17 @@ func (r *MembershipRepo) IsMembershipInUse(ctx context.Context, id int64) (bool,
 // GetActiveOnes alias for GetActive to satisfy the interface
 func (r *MembershipRepo) GetActiveOnes(ctx context.Context) ([]*model.Membership, error) {
 	return r.GetActive(ctx)
+}
+
+// Count returns the total number of memberships
+func (r *MembershipRepo) Count(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM memberships`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count memberships: %w", err)
+	}
+
+	return count, nil
 }

@@ -13,6 +13,7 @@ type MemberRepository interface {
 	Update(ctx context.Context, member *model.Member) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*model.Member, error)
+	Count(ctx context.Context) (int, error)
 	GetByEmail(ctx context.Context, email string) (*model.Member, error)
 }
 
@@ -23,6 +24,7 @@ type MembershipRepository interface {
 	Update(ctx context.Context, membership *model.Membership) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*model.Membership, error)
+	Count(ctx context.Context) (int, error)
 	GetActiveOnes(ctx context.Context) ([]*model.Membership, error)
 	GetActive(ctx context.Context) ([]*model.Membership, error)            // Add this method
 	GetByName(ctx context.Context, name string) (*model.Membership, error) // Add this method
