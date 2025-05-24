@@ -24,10 +24,10 @@ type Member struct {
 	Email                 string    `db:"email" json:"email"`
 	Phone                 string    `db:"phone" json:"phone"`
 	Address               string    `db:"address" json:"address"`
-	DateOfBirth           time.Time `db:"date_of_birth" json:"date_of_birth"`
+	DateOfBirth           DateOnly  `db:"date_of_birth" json:"date_of_birth"`
 	EmergencyContactName  string    `db:"emergency_contact_name" json:"emergency_contact_name"`
 	EmergencyContactPhone string    `db:"emergency_contact_phone" json:"emergency_contact_phone"`
-	JoinDate              time.Time `db:"join_date" json:"join_date"`
+	JoinDate              DateOnly  `db:"join_date" json:"join_date"`
 	Status                string    `db:"status" json:"status"`
 	CreatedAt             time.Time `db:"created_at" json:"created_at"`
 	UpdatedAt             time.Time `db:"updated_at" json:"updated_at"`
