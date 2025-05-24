@@ -16,6 +16,8 @@ services:
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
       PAYMENT_SERVICE_PORT: ${PAYMENT_SERVICE_PORT:-8003}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
+    ports:
+      - "${STAFF_SERVICE_PORT:-8003}:8003"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`) || PathPrefix(`/api/v1/payment-types`) || PathPrefix(`/api/v1/transactions`) || PathPrefix(`/api/v1/admin/db-status`)"
