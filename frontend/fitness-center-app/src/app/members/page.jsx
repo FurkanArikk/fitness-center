@@ -266,11 +266,17 @@ const Members = () => {
         if (data) {
           let membersData = [];
           
-          // Handle the specific API response format with members array
-          if (data.members && Array.isArray(data.members)) {
+          // Handle the specific API response format
+          if (data.data && Array.isArray(data.data)) {
+            // Pagination response format: { data: [...], page: 1, pageSize: 10, totalPages: X, totalItems: Y }
+            membersData = data.data;
+            setTotalPages(data.totalPages || data.total_pages || 1);
+          } else if (data.members && Array.isArray(data.members)) {
+            // Old format
             membersData = data.members;
             setTotalPages(data.totalPages || 1);
           } else if (Array.isArray(data)) {
+            // Direct array response
             membersData = data;
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
           } else {
@@ -653,7 +659,14 @@ const Members = () => {
 
   // Only filter by status and search term
   const filteredMembers = members.filter(member => {
-    const fullName = `${member.firstName} ${member.lastName}, ${member.email}`.toLowerCase();
+    // Debug: Log member structure
+    console.log('[Members Page] Filtering member:', member);
+    
+    const firstName = member.firstName || member.first_name || '';
+    const lastName = member.lastName || member.last_name || '';
+    const email = member.email || '';
+    
+    const fullName = `${firstName} ${lastName}, ${email}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase());
     const matchesStatus = !filterStatus || member.status === filterStatus;
     return matchesSearch && matchesStatus;
