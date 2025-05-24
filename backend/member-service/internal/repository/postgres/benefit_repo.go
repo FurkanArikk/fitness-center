@@ -224,3 +224,108 @@ func (r *BenefitRepo) ListAll(ctx context.Context) ([]*model.MembershipBenefit, 
 func (r *BenefitRepo) GetByMembershipID(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error) {
 	return r.List(ctx, membershipID)
 }
+
+// ListPaginated returns benefits for a specific membership with pagination
+func (r *BenefitRepo) ListPaginated(ctx context.Context, membershipID int64, offset, limit int) ([]*model.MembershipBenefit, error) {
+	query := `
+		SELECT 
+			benefit_id, membership_id, benefit_name, benefit_description, created_at, updated_at
+		FROM membership_benefits
+		WHERE membership_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, membershipID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list membership benefits with pagination: %v", err)
+	}
+	defer rows.Close()
+
+	var benefits []*model.MembershipBenefit
+	for rows.Next() {
+		var benefit model.MembershipBenefit
+		if err := rows.Scan(
+			&benefit.ID,
+			&benefit.MembershipID,
+			&benefit.BenefitName,
+			&benefit.BenefitDescription,
+			&benefit.CreatedAt,
+			&benefit.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan membership benefit: %v", err)
+		}
+		benefits = append(benefits, &benefit)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %v", err)
+	}
+
+	return benefits, nil
+}
+
+// ListAllPaginated returns all benefits with pagination
+func (r *BenefitRepo) ListAllPaginated(ctx context.Context, offset, limit int) ([]*model.MembershipBenefit, error) {
+	query := `
+		SELECT 
+			benefit_id, membership_id, benefit_name, benefit_description, created_at, updated_at
+		FROM membership_benefits
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all membership benefits with pagination: %v", err)
+	}
+	defer rows.Close()
+
+	var benefits []*model.MembershipBenefit
+	for rows.Next() {
+		var benefit model.MembershipBenefit
+		if err := rows.Scan(
+			&benefit.ID,
+			&benefit.MembershipID,
+			&benefit.BenefitName,
+			&benefit.BenefitDescription,
+			&benefit.CreatedAt,
+			&benefit.UpdatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("failed to scan membership benefit: %v", err)
+		}
+		benefits = append(benefits, &benefit)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %v", err)
+	}
+
+	return benefits, nil
+}
+
+// Count returns total number of benefits
+func (r *BenefitRepo) Count(ctx context.Context) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM membership_benefits`
+
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count benefits: %v", err)
+	}
+
+	return count, nil
+}
+
+// CountByMembership returns total number of benefits for a specific membership
+func (r *BenefitRepo) CountByMembership(ctx context.Context, membershipID int64) (int, error) {
+	var count int
+	query := `SELECT COUNT(*) FROM membership_benefits WHERE membership_id = $1`
+
+	err := r.db.QueryRowContext(ctx, query, membershipID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count benefits by membership: %v", err)
+	}
+
+	return count, nil
+}

@@ -94,3 +94,61 @@ func (s *BenefitServiceImpl) List(ctx context.Context, membershipID int64) ([]*m
 func (s *BenefitServiceImpl) ListAll(ctx context.Context) ([]*model.MembershipBenefit, error) {
 	return s.repo.ListAll(ctx)
 }
+
+// ListPaginated retrieves benefits for a membership with pagination
+func (s *BenefitServiceImpl) ListPaginated(ctx context.Context, membershipID int64, page, pageSize int) ([]*model.MembershipBenefit, int, error) {
+	if membershipID <= 0 {
+		return nil, 0, ErrInvalidBenefit
+	}
+
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get the benefits
+	benefits, err := s.repo.ListPaginated(ctx, membershipID, offset, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	totalCount, err := s.repo.CountByMembership(ctx, membershipID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return benefits, totalCount, nil
+}
+
+// ListAllPaginated retrieves all benefits with pagination
+func (s *BenefitServiceImpl) ListAllPaginated(ctx context.Context, page, pageSize int) ([]*model.MembershipBenefit, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+
+	// Calculate offset
+	offset := (page - 1) * pageSize
+
+	// Get the benefits
+	benefits, err := s.repo.ListAllPaginated(ctx, offset, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	totalCount, err := s.repo.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return benefits, totalCount, nil
+}

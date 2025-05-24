@@ -40,8 +40,12 @@ type BenefitRepository interface {
 	Update(ctx context.Context, benefit *model.MembershipBenefit) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error)
+	ListPaginated(ctx context.Context, membershipID int64, offset, limit int) ([]*model.MembershipBenefit, error)
 	GetByMembershipID(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error)
 	ListAll(ctx context.Context) ([]*model.MembershipBenefit, error) // Add this method
+	ListAllPaginated(ctx context.Context, offset, limit int) ([]*model.MembershipBenefit, error)
+	Count(ctx context.Context) (int, error)
+	CountByMembership(ctx context.Context, membershipID int64) (int, error)
 }
 
 // MemberMembershipRepository, üye-üyelik ilişkileri veritabanı işlemleri için arayüz
