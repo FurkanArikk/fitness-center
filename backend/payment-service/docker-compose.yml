@@ -1,16 +1,37 @@
 services:
+
+  postgres:
+    image: postgres:14
+    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
+    environment:
+      POSTGRES_USER: ${DB_USER:-fitness_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${PAYMENT_SERVICE_DB_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   payment-service:
     build: 
       context: .
       dockerfile: Dockerfile
     container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}
-    depends_on:
-      db-migrations:
-        condition: service_completed_successfully
+    env_file:
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
-      PAYMENT_SERVICE_DB_PORT: 5432  # Also set this explicitly
+      PAYMENT_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
@@ -35,62 +56,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  postgres:
-    image: postgres:14
-    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
-    environment:
-      POSTGRES_USER: ${DB_USER:-fitness_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
-      POSTGRES_DB: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "${PAYMENT_SERVICE_DB_PORT:-5434}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Comment out this line to avoid the mount issues in WSL
-      # - ./migrations:/docker-entrypoint-initdb.d:ro
-    networks:
-      - ${DOCKER_NETWORK_NAME:-fitness-network}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
-  # DB Migrations container - runs automatically on startup
-  db-migrations:
-    image: postgres:14
-    container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}-migrations
-    restart: "no"
-    volumes:
-      - ./migrations:/migrations
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      PGUSER: ${DB_USER:-fitness_user}
-      PGPASSWORD: ${DB_PASSWORD:-admin}
-      PGDATABASE: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
-      PGHOST: postgres
-      PGPORT: 5432
-    command: >
-      bash -c "
-        echo 'Running database migrations...' &&
-        for migration in /migrations/*.up.sql; do
-          if [[ \"$$migration\" != *\"sample_data\"* && \"$$migration\" != *\"drop_tables\"* ]]; then
-            echo \"Applying $$(basename $$migration)\" &&
-            psql -v ON_ERROR_STOP=1 -f $$migration;
-          fi;
-        done &&
-        echo 'Running sample data migration...' &&
-        psql -v ON_ERROR_STOP=1 -f /migrations/000004_sample_data.up.sql &&
-        echo 'All migrations completed successfully!'
-      "
-    networks:
-      - ${DOCKER_NETWORK_NAME:-fitness-network}
 
 networks:
   fitness-network:
