@@ -7,16 +7,15 @@ import (
 	"fmt"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// ClassRepository implements repository.ClassRepository interface
+// ClassRepository implements model.ClassRepository interface
 type ClassRepository struct {
 	db *sql.DB
 }
 
 // NewClassRepository creates a new ClassRepository
-func NewClassRepository(db *sql.DB) repository.ClassRepository {
+func NewClassRepository(db *sql.DB) model.ClassRepository {
 	return &ClassRepository{db: db}
 }
 
@@ -52,6 +51,53 @@ func (r *ClassRepository) GetAll(ctx context.Context, activeOnly bool) ([]model.
 	}
 
 	return classes, nil
+}
+
+// GetAllPaginated returns paginated classes with total count
+func (r *ClassRepository) GetAllPaginated(ctx context.Context, activeOnly bool, offset, limit int) ([]model.Class, int, error) {
+	// Query for total count
+	countQuery := "SELECT COUNT(*) FROM classes"
+	if activeOnly {
+		countQuery += " WHERE is_active = true"
+	}
+
+	var total int
+	err := r.db.QueryRowContext(ctx, countQuery).Scan(&total)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to count classes: %w", err)
+	}
+
+	// Query for paginated results
+	dataQuery := "SELECT * FROM classes"
+	if activeOnly {
+		dataQuery += " WHERE is_active = true"
+	}
+	dataQuery += " ORDER BY class_name LIMIT $1 OFFSET $2"
+
+	rows, err := r.db.QueryContext(ctx, dataQuery, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to fetch paginated classes: %w", err)
+	}
+	defer rows.Close()
+
+	var classes []model.Class
+	for rows.Next() {
+		var class model.Class
+		if err := rows.Scan(
+			&class.ClassID, &class.ClassName, &class.Description,
+			&class.Duration, &class.Capacity, &class.Difficulty,
+			&class.IsActive, &class.CreatedAt, &class.UpdatedAt,
+		); err != nil {
+			return nil, 0, fmt.Errorf("failed to scan class: %w", err)
+		}
+		classes = append(classes, class)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("error iterating classes rows: %w", err)
+	}
+
+	return classes, total, nil
 }
 
 // GetByID returns a class by its ID

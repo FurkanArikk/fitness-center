@@ -23,7 +23,31 @@ apiClient.interceptors.request.use(logRequestAndResponse, error => {
   return Promise.reject(error);
 });
 
-// Add response interceptor for error handling
+// Retry interceptor for handling intermittent failures
+const retryInterceptor = (error) => {
+  const { config } = error;
+  
+  // If config doesn't exist or we're already retrying, reject
+  if (!config || config._retryCount >= 3) {
+    return Promise.reject(error);
+  }
+  
+  // Set the retry count
+  config._retryCount = config._retryCount || 0;
+  config._retryCount += 1;
+  
+  console.log(`[API Retry] Attempt ${config._retryCount} for ${config.url}`);
+  
+  // Create a delay promise for exponential backoff
+  const delay = new Promise(resolve => {
+    setTimeout(() => resolve(), config._retryCount * 1000);
+  });
+  
+  // Retry the request after delay
+  return delay.then(() => apiClient(config));
+};
+
+// Add response interceptor for error handling with retry
 apiClient.interceptors.response.use(
   response => {
     console.log(`[API Response] ${response.status} ${response.config.url}`, response.data);
@@ -33,9 +57,15 @@ apiClient.interceptors.response.use(
     if (error.response) {
       // Server responded with an error code (4xx, 5xx)
       console.error(`[API Error] ${error.response.status} ${error.config?.url}:`, error.response.data);
+      
+      // Retry on 5xx errors (server errors)
+      if (error.response.status >= 500) {
+        return retryInterceptor(error);
+      }
     } else if (error.request) {
-      // Request was made but no response received
+      // Request was made but no response received - retry these
       console.error(`[API Connection Error] ${error.config?.url}:`, error.request);
+      return retryInterceptor(error);
     } else {
       // Error creating request
       console.error('[API Configuration Error]:', error.message);

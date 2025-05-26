@@ -7,7 +7,11 @@ import (
 	"syscall"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/config"
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/db"
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/server"
+	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/service"
 )
 
 func main() {
@@ -19,11 +23,24 @@ func main() {
 	cfg := config.LoadConfig()
 	log.Printf("Loaded configuration: server port=%d", cfg.Server.Port)
 
-	// Create and initialize server
-	srv, err := server.NewServer(cfg)
+	// Initialize database connection
+	database, err := db.NewPostgresDB(cfg.Database)
 	if err != nil {
-		log.Fatalf("Failed to initialize server: %v", err)
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	defer database.Close()
+
+	// Initialize repositories
+	repos := repository.NewRepositories(database.DB)
+
+	// Initialize services
+	services := service.NewServices(repos)
+
+	// Initialize handlers
+	handlers := handler.NewHandlers(services, database)
+
+	// Create and initialize server
+	srv := server.NewServer(&cfg, handlers)
 
 	// Handle graceful shutdown
 	done := make(chan os.Signal, 1)

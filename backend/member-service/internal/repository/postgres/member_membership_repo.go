@@ -11,19 +11,19 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
-// MemberMembershipRepo, üye-üyelik ilişkileri veritabanı işlemlerini gerçekleştirir
+// MemberMembershipRepo handles member-membership relationship database operations
 type MemberMembershipRepo struct {
 	db *sql.DB
 }
 
-// NewMemberMembershipRepo, yeni bir MemberMembershipRepo oluşturur
+// NewMemberMembershipRepo creates a new MemberMembershipRepo instance
 func NewMemberMembershipRepo(db *sql.DB) repository.MemberMembershipRepository {
 	return &MemberMembershipRepo{
 		db: db,
 	}
 }
 
-// Create, yeni bir üye-üyelik ilişkisi oluşturur
+// Create adds a new member-membership relationship to the database
 func (r *MemberMembershipRepo) Create(ctx context.Context, memberMembership *model.MemberMembership) error {
 	query := `
 		INSERT INTO member_memberships (
@@ -56,7 +56,7 @@ func (r *MemberMembershipRepo) Create(ctx context.Context, memberMembership *mod
 	return nil
 }
 
-// GetByID, ID'ye göre üye-üyelik ilişkisi getirir
+// GetByID retrieves a member-membership relationship by its ID
 func (r *MemberMembershipRepo) GetByID(ctx context.Context, id int64) (*model.MemberMembership, error) {
 	query := `
 		SELECT 
@@ -88,7 +88,7 @@ func (r *MemberMembershipRepo) GetByID(ctx context.Context, id int64) (*model.Me
 	return &memberMembership, nil
 }
 
-// Update, üye-üyelik ilişkisi bilgilerini günceller
+// Update updates a member-membership relationship information
 func (r *MemberMembershipRepo) Update(ctx context.Context, memberMembership *model.MemberMembership) error {
 	query := `
 		UPDATE member_memberships
@@ -134,7 +134,7 @@ func (r *MemberMembershipRepo) Update(ctx context.Context, memberMembership *mod
 	return nil
 }
 
-// Delete, üye-üyelik ilişkisini siler
+// Delete removes a member-membership relationship by its ID
 func (r *MemberMembershipRepo) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM member_memberships WHERE member_membership_id = $1`
 
@@ -155,7 +155,7 @@ func (r *MemberMembershipRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ListByMemberID, üyeye ait üyelik ilişkilerini listeler
+// ListByMemberID retrieves all membership relationships for a specific member
 func (r *MemberMembershipRepo) ListByMemberID(ctx context.Context, memberID int64) ([]*model.MemberMembership, error) {
 	query := `
 		SELECT 
@@ -197,7 +197,7 @@ func (r *MemberMembershipRepo) ListByMemberID(ctx context.Context, memberID int6
 	return memberMemberships, nil
 }
 
-// GetActiveMembership, üyenin aktif üyeliğini getirir
+// GetActiveMembership retrieves the current active membership for a member
 func (r *MemberMembershipRepo) GetActiveMembership(ctx context.Context, memberID int64) (*model.MemberMembership, error) {
 	query := `
 		SELECT 

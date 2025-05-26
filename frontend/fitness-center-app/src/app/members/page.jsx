@@ -123,8 +123,11 @@ const Members = () => {
   // Function to fetch membership types
   const fetchMemberships = async () => {
     setLoadingMemberships(true);
+    setError(null); // Clear previous errors
     try {
+      console.log('[Members Page] Fetching memberships...');
       const data = await memberService.getMemberships();
+      console.log('[Members Page] Memberships fetched:', data?.length || 0);
       
       // Fetch benefits for all memberships
       if (Array.isArray(data) && data.length > 0) {
@@ -138,11 +141,14 @@ const Members = () => {
           }
         }));
         setMembershipsData(membershipsWithBenefits);
+        console.log('[Members Page] Memberships with benefits loaded:', membershipsWithBenefits.length);
       } else {
         setMembershipsData(data || []);
       }
     } catch (err) {
       console.error('Error fetching memberships:', err);
+      setError(`Failed to load memberships: ${err.message || 'Unknown error'}`);
+      setMembershipsData([]); // Set empty array on error
     } finally {
       setLoadingMemberships(false);
     }
@@ -151,11 +157,16 @@ const Members = () => {
   // Function to fetch benefit types
   const fetchBenefits = async () => {
     setLoadingBenefits(true);
+    setError(null); // Clear previous errors
     try {
+      console.log('[Members Page] Fetching benefits...');
       const data = await memberService.getBenefits();
+      console.log('[Members Page] Benefits fetched:', data?.length || 0);
       setBenefitsData(data || []);
     } catch (err) {
       console.error('Error fetching benefits:', err);
+      setError(`Failed to load benefits: ${err.message || 'Unknown error'}`);
+      setBenefitsData([]); // Set empty array on error
     } finally {
       setLoadingBenefits(false);
     }
@@ -266,11 +277,17 @@ const Members = () => {
         if (data) {
           let membersData = [];
           
-          // Handle the specific API response format with members array
-          if (data.members && Array.isArray(data.members)) {
+          // Handle the specific API response format
+          if (data.data && Array.isArray(data.data)) {
+            // Pagination response format: { data: [...], page: 1, pageSize: 10, totalPages: X, totalItems: Y }
+            membersData = data.data;
+            setTotalPages(data.totalPages || data.total_pages || 1);
+          } else if (data.members && Array.isArray(data.members)) {
+            // Old format
             membersData = data.members;
             setTotalPages(data.totalPages || 1);
           } else if (Array.isArray(data)) {
+            // Direct array response
             membersData = data;
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
           } else {
@@ -653,7 +670,14 @@ const Members = () => {
 
   // Only filter by status and search term
   const filteredMembers = members.filter(member => {
-    const fullName = `${member.firstName} ${member.lastName}, ${member.email}`.toLowerCase();
+    // Debug: Log member structure
+    console.log('[Members Page] Filtering member:', member);
+    
+    const firstName = member.firstName || member.first_name || '';
+    const lastName = member.lastName || member.last_name || '';
+    const email = member.email || '';
+    
+    const fullName = `${firstName} ${lastName}, ${email}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase());
     const matchesStatus = !filterStatus || member.status === filterStatus;
     return matchesSearch && matchesStatus;

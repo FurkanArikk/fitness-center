@@ -4,6 +4,9 @@ import StatusBadge from '../common/StatusBadge';
 import { formatDate } from '../../utils/formatters';
 
 const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onViewDetails, onViewAssessments }) => {
+  console.log('[MemberList] Received members:', members);
+  console.log('[MemberList] Members length:', members.length);
+  
   if (!members.length) {
     return (
       <div className="py-4 text-center text-gray-500">
@@ -70,7 +73,9 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
           {members.map((member) => (
             <tr key={member.id} className="border-b hover:bg-gray-50">
               <td className="py-2 px-4">{member.id}</td>
-              <td className="py-2 px-4">{`${member.firstName} ${member.lastName}`}</td>
+              <td className="py-2 px-4">
+                {`${member.firstName || member.first_name || ''} ${member.lastName || member.last_name || ''}`.trim()}
+              </td>
               <td className="py-2 px-4">{member.email}</td>
               <td className="py-2 px-4">{member.phone}</td>
               <td className="py-2 px-4">
@@ -85,7 +90,7 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
                   <span className="text-gray-400 text-sm">None</span>
                 )}
               </td>
-              <td className="py-2 px-4">{formatDate(member.joinDate)}</td>
+              <td className="py-2 px-4">{formatDate(member.joinDate || member.join_date)}</td>
               <td className="py-2 px-4">
                 <div className="flex space-x-2">
                   <button 

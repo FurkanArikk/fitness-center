@@ -10,19 +10,19 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
 )
 
-// MemberRepository, üye veritabanı işlemlerini gerçekleştirir
+// MemberRepository handles member database operations
 type MemberRepository struct {
 	db *sql.DB
 }
 
-// NewMemberRepository, yeni bir MemberRepository oluşturur
+// NewMemberRepository creates a new MemberRepository instance
 func NewMemberRepository(db *sql.DB) *MemberRepository {
 	return &MemberRepository{
 		db: db,
 	}
 }
 
-// Create, yeni bir üye oluşturur
+// Create adds a new member to the database
 func (r *MemberRepository) Create(ctx context.Context, member *model.Member) error {
 	query := `
 		INSERT INTO members (
@@ -35,7 +35,7 @@ func (r *MemberRepository) Create(ctx context.Context, member *model.Member) err
 
 	now := time.Now()
 	if member.JoinDate.IsZero() {
-		member.JoinDate = now
+		member.JoinDate = model.NewDateOnly(now)
 	}
 	if member.Status == "" {
 		member.Status = "active"
@@ -67,7 +67,7 @@ func (r *MemberRepository) Create(ctx context.Context, member *model.Member) err
 	return nil
 }
 
-// GetByID, ID'ye göre üye getirir
+// GetByID retrieves a member by their ID
 func (r *MemberRepository) GetByID(ctx context.Context, id int64) (*model.Member, error) {
 	query := `
 		SELECT 
@@ -105,7 +105,7 @@ func (r *MemberRepository) GetByID(ctx context.Context, id int64) (*model.Member
 	return &member, nil
 }
 
-// Update, üye bilgilerini günceller
+// Update updates member information
 func (r *MemberRepository) Update(ctx context.Context, member *model.Member) error {
 	query := `
 		UPDATE members
@@ -157,7 +157,7 @@ func (r *MemberRepository) Update(ctx context.Context, member *model.Member) err
 	return nil
 }
 
-// Delete, üyeyi siler
+// Delete removes a member by their ID
 func (r *MemberRepository) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM members WHERE member_id = $1`
 
@@ -178,7 +178,7 @@ func (r *MemberRepository) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// List, üyeleri listeler
+// List retrieves a paginated list of members
 func (r *MemberRepository) List(ctx context.Context, offset, limit int) ([]*model.Member, error) {
 	query := `
 		SELECT 
@@ -226,7 +226,7 @@ func (r *MemberRepository) List(ctx context.Context, offset, limit int) ([]*mode
 	return members, nil
 }
 
-// GetByEmail, email'e göre üye getirir
+// GetByEmail retrieves a member by their email address
 func (r *MemberRepository) GetByEmail(ctx context.Context, email string) (*model.Member, error) {
 	query := `
 		SELECT 
@@ -262,4 +262,17 @@ func (r *MemberRepository) GetByEmail(ctx context.Context, email string) (*model
 	}
 
 	return &member, nil
+}
+
+// Count returns the total number of members
+func (r *MemberRepository) Count(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM members`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count members: %w", err)
+	}
+
+	return count, nil
 }

@@ -13,6 +13,7 @@ type MemberRepository interface {
 	Update(ctx context.Context, member *model.Member) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*model.Member, error)
+	Count(ctx context.Context) (int, error)
 	GetByEmail(ctx context.Context, email string) (*model.Member, error)
 }
 
@@ -23,6 +24,7 @@ type MembershipRepository interface {
 	Update(ctx context.Context, membership *model.Membership) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, offset, limit int) ([]*model.Membership, error)
+	Count(ctx context.Context) (int, error)
 	GetActiveOnes(ctx context.Context) ([]*model.Membership, error)
 	GetActive(ctx context.Context) ([]*model.Membership, error)            // Add this method
 	GetByName(ctx context.Context, name string) (*model.Membership, error) // Add this method
@@ -38,8 +40,12 @@ type BenefitRepository interface {
 	Update(ctx context.Context, benefit *model.MembershipBenefit) error
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error)
+	ListPaginated(ctx context.Context, membershipID int64, offset, limit int) ([]*model.MembershipBenefit, error)
 	GetByMembershipID(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error)
 	ListAll(ctx context.Context) ([]*model.MembershipBenefit, error) // Add this method
+	ListAllPaginated(ctx context.Context, offset, limit int) ([]*model.MembershipBenefit, error)
+	Count(ctx context.Context) (int, error)
+	CountByMembership(ctx context.Context, membershipID int64) (int, error)
 }
 
 // MemberMembershipRepository, üye-üyelik ilişkileri veritabanı işlemleri için arayüz

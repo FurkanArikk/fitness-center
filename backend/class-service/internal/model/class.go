@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"time"
 )
 
@@ -25,4 +26,25 @@ type ClassRequest struct {
 	Capacity    int    `json:"capacity" binding:"required,min=1"`
 	Difficulty  string `json:"difficulty"`
 	IsActive    bool   `json:"is_active"`
+}
+
+// ClassRepository defines the operations for class data access
+type ClassRepository interface {
+	GetAll(ctx context.Context, activeOnly bool) ([]Class, error)
+	GetAllPaginated(ctx context.Context, activeOnly bool, offset, limit int) ([]Class, int, error)
+	GetByID(ctx context.Context, id int) (Class, error)
+	Create(ctx context.Context, class Class) (Class, error)
+	Update(ctx context.Context, id int, class Class) (Class, error)
+	Delete(ctx context.Context, id int) error
+	ExistsInSchedule(ctx context.Context, id int) (bool, error)
+}
+
+// ClassService defines operations for managing classes
+type ClassService interface {
+	GetClasses(ctx context.Context, activeOnly bool) ([]Class, error)
+	GetClassesPaginated(ctx context.Context, activeOnly bool, offset, limit int) ([]Class, int, error)
+	GetClassByID(ctx context.Context, id int) (Class, error)
+	CreateClass(ctx context.Context, req ClassRequest) (Class, error)
+	UpdateClass(ctx context.Context, id int, req ClassRequest) (Class, error)
+	DeleteClass(ctx context.Context, id int) error
 }
