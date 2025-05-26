@@ -1,7 +1,7 @@
 package server
 
 import (
-	"github.com/furkan/fitness-center/backend/payment-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/handler"
 	"github.com/gin-gonic/gin"
 )
 

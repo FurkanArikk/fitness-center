@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/furkan/fitness-center/backend/payment-service/internal/repository"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/service"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/service"
 )
 
 // Handler manages HTTP requests

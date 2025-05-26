@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Script to manage database migrations for payment-service
-# Usage: ./scripts/migrate.sh [up|down|reset|status|sample]
+# Usage: ./scripts/migrate.sh [sample]
 
 # Load environment variables from the service-specific .env file
 SERVICE_ENV_PATH="$(pwd)/.env"
@@ -22,83 +22,50 @@ NC='\033[0m' # No Color
 
 # Set container and DB parameters from environment variables with defaults
 CONTAINER_NAME=${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
-DB_PORT=${PAYMENT_SERVICE_DB_PORT:-5434}
 DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
 DB_NAME=${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
 
-# Function to apply all migrations (up migrations only)
-apply_migrations() {
-    echo -e "${BLUE}Applying migrations...${NC}"
-    
-    for migration in ./migrations/*.up.sql; do
-        # Skip sample data migration, handle separately
-        if [[ "$migration" != *"sample_data"* && "$migration" != *"drop_tables"* ]]; then
-            echo -e "${YELLOW}Applying: $(basename "$migration")${NC}"
-            if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
-                echo -e "${RED}Failed to apply migration: $(basename "$migration")${NC}"
-                return 1
-            fi
-            echo -e "${GREEN}Successfully applied: $(basename "$migration")${NC}"
-        fi
-    done
-    
-    echo -e "${GREEN}All migrations applied successfully!${NC}"
-    return 0
-}
-
-# Function to revert all migrations
-revert_migrations() {
-    echo -e "${BLUE}Reverting migrations...${NC}"
-    
-    # Apply down migrations in reverse order
-    for migration in $(ls -r ./migrations/*.down.sql); do
-        echo -e "${YELLOW}Reverting: $(basename "$migration")${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "$migration"; then
-            echo -e "${RED}Failed to revert migration: $(basename "$migration")${NC}"
-            return 1
-        fi
-        echo -e "${GREEN}Successfully reverted: $(basename "$migration")${NC}"
-    done
-    
-    echo -e "${GREEN}All migrations reverted successfully!${NC}"
-    return 0
-}
-
-# Function to reset database (drop everything and reapply)
-reset_database() {
-    echo -e "${BLUE}Resetting database...${NC}"
+# Function to load sample data
+load_sample_data() {
+    echo -e "${BLUE}Loading sample data...${NC}"
     
     # First check if container is running
     if ! docker ps | grep -q "$CONTAINER_NAME"; then
         echo -e "${RED}Container $CONTAINER_NAME is not running. Please start it first.${NC}"
-        echo -e "You can use: ${YELLOW}./scripts/docker-db.sh start${NC}"
         return 1
     fi
     
-    # Apply drop tables migration to ensure clean slate
-    if [ -f "./migrations/000_drop_tables.sql" ]; then
-        echo -e "${YELLOW}Dropping all existing tables...${NC}"
-        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000_drop_tables.sql"; then
-            echo -e "${RED}Failed to drop tables${NC}"
+    # Apply sample data migration
+    if [ -f "./migrations/000004_sample_data.up.sql" ]; then
+        echo -e "${YELLOW}Loading sample data...${NC}"
+        if ! docker exec -i $CONTAINER_NAME psql -U $DB_USER -d $DB_NAME < "./migrations/000004_sample_data.up.sql"; then
+            echo -e "${RED}Failed to load sample data${NC}"
             return 1
         fi
-    fi
-    
-    # Apply all migrations
-    if ! apply_migrations; then
-        echo -e "${RED}Failed to apply migrations during reset${NC}"
+        echo -e "${GREEN}Sample data loaded successfully!${NC}"
+    else
+        echo -e "${RED}Sample data file not found at ./migrations/000004_sample_data.up.sql${NC}"
         return 1
     fi
-    
-    echo -e "${GREEN}Database reset successfully! Tables have been recreated.${NC}"
-    echo -e "To load sample data, run: ${YELLOW}./scripts/migrate.sh sample${NC}"
     
     return 0
 }
 
-# Function to check migration status
-check_status() {
+# Main script logic
+case "$1" in
+    "sample")
+        load_sample_data
+        ;;
+    *)
+        echo "Usage: $0 [sample]"
+        echo ""
+        echo "Commands:"
+        echo "  sample    Load sample data into the database"
+        exit 1
+        ;;
+esac
+
+exit $?
     echo -e "${BLUE}Checking migration status...${NC}"
     
     # First check if container is running

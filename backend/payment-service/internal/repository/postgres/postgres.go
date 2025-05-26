@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/repository"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
