@@ -33,25 +33,7 @@ func NewAuthService(cfg config.Config, repos *repository.Repositories) *AuthServ
 func (s *AuthService) Login(username, password string) (*model.LoginResponse, error) {
 	ctx := context.Background()
 
-	// First check if it's the default admin user from .env
-	if username == s.config.Auth.Username && password == s.config.Auth.Password {
-		// Use default admin user
-		token, expiresAt, err := s.generateJWT(username, "admin", 0)
-		if err != nil {
-			return nil, err
-		}
-
-		return &model.LoginResponse{
-			Token:     token,
-			ExpiresAt: expiresAt,
-			User: model.User{
-				Username: username,
-				Role:     "admin",
-				FullName: "Default Admin",
-			},
-		}, nil
-	}
-
+	// Remove environment variable check - only use database users
 	// Check database for user
 	user, err := s.repos.User.GetUserByUsername(ctx, username)
 	if err != nil {
@@ -98,11 +80,14 @@ func (s *AuthService) Login(username, password string) (*model.LoginResponse, er
 // ValidateToken validates JWT token and returns user info
 func (s *AuthService) ValidateToken(tokenString string) (*model.ValidateTokenResponse, error) {
 	claims, err := s.parseJWT(tokenString)
+	if err != nil {
+		return &model.ValidateTokenResponse{Valid: false}, err
+	}
 	// If it's user ID 0, it's the default admin
 	if claims.UserID == 0 {
 		return &model.ValidateTokenResponse{
 			Valid: true,
-			User: model.User{
+			User: &model.User{
 				ID:       0,
 				Username: claims.Username,
 				Role:     claims.Role,
@@ -128,7 +113,7 @@ func (s *AuthService) ValidateToken(tokenString string) (*model.ValidateTokenRes
 
 	return &model.ValidateTokenResponse{
 		Valid: true,
-		User:  *user,
+		User:  user,
 	}, nil
 }
 
@@ -158,7 +143,7 @@ func (s *AuthService) CreateUser(username, password, role, email, fullName strin
 	return user, nil
 }
 
-// Register creates a new user with user count validation
+// Register creates a new admin user with validation
 func (s *AuthService) Register(req model.RegisterRequest) (*model.RegisterResponse, error) {
 	ctx := context.Background()
 
@@ -171,15 +156,13 @@ func (s *AuthService) Register(req model.RegisterRequest) (*model.RegisterRespon
 		}, nil
 	}
 
-	// Force role to be "admin" for all registrations
-	role := "admin"
-
-	// Check admin user count limit (max 3 admins)
+	// Count current admin users
 	currentAdminCount, err := s.repos.User.GetUserCountByRole(ctx, "admin")
 	if err != nil {
-		return nil, fmt.Errorf("failed to get admin user count: %v", err)
+		return nil, fmt.Errorf("admin kullanıcı sayısı alınamadı: %v", err)
 	}
 
+	// Check if admin limit reached
 	if currentAdminCount >= 3 {
 		return &model.RegisterResponse{
 			Success: false,
@@ -187,13 +170,16 @@ func (s *AuthService) Register(req model.RegisterRequest) (*model.RegisterRespon
 		}, nil
 	}
 
-	// Combine firstName and lastName to create full_name
+	// Create full name
 	fullName := req.FirstName + " " + req.LastName
+	if fullName == " " {
+		fullName = req.Username
+	}
 
-	// Create the user
-	user, err := s.CreateUser(req.Username, req.Password, role, req.Email, fullName)
+	// Create the admin user (passwords will be automatically hashed in CreateUser)
+	user, err := s.CreateUser(req.Username, req.Password, "admin", req.Email, fullName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %v", err)
+		return nil, fmt.Errorf("kullanıcı oluşturulamadı: %v", err)
 	}
 
 	// Remove password hash from response
@@ -201,7 +187,7 @@ func (s *AuthService) Register(req model.RegisterRequest) (*model.RegisterRespon
 
 	return &model.RegisterResponse{
 		Success: true,
-		Message: "Admin kullanıcısı başarıyla oluşturuldu",
+		Message: fmt.Sprintf("Admin kullanıcısı başarıyla oluşturuldu (%d/3)", currentAdminCount+1),
 		User:    *user,
 	}, nil
 }
@@ -263,11 +249,29 @@ func (s *AuthService) UpdateMaxUsers(newLimit int) error {
 	return nil
 }
 
-// InitializeDefaultUsers - Sample data loading removed, users must be created manually via API
+// InitializeDefaultUsers ensures system is ready for admin user creation
 func (s *AuthService) InitializeDefaultUsers() error {
-	// No default users are created anymore
-	// All admin users must be created manually via registration API
-	fmt.Println("No default users created. Use the registration API to create admin users.")
+	ctx := context.Background()
+
+	// Check current admin count
+	currentAdminCount, err := s.repos.User.GetUserCountByRole(ctx, "admin")
+	if err != nil {
+		return fmt.Errorf("admin kullanıcı sayısı kontrol edilemedi: %v", err)
+	}
+
+	fmt.Printf("Sistem başlatılıyor. Mevcut admin kullanıcı sayısı: %d/3\n", currentAdminCount)
+
+	if currentAdminCount == 0 {
+		fmt.Println("⚠️  Henüz hiç admin kullanıcı yok!")
+		fmt.Println("📝 Yeni admin kullanıcı oluşturmak için POST /api/v1/auth/register endpoint'ini kullanın")
+		fmt.Println("🔒 Maksimum 3 admin kullanıcısı oluşturabilirsiniz")
+		fmt.Printf("🌐 Kayıt URL'si: http://localhost:%d/api/v1/auth/register\n", s.config.Server.Port)
+	} else if currentAdminCount < 3 {
+		fmt.Printf("ℹ️  %d admin kullanıcısı mevcut. %d admin daha ekleyebilirsiniz.\n", currentAdminCount, 3-currentAdminCount)
+	} else {
+		fmt.Println("✅ Maksimum admin kullanıcı sayısına ulaşıldı (3/3)")
+	}
+
 	return nil
 }
 

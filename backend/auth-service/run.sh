@@ -160,6 +160,9 @@ display_usage_instructions() {
     echo -e "   ${YELLOW}GET http://localhost:${AUTH_SERVICE_PORT:-8006}/api/v1/auth/user${NC}"
     echo -e "   Header: Authorization: Bearer your_jwt_token"
     echo -e ""
+    echo -e "${RED}Note: Registration endpoint is not currently implemented.${NC}"
+    echo -e "${YELLOW}Available admin user: admin/fitness123${NC}"
+    echo -e ""
 }
 
 # Main execution starts here

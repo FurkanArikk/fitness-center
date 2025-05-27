@@ -114,95 +114,27 @@ CREATE TABLE user_sessions (
 );
 ```
 
-## API Endpoints
+## 🌐 API Endpoints
 
-### POST /login
-Authenticate user and receive JWT token
+| Method | Endpoint      | Description           | Status |
+|--------|---------------|-----------------------|--------|
+| GET    | `/health`     | Health check          | ✅ Available |
+| POST   | `/api/v1/auth/login` | Authenticate user | ✅ Available |
+| POST   | `/api/v1/auth/validate` | Validate JWT token | ✅ Available |
+| GET    | `/api/v1/auth/user` | Get user information | ✅ Available |
+| POST   | `/api/v1/auth/register` | Register new users | ❌ Not Implemented |
 
-**Request:**
-```json
-{
-    "username": "furkan",
-    "password": "furkan123"
-}
-```
-
-**Response:**
-```json
-{
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "expires_at": "2025-01-11T10:30:00Z",
-    "user": {
-        "id": 1,
-        "username": "furkan",
-        "role": "admin",
-        "email": "furkan@example.com",
-        "full_name": "Furkan Arık",
-        "is_active": true
-    }
-}
-```
-
-### POST /validate-token
-Validate JWT token
-
-**Request:**
-```json
-{
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-}
-```
-
-**Response:**
-```json
-{
-    "valid": true,
-    "user": {
-        "id": 1,
-        "username": "furkan",
-        "role": "admin"
-    },
-    "expires_at": "2025-01-11T10:30:00Z"
-}
-```
-
-### GET /user-info
-Get user information from Authorization header
-
-**Headers:**
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-```
-
-**Response:**
-```json
-{
-    "user": {
-        "id": 1,
-        "username": "furkan",
-        "role": "admin",
-        "email": "furkan@example.com",
-        "full_name": "Furkan Arık"
-    }
-}
-```
-
-### GET /health
-Health check endpoint
-
-**Response:**
-```json
-{
-    "status": "healthy",
-    "service": "auth-service"
-}
-```
+**Note**: Currently only the default admin user is available: `admin/fitness123`
 
 ## Default Users
 
-The service initializes with default users:
-- **furkan/furkan123** (admin role)
-- **admin/admin** (admin role)
+The service includes a pre-configured default admin user:
+
+| Username | Password   | Role  | Source |
+|----------|------------|-------|--------|
+| admin    | fitness123 | admin | Environment variable |
+
+**Note**: Database user registration is not currently implemented.
 
 ## Getting Started
 

@@ -2,14 +2,51 @@
 
 ## Overview
 
-The Auth Service provides authentication and authorization functionality for the Fitness Center application. It uses JWT tokens for secure communication and supports both database-backed and environment variable authentication.
+The Auth Service provides authentication and authorization functionality for the Fitness Center application. **Currently supports only default admin user authentication.**
+
+## Current Status
+
+⚠️ **Limited Functionality**: 
+- Only default admin login is available
+- User registration endpoint is not implemented
+- Database user management is not available
 
 ## Base URL
 
 ```
 Local Development: http://localhost:8006
 Docker: http://localhost:8006
-Production: http://your-domain/api/v1/auth
+```
+
+## Available Endpoints
+
+### 1. Health Check
+
+**Endpoint:** `GET /health`
+**Status:** ✅ Working
+
+### 2. User Login  
+
+**Endpoint:** `POST /api/v1/auth/login`
+**Status:** ✅ Working
+
+### 3. Token Validation
+
+**Endpoint:** `POST /api/v1/auth/validate`
+**Status:** ✅ Working
+
+### 4. Get User Information
+
+**Endpoint:** `GET /api/v1/auth/user`
+**Status:** ✅ Working
+
+## Default Admin Credentials
+
+```json
+{
+    "username": "admin",
+    "password": "fitness123"
+}
 ```
 
 ## Authentication

@@ -70,6 +70,7 @@ func setupRoutes(router *gin.Engine, h *handler.Handler) {
 			auth.POST("/login", h.Login)
 			auth.POST("/validate", h.ValidateToken)
 			auth.GET("/user", h.GetUserInfo)
+			auth.POST("/register", h.Register)
 		}
 	}
 }

@@ -110,3 +110,45 @@ func (h *Handler) Health(c *gin.Context) {
 		"service": "auth-service",
 	})
 }
+
+// Register handles user registration
+func (h *Handler) Register(c *gin.Context) {
+	var req model.RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Geçersiz istek formatı",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// Validate required fields
+	if req.Username == "" || req.Password == "" {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Kullanıcı adı ve şifre gerekli",
+		})
+		return
+	}
+
+	// Register the user (service will handle admin limit)
+	response, err := h.authService.Register(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error":   "Kullanıcı kaydı sırasında hata oluştu",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	// If registration failed due to business rules
+	if !response.Success {
+		c.JSON(http.StatusConflict, gin.H{
+			"error":   response.Message,
+			"success": false,
+		})
+		return
+	}
+
+	// Success
+	c.JSON(http.StatusCreated, response)
+}

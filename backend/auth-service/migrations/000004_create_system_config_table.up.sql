@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS system_config (
 
 -- Insert default max user limit (set to 50 users as default)
 INSERT INTO system_config (config_key, config_value, description) VALUES
-('max_users', '50', 'Maximum number of users allowed in the system')
+('max_users', '50', 'Maximum number of users allowed in the system'),
+('max_admins', '3', 'Maximum number of admin users allowed in the system')
 ON CONFLICT (config_key) DO NOTHING;
 
 -- Create index for faster config lookups
