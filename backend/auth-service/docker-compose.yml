@@ -1,0 +1,73 @@
+services:
+  auth-db:
+    image: postgres:16-alpine
+    container_name: fitness-auth-db
+    environment:
+      POSTGRES_DB: ${AUTH_SERVICE_DB_NAME:-fitness_auth_db}
+      POSTGRES_USER: ${AUTH_SERVICE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${AUTH_SERVICE_DB_PASSWORD:-postgres}
+    ports:
+      - "${AUTH_SERVICE_DB_PORT:-5437}:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${AUTH_SERVICE_DB_USER:-postgres} -d ${AUTH_SERVICE_DB_NAME:-fitness_auth_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fitness-auth-service
+    env_file:
+      - .env
+    environment:
+      AUTH_SERVICE_PORT: ${AUTH_SERVICE_PORT:-8006}
+      AUTH_SERVICE_HOST: ${AUTH_SERVICE_HOST:-0.0.0.0}
+      JWT_SECRET: ${JWT_SECRET:-fitness_center_super_secret_jwt_key_2025}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
+      AUTH_USERNAME: ${AUTH_USERNAME:-admin}
+      AUTH_PASSWORD: ${AUTH_PASSWORD:-fitness123}
+      API_GATEWAY_URL: ${API_GATEWAY_URL:-http://localhost:8000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      # Database configuration
+      AUTH_SERVICE_DB_HOST: auth-db
+      AUTH_SERVICE_DB_PORT: 5432
+      AUTH_SERVICE_DB_NAME: ${AUTH_SERVICE_DB_NAME:-fitness_auth_db}
+      AUTH_SERVICE_DB_USER: ${AUTH_SERVICE_DB_USER:-postgres}
+      AUTH_SERVICE_DB_PASSWORD: ${AUTH_SERVICE_DB_PASSWORD:-postgres}
+      AUTH_SERVICE_DB_SSLMODE: ${AUTH_SERVICE_DB_SSLMODE:-disable}
+    ports:
+      - "${AUTH_SERVICE_PORT:-8006}:8006"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth-service.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.routers.auth-service.entrypoints=web"
+      - "traefik.http.services.auth-service.loadbalancer.server.port=8006"
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8006/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+
+volumes:
+  auth_db_data:
+
+networks:
+  fitness-network:
+    name: ${DOCKER_NETWORK_NAME:-fitness-network}
+    external: true

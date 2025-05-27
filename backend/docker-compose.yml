@@ -11,12 +11,16 @@ services:
       - class-service
       - facility-service
       - payment-service
+      - auth-service
     environment:
       - MEMBER_SERVICE_URL=http://member-service:8001
       - STAFF_SERVICE_URL=http://staff-service:8002
       - CLASS_SERVICE_URL=http://class-service:8003
       - FACILITY_SERVICE_URL=http://facility-service:8004
       - PAYMENT_SERVICE_URL=http://payment-service:8005
+      - AUTH_SERVICE_URL=http://auth-service:8006
+    networks:
+      - fitness-network
 
   member-service:
     build: ./member-service
@@ -24,6 +28,8 @@ services:
       - "8001:8001"
     depends_on:
       - member-db
+    networks:
+      - fitness-network
 
   staff-service:
     build: ./staff-service
@@ -31,6 +37,8 @@ services:
       - "8002:8002"
     depends_on:
       - staff-db
+    networks:
+      - fitness-network
 
   class-service:
     build: ./class-service
@@ -38,6 +46,8 @@ services:
       - "8003:8003"
     depends_on:
       - class-db
+    networks:
+      - fitness-network
 
   facility-service:
     build: ./facility-service
@@ -45,6 +55,8 @@ services:
       - "8004:8004"
     depends_on:
       - facility-db
+    networks:
+      - fitness-network
 
   payment-service:
     build: ./payment-service
@@ -52,6 +64,28 @@ services:
       - "8005:8005"
     depends_on:
       - payment-db
+    networks:
+      - fitness-network
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8006:8006"
+    depends_on:
+      - auth-db
+    environment:
+      - AUTH_SERVICE_DB_HOST=auth-db
+      - AUTH_SERVICE_DB_PORT=5432
+      - AUTH_SERVICE_DB_NAME=fitness_auth_db
+      - AUTH_SERVICE_DB_USER=postgres
+      - AUTH_SERVICE_DB_PASSWORD=postgres
+      - AUTH_SERVICE_DB_SSLMODE=disable
+      - JWT_SECRET=fitness_center_super_secret_jwt_key_2025
+      - JWT_EXPIRATION=24h
+      - AUTH_USERNAME=admin
+      - AUTH_PASSWORD=fitness123
+    networks:
+      - fitness-network
 
   member-db:
     image: postgres:14
@@ -61,6 +95,8 @@ services:
       - POSTGRES_DB=member_db
     volumes:
       - member-db-data:/var/lib/postgresql/data
+    networks:
+      - fitness-network
 
   staff-db:
     image: postgres:14
@@ -70,6 +106,8 @@ services:
       - POSTGRES_DB=staff_db
     volumes:
       - staff-db-data:/var/lib/postgresql/data
+    networks:
+      - fitness-network
 
   class-db:
     image: postgres:14
@@ -79,6 +117,8 @@ services:
       - POSTGRES_DB=class_db
     volumes:
       - class-db-data:/var/lib/postgresql/data
+    networks:
+      - fitness-network
 
   facility-db:
     image: postgres:14
@@ -88,6 +128,8 @@ services:
       - POSTGRES_DB=facility_db
     volumes:
       - facility-db-data:/var/lib/postgresql/data
+    networks:
+      - fitness-network
 
   payment-db:
     image: postgres:14
@@ -97,6 +139,28 @@ services:
       - POSTGRES_DB=payment_db
     volumes:
       - payment-db-data:/var/lib/postgresql/data
+    networks:
+      - fitness-network
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=fitness_auth_db
+    ports:
+      - "5437:5432"
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+      - ./auth-service/migrations:/docker-entrypoint-initdb.d
+    networks:
+      - fitness-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fitness_auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   traefik:
     image: "traefik:v3.4.0"
@@ -127,6 +191,7 @@ volumes:
   class-db-data:
   facility-db-data:
   payment-db-data:
+  auth-db-data:
 
 networks:
   fitness-network:
