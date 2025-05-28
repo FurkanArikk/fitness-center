@@ -462,6 +462,9 @@ const TransactionList = ({
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Method
                 </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('payment_status')}
@@ -528,6 +531,11 @@ const TransactionList = ({
                         {getPaymentMethodIcon(payment.payment_method)}
                         <span className="ml-2">{getMethodDisplayName(payment.payment_method)}</span>
                       </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge 
+                        status={payment.payment_type_name || 'Other'}
+                      />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge 

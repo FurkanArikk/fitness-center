@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
 import Loader from '@/components/common/Loader';
@@ -10,7 +10,6 @@ import PaymentCharts from '@/components/payments/PaymentCharts';
 import PaymentAnalytics from '@/components/payments/PaymentAnalytics';
 import PaymentModal from '@/components/payments/PaymentModal';
 import DeletePaymentConfirm from '@/components/payments/DeletePaymentConfirm';
-import PaymentMethodsModal from '@/components/payments/PaymentMethodsModal';
 import { paymentService } from '@/api';
 import { formatCurrency } from '@/utils/formatters';
 
@@ -23,7 +22,6 @@ const Payments = () => {
   // Modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showPaymentMethodsModal, setShowPaymentMethodsModal] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   
@@ -65,6 +63,7 @@ const Payments = () => {
   };
 
   const handleAddPayment = () => {
+    console.log('Add New Payment button clicked!'); // Debug log
     setSelectedPayment(null);
     setModalMode('add');
     setShowPaymentModal(true);
@@ -134,23 +133,17 @@ const Payments = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-lg border border-gray-200">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>
           <p className="text-gray-600 mt-1">Manage and track member payments</p>
         </div>
         <div className="flex gap-2">
           <Button 
-            variant="outline" 
-            icon={<Settings size={18} />}
-            onClick={() => setShowPaymentMethodsModal(true)}
-          >
-            Payment Methods
-          </Button>
-          <Button 
             variant="primary" 
             icon={<Plus size={18} />}
             onClick={handleAddPayment}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
           >
             Add New Payment
           </Button>
@@ -214,13 +207,6 @@ const Payments = () => {
           onClose={() => setShowDeleteConfirm(false)}
           onConfirm={handlePaymentDeleted}
           payment={selectedPayment}
-        />
-      )}
-
-      {showPaymentMethodsModal && (
-        <PaymentMethodsModal
-          isOpen={showPaymentMethodsModal}
-          onClose={() => setShowPaymentMethodsModal(false)}
         />
       )}
     </div>
