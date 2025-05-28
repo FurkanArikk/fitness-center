@@ -1,30 +1,30 @@
 import React from 'react';
 
 const StatusBadge = ({ status }) => {
-  // Durum metinleri ve renk eşleştirmeleri
+  // Status texts and color mappings
   const statusConfig = {
-    // Aktif üyeler için yeşil
+    // Green for active members
     active: {
       label: 'Active',
       bgColor: 'bg-green-100',
       textColor: 'text-green-800',
       borderColor: 'border-green-200'
     },
-    // Pasif/İnaktif üyeler için kırmızı
+    // Red for inactive members
     de_active: {
       label: 'Inactive',
       bgColor: 'bg-red-100',
       textColor: 'text-red-800',
       borderColor: 'border-red-200'
     },
-    // Beklemedeki üyeler için turuncu
+    // Orange for pending members
     hold_on: {
       label: 'On Hold',
       bgColor: 'bg-orange-100',
       textColor: 'text-orange-800',
       borderColor: 'border-orange-200'
     },
-    // Bilinmeyen durumlar için gri
+    // Gray for unknown statuses
     default: {
       label: 'Unknown',
       bgColor: 'bg-gray-100',
@@ -33,7 +33,7 @@ const StatusBadge = ({ status }) => {
     }
   };
 
-  // Durum için yapılandırma seçimi
+  // Configuration selection for status
   const config = statusConfig[status] || statusConfig.default;
   
   return (

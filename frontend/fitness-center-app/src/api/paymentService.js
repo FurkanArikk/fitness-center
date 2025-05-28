@@ -25,10 +25,13 @@ const paymentService = {
   
   updatePayment: async (id, paymentData) => {
     try {
+      console.log(`Updating payment ${id} with data:`, paymentData); // Debug log
       const response = await apiClient.put(`${ENDPOINTS.payments}/${id}`, paymentData);
+      console.log('Update payment response:', response.data); // Debug log
       return response.data;
     } catch (error) {
       console.error(`Failed to update payment ${id}:`, error);
+      console.error('Error response:', error.response?.data); // Debug log
       throw error;
     }
   },
@@ -43,9 +46,26 @@ const paymentService = {
     }
   },
   
-  getPayments: async (page = 1, pageSize = 10) => {
+  getPayments: async (params = {}, pageSize = 10) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.payments}?page=${page}&pageSize=${pageSize}`);
+      // If params is a number (old API call), convert to object format
+      if (typeof params === 'number') {
+        const page = params;
+        params = { page, pageSize };
+      }
+      
+      // Build query string from params object
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+      
+      const queryString = queryParams.toString();
+      const url = queryString ? `${ENDPOINTS.payments}?${queryString}` : ENDPOINTS.payments;
+      
+      const response = await apiClient.get(url);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch payments:", error);
@@ -153,6 +173,67 @@ const paymentService = {
       return response.data;
     } catch (error) {
       console.error(`Failed to delete payment type ${id}:`, error);
+      throw error;
+    }
+  },
+
+  // Export methods
+  exportPayments: async (exportSettings) => {
+    try {
+      const params = new URLSearchParams();
+      
+      // Add format
+      params.append('format', exportSettings.format);
+      
+      // Add date range
+      if (exportSettings.dateRange !== 'custom') {
+        params.append('dateRange', exportSettings.dateRange);
+      } else {
+        if (exportSettings.startDate) params.append('startDate', exportSettings.startDate);
+        if (exportSettings.endDate) params.append('endDate', exportSettings.endDate);
+      }
+      
+      // Add status filter
+      if (exportSettings.filterByStatus !== 'all') {
+        params.append('status', exportSettings.filterByStatus);
+      }
+      
+      // Add included fields
+      const includeFields = Object.keys(exportSettings.includeFields).filter(
+        key => exportSettings.includeFields[key]
+      );
+      if (includeFields.length > 0) {
+        params.append('fields', includeFields.join(','));
+      }
+      
+      const response = await apiClient.get(`${ENDPOINTS.payments}/export?${params.toString()}`, {
+        responseType: 'blob'
+      });
+      
+      // Create download link
+      const blob = new Blob([response.data], { 
+        type: exportSettings.format === 'excel' 
+          ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          : 'text/csv'
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      
+      const now = new Date();
+      const timestamp = now.toISOString().split('T')[0];
+      const extension = exportSettings.format === 'excel' ? 'xlsx' : 'csv';
+      link.download = `odemeler_${timestamp}.${extension}`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      return { success: true };
+    } catch (error) {
+      console.error("Failed to export payments:", error);
       throw error;
     }
   }

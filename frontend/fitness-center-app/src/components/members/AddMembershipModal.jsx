@@ -84,7 +84,7 @@ const AddMembershipModal = ({ onClose, onSave, isLoading }) => {
     e.preventDefault();
     
     if (validateForm()) {
-      // Fiyatı sayıya çevir
+      // Convert price to number
       const processedData = {
         ...formData,
         price: parseFloat(formData.price),

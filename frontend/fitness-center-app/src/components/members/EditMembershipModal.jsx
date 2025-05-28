@@ -11,7 +11,7 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
   });
   
   useEffect(() => {
-    // Eğer üyelik nesnesi boş değilse (güncelleme durumu)
+    // If membership object is not empty (update case)
     if (membership && Object.keys(membership).length > 0) {
       setFormData({
         name: membership.membershipName || '',
@@ -21,7 +21,7 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
         active: membership.isActive ?? true
       });
     } else {
-      // Yeni oluşturma durumunda varsayılan değerler
+      // Default values for new creation
       setFormData({
         name: '',
         description: '',
@@ -46,7 +46,7 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
     onSave(formData);
   };
 
-  // Başlık metnini belirleme
+  // Determine title text
   const isNewMembership = !membership || Object.keys(membership).length === 0;
   const modalTitle = isNewMembership ? 'Add Membership Type' : 'Edit Membership Type';
 

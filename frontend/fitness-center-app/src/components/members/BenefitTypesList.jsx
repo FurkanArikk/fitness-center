@@ -87,7 +87,7 @@ const BenefitTypesList = ({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredBenefits.length > 0 ? (
               filteredBenefits.map(benefit => {
-                // İlgili membership'i bulalım
+                // Find related membership
                 const benefitMembershipId = benefit.membershipId || benefit.membership_id;
                 const relatedMembership = memberships.find(m => m.id === benefitMembershipId);
                 const membershipName = relatedMembership ? relatedMembership.membershipName : `Membership #${benefitMembershipId}`;
