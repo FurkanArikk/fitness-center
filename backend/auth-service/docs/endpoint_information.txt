@@ -1,0 +1,239 @@
+# Auth Service Endpoint Bilgileri
+
+Bu dosya Auth Service'in tüm endpoint'leri hakkında detaylı bilgi içerir.
+
+## Servis Bilgileri
+- **Servis Adı**: Auth Service
+- **Port**: 8006
+- **Veritabanı**: PostgreSQL (Port: 5437)
+- **Container Adı**: fitness-auth-db
+- **Docker Network**: fitness-network
+
+## Endpoint Kategorileri
+
+### 1. AUTHENTICATION ENDPOINTS
+
+#### POST /api/v1/auth/login
+- **Amaç**: Kullanıcı kimlik doğrulama ve JWT token üretimi
+- **Metod**: POST
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Gerekli değil
+- **Parametreler**:
+  - username (string, zorunlu): Kullanıcı adı
+  - password (string, zorunlu): Şifre
+- **Dönen Değer**: JWT token, kullanıcı bilgileri ve son kullanma tarihi
+- **Hata Kodları**: 400, 401, 500
+
+#### POST /api/v1/auth/validate
+- **Amaç**: JWT token doğrulama ve geçerlilik kontrolü
+- **Metod**: POST
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Gerekli değil
+- **Parametreler**:
+  - token (string, zorunlu): Doğrulanacak JWT token
+- **Dönen Değer**: Token geçerlilik durumu ve kullanıcı bilgileri
+- **Hata Kodları**: 400, 500
+
+#### GET /api/v1/auth/user
+- **Amaç**: Authorization header'dan kullanıcı bilgilerini çıkarma
+- **Metod**: GET
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Bearer Token gerekli
+- **Headers**:
+  - Authorization: Bearer <jwt-token>
+- **Dönen Değer**: Kullanıcı bilgileri
+- **Hata Kodları**: 401, 500
+
+### 2. USER MANAGEMENT ENDPOINTS
+
+#### POST /api/v1/auth/register
+- **Amaç**: Yeni admin kullanıcısı oluşturma (maksimum 3)
+- **Metod**: POST
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Gerekli değil
+- **Parametreler**:
+  - username (string, zorunlu): Kullanıcı adı
+  - password (string, zorunlu): Şifre
+  - email (string, zorunlu): E-posta adresi
+  - firstName (string, zorunlu): Ad
+  - lastName (string, zorunlu): Soyad
+- **Dönen Değer**: Başarı durumu, mesaj ve kullanıcı bilgileri
+- **Hata Kodları**: 400, 403, 409, 500
+
+### 3. ADMIN ENDPOINTS
+
+#### GET /api/v1/admin/user-stats
+- **Amaç**: Kullanıcı istatistiklerini görüntüleme
+- **Metod**: GET
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Admin token gerekli
+- **Headers**:
+  - Authorization: Bearer <admin-jwt-token>
+- **Dönen Değer**: Mevcut kullanıcı sayısı, maksimum limit, kullanım yüzdesi
+- **Hata Kodları**: 401, 403, 500
+
+#### PUT /api/v1/admin/max-users
+- **Amaç**: Maksimum kullanıcı sayısı limitini güncelleme
+- **Metod**: PUT
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Admin token gerekli
+- **Headers**:
+  - Authorization: Bearer <admin-jwt-token>
+- **Parametreler**:
+  - max_users (integer, zorunlu): Yeni maksimum kullanıcı sayısı
+- **Dönen Değer**: Güncelleme başarı mesajı
+- **Hata Kodları**: 400, 401, 403, 500
+
+### 4. SYSTEM ENDPOINTS
+
+#### GET /health
+- **Amaç**: Servis sağlık durumu kontrolü
+- **Metod**: GET
+- **Content-Type**: application/json
+- **Kimlik Doğrulama**: Gerekli değil
+- **Dönen Değer**: Servis durumu
+- **Hata Kodları**: 500
+
+## Veri Modelleri
+
+### User Model
+```
+{
+    id: integer (Primary Key)
+    username: string (Unique, Max: 50)
+    password_hash: string (bcrypt hash)
+    role: string (Default: "admin")
+    email: string (Max: 100)
+    full_name: string (Max: 100)
+    is_active: boolean (Default: true)
+    created_at: timestamp
+    updated_at: timestamp
+    last_login_at: timestamp (nullable)
+}
+```
+
+### User Session Model
+```
+{
+    id: integer (Primary Key)
+    user_id: integer (Foreign Key)
+    token_hash: string (SHA256 hash)
+    expires_at: timestamp
+    created_at: timestamp
+    is_revoked: boolean (Default: false)
+    user_agent: text (nullable)
+    ip_address: inet (nullable)
+}
+```
+
+### System Config Model
+```
+{
+    id: integer (Primary Key)
+    config_key: string (Unique)
+    config_value: string
+    created_at: timestamp
+    updated_at: timestamp
+}
+```
+
+## Güvenlik Özellikleri
+
+### Şifre Güvenliği
+- **Hashing**: bcrypt algoritması (cost: 12)
+- **Minimum Uzunluk**: 8 karakter
+- **Şifre Politikası**: Büyük harf, küçük harf, rakam önerilir
+
+### JWT Token Güvenliği
+- **Algoritma**: HS256 (HMAC SHA-256)
+- **Geçerlilik Süresi**: 24 saat (yapılandırılabilir)
+- **Secret Key**: Environment variable ile sağlanır
+- **Claims**: username, role, user_id, iat, exp
+
+### Session Yönetimi
+- **Token Tracking**: Veritabanında SHA-256 hash olarak saklanır
+- **Automatic Cleanup**: Süresi dolmuş sessionlar otomatik temizlenir
+- **Revocation**: Token iptal edilebilir
+- **Metadata**: User agent ve IP adresi kaydedilir
+
+## Rate Limiting
+- Şu anda rate limiting uygulanmamıştır
+- Production ortamında uygulanması önerilir
+- Önerilen limitler:
+  - Login: 5 deneme/dakika
+  - Register: 3 deneme/saat
+  - Token Validation: 100 istek/dakika
+
+## Hata Yönetimi
+
+### HTTP Status Kodları
+- **200 OK**: Başarılı istek
+- **201 Created**: Kaynak başarıyla oluşturuldu
+- **400 Bad Request**: Geçersiz istek formatı
+- **401 Unauthorized**: Kimlik doğrulama hatası
+- **403 Forbidden**: Yetki hatası
+- **409 Conflict**: Kaynak çakışması
+- **500 Internal Server Error**: Sunucu hatası
+
+### Hata Yanıt Formatı
+```json
+{
+    "error": "Hata mesajı",
+    "details": "Ek detaylar (opsiyonel)"
+}
+```
+
+## Monitoring ve Logging
+
+### Health Check
+- **Endpoint**: GET /health
+- **Response Time**: < 100ms
+- **Dependencies**: PostgreSQL bağlantısı
+
+### Logging Seviyeleri
+- **DEBUG**: Detaylı debug bilgileri
+- **INFO**: Genel bilgilendirme mesajları
+- **WARN**: Uyarı mesajları
+- **ERROR**: Hata mesajları
+
+### Metrics
+- Aktif session sayısı
+- Login başarı/başarısızlık oranı
+- Token validation sayısı
+- Database bağlantı durumu
+
+## Entegrasyon Bilgileri
+
+### API Gateway Entegrasyonu
+- **Auth Header**: Authorization: Bearer <token>
+- **Token Validation**: POST /api/v1/auth/validate
+- **User Info**: GET /api/v1/auth/user
+
+### Mikroservis Entegrasyonu
+- Diğer servisler auth token doğrulaması için bu servisi kullanır
+- JWT token'ı decode ederek kullanıcı bilgilerine erişim sağlar
+- Admin yetki kontrolü için role claim'i kullanılır
+
+### Frontend Entegrasyonu
+- Login akışı için POST /api/v1/auth/login
+- Token localStorage'da saklanır
+- Authorization header ile API istekleri yapılır
+- Token refresh mekanizması uygulanabilir
+
+## Bakım ve Operasyon
+
+### Database Maintenance
+- **Migrations**: /migrations dizininde version kontrollü
+- **Backup**: Daily automated backup önerilir
+- **Cleanup**: Expired sessions otomatik temizlenir
+
+### Configuration Management
+- **Environment Variables**: .env dosyası ile yönetim
+- **Secrets**: JWT secret production'da güvenli saklanmalı
+- **Database Credentials**: Container secrets ile yönetim
+
+### Deployment
+- **Docker Compose**: Tam containerized deployment
+- **Health Checks**: Container seviyesinde health check
+- **Rolling Updates**: Zero-downtime deployment mümkün
+- **Monitoring**: Prometheus metrics entegrasyonu mümkün

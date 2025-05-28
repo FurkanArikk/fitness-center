@@ -2,51 +2,13 @@
 
 ## Overview
 
-The Auth Service provides authentication and authorization functionality for the Fitness Center application. **Currently supports only default admin user authentication.**
-
-## Current Status
-
-⚠️ **Limited Functionality**: 
-- Only default admin login is available
-- User registration endpoint is not implemented
-- Database user management is not available
+The Auth Service provides authentication and authorization functionality for the Fitness Center application with JWT-based session management and admin user registration.
 
 ## Base URL
 
 ```
 Local Development: http://localhost:8006
 Docker: http://localhost:8006
-```
-
-## Available Endpoints
-
-### 1. Health Check
-
-**Endpoint:** `GET /health`
-**Status:** ✅ Working
-
-### 2. User Login  
-
-**Endpoint:** `POST /api/v1/auth/login`
-**Status:** ✅ Working
-
-### 3. Token Validation
-
-**Endpoint:** `POST /api/v1/auth/validate`
-**Status:** ✅ Working
-
-### 4. Get User Information
-
-**Endpoint:** `GET /api/v1/auth/user`
-**Status:** ✅ Working
-
-## Default Admin Credentials
-
-```json
-{
-    "username": "admin",
-    "password": "fitness123"
-}
 ```
 
 ## Authentication
@@ -59,9 +21,23 @@ Authorization: Bearer <your-jwt-token>
 
 ## Endpoints
 
-### 1. User Login
+### 1. Health Check
 
-**Endpoint:** `POST /login`
+**Endpoint:** `GET /health`
+
+**Description:** Check the health status of the service
+
+**Response (200 OK):**
+```json
+{
+    "status": "healthy",
+    "service": "auth-service"
+}
+```
+
+### 2. User Login
+
+**Endpoint:** `POST /api/v1/auth/login`
 
 **Description:** Authenticate a user and receive a JWT token
 
@@ -80,48 +56,25 @@ Authorization: Bearer <your-jwt-token>
     "expires_at": "2025-01-11T10:30:00Z",
     "user": {
         "id": 1,
-        "username": "furkan",
+        "username": "admin",
         "role": "admin",
-        "email": "furkan@example.com",
-        "full_name": "Furkan Arık",
-        "is_active": true,
-        "created_at": "2025-01-10T10:30:00Z",
-        "updated_at": "2025-01-10T10:30:00Z",
-        "last_login_at": "2025-01-10T10:30:00Z"
+        "email": "admin@fitness.com",
+        "full_name": "Admin User",
+        "is_active": true
     }
 }
 ```
 
-**Error Responses:**
-
-- **400 Bad Request:** Invalid request format
-```json
-{
-    "error": "Geçersiz istek formatı",
-    "details": "validation error details"
-}
-```
-
-- **401 Unauthorized:** Invalid credentials
+**Error Response (401):**
 ```json
 {
     "error": "Geçersiz kullanıcı adı veya şifre"
 }
 ```
 
-**cURL Example:**
-```bash
-curl -X POST http://localhost:8006/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "furkan",
-    "password": "furkan123"
-  }'
-```
+### 3. Token Validation
 
-### 2. Token Validation
-
-**Endpoint:** `POST /validate-token`
+**Endpoint:** `POST /api/v1/auth/validate`
 
 **Description:** Validate a JWT token and get user information
 
@@ -138,53 +91,17 @@ curl -X POST http://localhost:8006/login \
     "valid": true,
     "user": {
         "id": 1,
-        "username": "furkan",
+        "username": "admin",
         "role": "admin"
-    },
-    "expires_at": "2025-01-11T10:30:00Z"
+    }
 }
 ```
 
-**Invalid Token Response:**
-```json
-{
-    "valid": false,
-    "user": null,
-    "expires_at": null
-}
-```
+### 4. Get User Information
 
-**Error Responses:**
+**Endpoint:** `GET /api/v1/auth/user`
 
-- **400 Bad Request:** Invalid request format
-```json
-{
-    "error": "Geçersiz istek formatı",
-    "details": "validation error details"
-}
-```
-
-- **500 Internal Server Error:** Token validation error
-```json
-{
-    "error": "Token doğrulama hatası"
-}
-```
-
-**cURL Example:**
-```bash
-curl -X POST http://localhost:8006/validate-token \
-  -H "Content-Type: application/json" \
-  -d '{
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-  }'
-```
-
-### 3. Get User Information
-
-**Endpoint:** `GET /user-info`
-
-**Description:** Extract user information from the Authorization header
+**Description:** Get user information from Authorization header
 
 **Headers:**
 ```
@@ -196,62 +113,54 @@ Authorization: Bearer <jwt-token>
 {
     "user": {
         "id": 1,
-        "username": "furkan",
+        "username": "admin",
         "role": "admin",
-        "email": "furkan@example.com",
-        "full_name": "Furkan Arık",
-        "is_active": true,
-        "created_at": "2025-01-10T10:30:00Z",
-        "updated_at": "2025-01-10T10:30:00Z",
-        "last_login_at": "2025-01-10T10:30:00Z"
+        "email": "admin@fitness.com",
+        "full_name": "Admin User",
+        "is_active": true
     }
 }
 ```
 
-**Error Responses:**
+### 5. User Registration
 
-- **401 Unauthorized:** Missing or invalid Authorization header
+**Endpoint:** `POST /api/v1/auth/register`
+
+**Description:** Register a new admin user (limited to 3 total)
+
+**Request Body:**
 ```json
 {
-    "error": "Authorization header gerekli"
+    "username": "string",
+    "password": "string",
+    "email": "string",
+    "firstName": "string",
+    "lastName": "string"
 }
 ```
 
+**Response (201 Created):**
 ```json
 {
-    "error": "Geçersiz Authorization header formatı"
+    "success": true,
+    "message": "Admin kullanıcısı başarıyla oluşturuldu (2/3)",
+    "user": {
+        "id": 2,
+        "username": "admin1",
+        "role": "admin",
+        "email": "admin1@fitness.com",
+        "full_name": "Admin One",
+        "is_active": true
+    }
 }
 ```
 
+**Error Response (403):**
 ```json
 {
-    "error": "Geçersiz token"
+    "success": false,
+    "message": "Maksimum admin kullanıcı sayısına ulaşıldı (3/3)"
 }
-```
-
-**cURL Example:**
-```bash
-curl -X GET http://localhost:8006/user-info \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
-
-### 4. Health Check
-
-**Endpoint:** `GET /health`
-
-**Description:** Check the health status of the service
-
-**Response (200 OK):**
-```json
-{
-    "status": "healthy",
-    "service": "auth-service"
-}
-```
-
-**cURL Example:**
-```bash
-curl -X GET http://localhost:8006/health
 ```
 
 ## Data Models
@@ -261,22 +170,13 @@ curl -X GET http://localhost:8006/health
 {
     "id": "integer",
     "username": "string",
-    "password_hash": "string (not exposed in responses)",
-    "role": "string (user|admin|trainer)",
-    "email": "string",
+    "role": "string",
+    "email": "string", 
     "full_name": "string",
     "is_active": "boolean",
     "created_at": "string (ISO 8601)",
     "updated_at": "string (ISO 8601)",
     "last_login_at": "string (ISO 8601)"
-}
-```
-
-### Login Request
-```json
-{
-    "username": "string (required)",
-    "password": "string (required)"
 }
 ```
 
@@ -289,19 +189,12 @@ curl -X GET http://localhost:8006/health
 }
 ```
 
-### Token Validation Request
+### Registration Response
 ```json
 {
-    "token": "string (required)"
-}
-```
-
-### Token Validation Response
-```json
-{
-    "valid": "boolean",
-    "user": "User object or null",
-    "expires_at": "string (ISO 8601) or null"
+    "success": "boolean",
+    "message": "string",
+    "user": "User object"
 }
 ```
 
@@ -310,129 +203,31 @@ curl -X GET http://localhost:8006/health
 All error responses follow this format:
 ```json
 {
-    "error": "Error message in Turkish",
-    "details": "Additional error details (optional)"
+    "error": "Error message",
+    "details": "Additional details (optional)"
 }
 ```
 
 Common HTTP status codes:
 - **200 OK:** Request successful
-- **400 Bad Request:** Invalid request format or parameters
-- **401 Unauthorized:** Authentication failed or invalid token
-- **500 Internal Server Error:** Server-side error
+- **201 Created:** Resource created successfully
+- **400 Bad Request:** Invalid request format
+- **401 Unauthorized:** Authentication failed
+- **403 Forbidden:** Action not allowed
+- **500 Internal Server Error:** Server error
 
-## Rate Limiting
+## Security Features
 
-Currently, there are no rate limiting restrictions, but it's recommended to implement rate limiting in production environments.
+- bcrypt password hashing
+- JWT token authentication
+- Session tracking and revocation
+- Configurable token expiration
+- Admin user limitation (max 3)
+- Database-backed session management
 
-## CORS
+## Admin User Management
 
-The service should be configured to handle CORS appropriately for your frontend domain.
-
-## Security Considerations
-
-1. **JWT Tokens:** 
-   - Tokens expire after the configured time (default: 24 hours)
-   - Tokens are signed with a secret key
-   - Store tokens securely on the client side
-
-2. **Password Security:**
-   - Passwords are hashed using bcrypt
-   - Never expose password hashes in API responses
-
-3. **Session Management:**
-   - Sessions are tracked in the database
-   - Expired sessions are automatically cleaned up
-   - Sessions can be revoked for security
-
-4. **HTTPS:**
-   - Always use HTTPS in production
-   - Tokens should never be transmitted over HTTP
-
-## Integration Examples
-
-### JavaScript/Frontend Integration
-
-```javascript
-// Login
-const login = async (username, password) => {
-    const response = await fetch('http://localhost:8006/login', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ username, password }),
-    });
-    
-    if (response.ok) {
-        const data = await response.json();
-        localStorage.setItem('authToken', data.token);
-        return data;
-    } else {
-        throw new Error('Login failed');
-    }
-};
-
-// Get user info
-const getUserInfo = async () => {
-    const token = localStorage.getItem('authToken');
-    const response = await fetch('http://localhost:8006/user-info', {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-    
-    if (response.ok) {
-        return await response.json();
-    } else {
-        throw new Error('Failed to get user info');
-    }
-};
-
-// Validate token
-const validateToken = async (token) => {
-    const response = await fetch('http://localhost:8006/validate-token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ token }),
-    });
-    
-    if (response.ok) {
-        return await response.json();
-    } else {
-        throw new Error('Token validation failed');
-    }
-};
-```
-
-### Go Service Integration
-
-```go
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-)
-
-type AuthClient struct {
-    baseURL string
-}
-
-func (c *AuthClient) ValidateToken(token string) (*ValidateTokenResponse, error) {
-    reqBody := map[string]string{"token": token}
-    jsonBody, _ := json.Marshal(reqBody)
-    
-    resp, err := http.Post(c.baseURL+"/validate-token", 
-        "application/json", bytes.NewBuffer(jsonBody))
-    if err != nil {
-        return nil, err
-    }
-    defer resp.Body.Close()
-    
-    var result ValidateTokenResponse
-    json.NewDecoder(resp.Body).Decode(&result)
-    return &result, nil
-}
-```
+- **Maximum Users:** 3 admin users
+- **Registration:** Only admin users can be created
+- **Authentication:** JWT-based with database sessions
+- **Default Users:** Configurable via environment variables

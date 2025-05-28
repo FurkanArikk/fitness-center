@@ -1,208 +1,82 @@
-# Auth Service
+# Auth Service Documentation
 
-The Auth Service is a microservice that handles user authentication and authorization for the Fitness Center application. It provides JWT-based authentication with strict admin-only user management.
+The Auth Service is responsible for user authentication and authorization within the Fitness Center application. This service provides JWT-based authentication with strict admin-only user management, supporting a maximum of 3 admin users.
 
-## Features
+## Table of Contents
 
-- JWT token generation and validation
-- User authentication with bcrypt password hashing
-- Session management and token tracking
-- **Admin-only user system** (maximum 3 admin users)
-- Environment variable fallback for default admin
-- Session cleanup and security features
-- Docker containerization with PostgreSQL
+- [Overview](#overview)
+- [API Documentation](API.md)
+- [Database Schema](DATABASE.md)
+- [Deployment Guide](DEPLOYMENT.md)
 
-## User Management Policy
+## Overview
 
-⚠️ **Important**: This auth service is designed for **admin-only access**:
-- Only **3 admin users maximum** can be created
-- No regular users are allowed
-- All registrations create admin users (limited to 3)
-- Use the default admin or register new admin users for access
+The Auth Service handles authentication and user management with the following entities:
+
+1. **Users** - Admin users with authentication credentials
+2. **Sessions** - JWT token tracking and session management
+3. **System Config** - Configuration settings like user limits
+
+### Key Features
+
+- JWT-based authentication and authorization
+- Admin-only user system (maximum 3 users)
+- Secure password hashing with bcrypt
+- Session tracking and token validation
+- Token expiration and revocation
+- Health monitoring and status endpoints
+- Database-backed user and session management
+
+### Service Dependencies
+
+The Auth Service provides authentication for:
+
+- **API Gateway** - Token validation for route protection
+- **All Microservices** - User authentication and authorization
+- **Frontend Applications** - User login and session management
+
+### Technical Stack
+
+- **Language**: Go
+- **Framework**: Gin Web Framework
+- **Database**: PostgreSQL
+- **Authentication**: JWT (JSON Web Tokens)
+- **Password Security**: bcrypt
+- **Containerization**: Docker
 
 ## Quick Start
 
-1. **Start the service**:
-   ```bash
-   ./run.sh
-   ```
+The Auth Service can be run using the included `run.sh` script:
 
-2. **Login with default admin**:
-   ```bash
-   curl -X POST http://localhost:8006/api/v1/auth/login \
-     -H "Content-Type: application/json" \
-     -d '{"username": "admin", "password": "fitness123"}'
-   ```
-
-3. **Create additional admin users** (max 3 total):
-   ```bash
-   curl -X POST http://localhost:8006/api/v1/auth/register \
-     -H "Content-Type: application/json" \
-     -d '{
-       "username": "newadmin",
-       "password": "newpass123",
-       "email": "admin@fitness.com",
-       "firstName": "Admin",
-       "lastName": "User"
-     }'
-   ```
-
-## Admin User Limits
-
-- **Maximum 3 admin users** can exist in the system
-- Registration endpoint **only creates admin users**
-- No regular user registration is supported
-- Use admin tokens for accessing other microservices
-
-## Environment Variables
-
-```env
-# Server Configuration
-AUTH_SERVICE_HOST=0.0.0.0
-AUTH_SERVICE_PORT=8006
-
-# JWT Configuration
-JWT_SECRET=fitness_center_super_secret_jwt_key_2025
-JWT_EXPIRATION_HOURS=24
-
-# Fallback Authentication (for backward compatibility)
-AUTH_USERNAME=admin
-AUTH_PASSWORD=fitness123
-
-# Database Configuration
-AUTH_SERVICE_DB_HOST=localhost
-AUTH_SERVICE_DB_PORT=5437
-AUTH_SERVICE_DB_NAME=fitness_auth
-AUTH_SERVICE_DB_USER=postgres
-AUTH_SERVICE_DB_PASSWORD=postgres
-AUTH_SERVICE_DB_SSLMODE=disable
-
-# Other
-API_GATEWAY_URL=http://localhost:8000
-LOG_LEVEL=info
-```
-
-## Database Schema
-
-### Users Table
-```sql
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(50) UNIQUE NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(20) NOT NULL DEFAULT 'user',
-    email VARCHAR(100),
-    full_name VARCHAR(100),
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    last_login_at TIMESTAMP WITH TIME ZONE
-);
-```
-
-### User Sessions Table
-```sql
-CREATE TABLE user_sessions (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    token_hash VARCHAR(255) NOT NULL,
-    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    is_revoked BOOLEAN DEFAULT false,
-    user_agent TEXT,
-    ip_address INET
-);
-```
-
-## 🌐 API Endpoints
-
-| Method | Endpoint      | Description           | Status |
-|--------|---------------|-----------------------|--------|
-| GET    | `/health`     | Health check          | ✅ Available |
-| POST   | `/api/v1/auth/login` | Authenticate user | ✅ Available |
-| POST   | `/api/v1/auth/validate` | Validate JWT token | ✅ Available |
-| GET    | `/api/v1/auth/user` | Get user information | ✅ Available |
-| POST   | `/api/v1/auth/register` | Register new users | ❌ Not Implemented |
-
-**Note**: Currently only the default admin user is available: `admin/fitness123`
-
-## Default Users
-
-The service includes a pre-configured default admin user:
-
-| Username | Password   | Role  | Source |
-|----------|------------|-------|--------|
-| admin    | fitness123 | admin | Environment variable |
-
-**Note**: Database user registration is not currently implemented.
-
-## Getting Started
-
-### Using Docker Compose
 ```bash
-# Start the service with database
+# Run with default settings (keep data, use Docker)
+./run.sh
+
+# Or use docker-compose directly
 docker-compose up -d
 
-# Check logs
-docker-compose logs -f auth-service
-
-# Stop the service
-docker-compose down
+# Check service health
+curl http://localhost:8006/health
 ```
 
-### Local Development
-```bash
-# Install dependencies
-go mod download
+For more details on deployment options, check the [Deployment Guide](DEPLOYMENT.md).
 
-# Run database migrations (PostgreSQL required)
-# Update .env with your database configuration
+## Default Configuration
 
-# Run the service
-go run cmd/main.go
-```
+### Admin User Limits
+- **Maximum**: 3 admin users
+- **Default Admin**: Available via environment variables
+- **Registration**: Limited to admin users only
 
-## Security Features
+### Default Environment
+- **Port**: 8006
+- **Database Port**: 5437
+- **JWT Expiration**: 24 hours
+- **Container Name**: fitness-auth-db
 
-- bcrypt password hashing
-- JWT token with configurable expiration
-- Session tracking and management
-- Token hash storage for revocation
+### Security Features
+- bcrypt password hashing (cost: 12)
+- JWT token signing with secret key
+- Session tracking in database
 - Automatic expired session cleanup
-- IP address and user agent tracking
-
-## Development
-
-### Project Structure
-```
-auth-service/
-├── cmd/                    # Application entry point
-├── internal/
-│   ├── config/            # Configuration management
-│   ├── handler/           # HTTP handlers
-│   ├── service/           # Business logic
-│   ├── repository/        # Data access layer
-│   ├── model/             # Data models
-│   ├── db/                # Database connection
-│   └── server/            # HTTP server setup
-├── migrations/            # Database migration files
-├── docs/                  # Documentation
-├── scripts/               # Database and deployment scripts
-├── Dockerfile             # Container definition
-├── docker-compose.yml     # Service orchestration
-├── .env                   # Environment variables
-└── run.sh                 # Startup script
-```
-
-### Testing
-```bash
-# Run tests
-go test ./...
-
-# Run with coverage
-go test -cover ./...
-```
-
-## Monitoring and Logs
-
-The service provides health check endpoints and structured logging for monitoring and debugging purposes.
+- Token revocation capabilities

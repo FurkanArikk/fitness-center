@@ -1,0 +1,85 @@
+Servis ve Veritabanını Sonlandırma Talimatları
+Fitness Center Auth Service uygulamasını çalıştırırken, hem servisi hem de veritabanını düzgün bir şekilde sonlandırmak için aşağıdaki adımları izleyebilirsiniz:
+
+Servisi Sonlandırmak İçin
+Servis terminalinizde ön planda çalışıyorsa:
+
+Sadece Ctrl+C tuşlarına basın
+Servis graceful shutdown işlemini gerçekleştirecek ve sonlanacaktır
+
+Docker'da çalışan servis için:
+docker-compose stop auth-service
+veya tüm servisleri durdurmak için:
+docker-compose down
+
+PostgreSQL Veritabanını Sonlandırmak İçin
+Docker'da çalışan PostgreSQL veritabanını durdurmanın birkaç yolu vardır:
+
+docker-db.sh script dosyasını kullanarak:
+./scripts/docker-db.sh stop
+
+Docker compose komutunu doğrudan kullanarak:
+docker-compose stop auth-db
+
+Docker container'ı doğrudan durdurarak:
+docker stop fitness-auth-db
+
+Hem Servisi Hem de Veritabanını Sonlandırmak İçin
+Önce servisi Ctrl+C ile sonlandırın (eğer ön plandaysa) 
+Sonra veritabanını durdurun:
+./scripts/docker-db.sh stop
+
+Ya da hepsini tek komutta sonlandırmak için:
+docker-compose down
+
+Veritabanı Durumunu Kontrol Etmek İçin
+Veritabanının çalışıp çalışmadığını kontrol etmek isterseniz:
+./scripts/docker-db.sh status
+veya
+docker ps | grep fitness-auth-db
+
+Veritabanı Bağlantı Bilgileri
+Host: localhost
+Port: 5437
+User: postgres
+Password: postgres
+Database: fitness_auth
+
+API Servisini Kullanmak İçin
+Port: 8006
+Örnek API kullanım komutları docs/endpoints.txt dosyasında bulunmaktadır.
+API yelpazemiz hakkında ayrıntılı bilgi için docs/API.md dosyasına göz atınız.
+
+Docker Yapılandırma Notları
+- Servis, Docker container'ında çalışırken JWT secret ve diğer yapılandırmalar otomatik olarak yönetilir
+- .env dosyasında gerekli environment değişkenleri tanımlanmıştır
+- Dockerfile'da özel bir değişiklik yapmanız gerekirse, environment dosyalarını güvenle düzenleyebilirsiniz
+
+Sorun Giderme
+1. Veritabanı bağlantı hatası alıyorsanız:
+   - Docker konteynerinin çalıştığından emin olun: ./scripts/docker-db.sh status
+   - Port çakışması olmadığından emin olun. 5437 portu başka bir uygulama tarafından kullanılıyor olabilir
+   - Hata devam ederse konteynerı yeniden başlatın: ./scripts/docker-db.sh restart
+
+2. Servis başlatılırken port çakışması olursa:
+   - AUTH_SERVICE_PORT ortam değişkenini değiştirin:
+     AUTH_SERVICE_PORT=8016 ./run.sh
+     
+3. JWT token hatası alırsanız:
+   - JWT_SECRET ortam değişkeninin doğru ayarlandığından emin olun
+   - Token süresinin dolmadığından emin olun (varsayılan: 24 saat)
+   - Veritabanında session tablosunun mevcut olduğunu kontrol edin
+
+4. Admin kullanıcı limit hatası:
+   - Maksimum 3 admin kullanıcısı oluşturulabilir
+   - Mevcut admin sayısını kontrol edin: curl http://localhost:8006/api/v1/admin/user-stats
+   - Gerekirse veritabanını temizleyin: ./scripts/cleanup_database.sh
+
+5. Docker konteyner loglarını kontrol etmek için:
+   - docker-compose logs auth-service
+   - docker-compose logs auth-db
+
+Güvenlik Notları
+- JWT secret'ları production ortamında mutlaka değiştirin
+- Şifreler bcrypt ile hashlenir ve veritabanında güvenli bir şekilde saklanır
+- Session yönetimi veritabanı üzerinden yapılır ve otomatik temizlenir

@@ -190,8 +190,16 @@ func (r *sessionRepository) CreateSession(ctx context.Context, session *model.Us
 		VALUES ($1, $2, $3, $4, $5)
 		RETURNING id, created_at`
 
+	// Handle empty IP address
+	var ipAddress interface{}
+	if session.IPAddress == "" {
+		ipAddress = nil
+	} else {
+		ipAddress = session.IPAddress
+	}
+
 	err := r.db.QueryRowContext(ctx, query,
-		session.UserID, session.TokenHash, session.ExpiresAt, session.UserAgent, session.IPAddress,
+		session.UserID, session.TokenHash, session.ExpiresAt, session.UserAgent, ipAddress,
 	).Scan(&session.ID, &session.CreatedAt)
 
 	if err != nil {
@@ -209,9 +217,10 @@ func (r *sessionRepository) GetSessionByTokenHash(ctx context.Context, tokenHash
 		FROM user_sessions
 		WHERE token_hash = $1 AND is_revoked = false AND expires_at > CURRENT_TIMESTAMP`
 
+	var ipAddress sql.NullString
 	err := r.db.QueryRowContext(ctx, query, tokenHash).Scan(
 		&session.ID, &session.UserID, &session.TokenHash, &session.ExpiresAt,
-		&session.CreatedAt, &session.IsRevoked, &session.UserAgent, &session.IPAddress,
+		&session.CreatedAt, &session.IsRevoked, &session.UserAgent, &ipAddress,
 	)
 
 	if err != nil {
@@ -219,6 +228,13 @@ func (r *sessionRepository) GetSessionByTokenHash(ctx context.Context, tokenHash
 			return nil, fmt.Errorf("session not found or expired")
 		}
 		return nil, fmt.Errorf("failed to get session: %v", err)
+	}
+
+	// Handle null IP address
+	if ipAddress.Valid {
+		session.IPAddress = ipAddress.String
+	} else {
+		session.IPAddress = ""
 	}
 
 	return session, nil

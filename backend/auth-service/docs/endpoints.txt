@@ -1,0 +1,247 @@
+# Auth Service API Endpoints
+
+Bu dosya Auth Service'in tüm API endpoint'lerini ve kullanım örneklerini içerir.
+
+## Base URL
+http://localhost:8006
+
+## 1. Sağlık Kontrolü (Health Check)
+
+### GET /health
+```bash
+curl -X GET http://localhost:8006/health
+```
+
+**Yanıt:**
+```json
+{
+    "status": "healthy",
+    "service": "auth-service"
+}
+```
+
+## 2. Kullanıcı Girişi (Login)
+
+### POST /api/v1/auth/login
+```bash
+curl -X POST http://localhost:8006/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "fitness123"
+  }'
+```
+
+**Yanıt:**
+```json
+{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_at": "2025-01-11T10:30:00Z",
+    "user": {
+        "id": 1,
+        "username": "admin",
+        "role": "admin",
+        "email": "admin@fitness.com",
+        "full_name": "Admin User",
+        "is_active": true,
+        "created_at": "2025-01-10T10:00:00Z",
+        "updated_at": "2025-01-10T10:00:00Z",
+        "last_login_at": "2025-01-10T10:30:00Z"
+    }
+}
+```
+
+## 3. Token Doğrulama (Token Validation)
+
+### POST /api/v1/auth/validate
+```bash
+curl -X POST http://localhost:8006/api/v1/auth/validate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }'
+```
+
+**Yanıt:**
+```json
+{
+    "valid": true,
+    "user": {
+        "id": 1,
+        "username": "admin",
+        "role": "admin"
+    }
+}
+```
+
+## 4. Kullanıcı Bilgileri (User Information)
+
+### GET /api/v1/auth/user
+```bash
+curl -X GET http://localhost:8006/api/v1/auth/user \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Yanıt:**
+```json
+{
+    "user": {
+        "id": 1,
+        "username": "admin",
+        "role": "admin",
+        "email": "admin@fitness.com",
+        "full_name": "Admin User",
+        "is_active": true,
+        "created_at": "2025-01-10T10:00:00Z",
+        "updated_at": "2025-01-10T10:00:00Z",
+        "last_login_at": "2025-01-10T10:30:00Z"
+    }
+}
+```
+
+## 5. Kullanıcı Kaydı (User Registration)
+
+### POST /api/v1/auth/register
+```bash
+curl -X POST http://localhost:8006/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin1",
+    "password": "SecurePass123!",
+    "email": "admin1@fitness.com",
+    "firstName": "Admin",
+    "lastName": "One"
+  }'
+```
+
+**Yanıt:**
+```json
+{
+    "success": true,
+    "message": "Admin kullanıcısı başarıyla oluşturuldu (2/3)",
+    "user": {
+        "id": 2,
+        "username": "admin1",
+        "role": "admin",
+        "email": "admin1@fitness.com",
+        "full_name": "Admin One",
+        "is_active": true,
+        "created_at": "2025-01-10T11:00:00Z",
+        "updated_at": "2025-01-10T11:00:00Z",
+        "last_login_at": null
+    }
+}
+```
+
+## 6. Kullanıcı İstatistikleri (User Statistics) - Admin Only
+
+### GET /api/v1/admin/user-stats
+```bash
+curl -X GET http://localhost:8006/api/v1/admin/user-stats \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Yanıt:**
+```json
+{
+    "current_users": 2,
+    "max_users": 3,
+    "available": 1,
+    "usage_percent": 66.67
+}
+```
+
+## 7. Maksimum Kullanıcı Sayısını Güncelleme - Admin Only
+
+### PUT /api/v1/admin/max-users
+```bash
+curl -X PUT http://localhost:8006/api/v1/admin/max-users \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+  -d '{
+    "max_users": 5
+  }'
+```
+
+**Yanıt:**
+```json
+{
+    "message": "Maksimum kullanıcı sayısı güncellendi",
+    "max_users": 5,
+    "current_users": 2
+}
+```
+
+## Hata Yanıtları
+
+### Geçersiz Kimlik Bilgileri (401)
+```json
+{
+    "error": "Geçersiz kullanıcı adı veya şifre"
+}
+```
+
+### Admin Limit Aşımı (403)
+```json
+{
+    "success": false,
+    "message": "Maksimum admin kullanıcı sayısına ulaşıldı (3/3). Yeni admin kullanıcı kaydı yapılamaz."
+}
+```
+
+### Kullanıcı Adı Mevcut (409)
+```json
+{
+    "success": false,
+    "message": "Kullanıcı adı zaten kullanımda"
+}
+```
+
+### Geçersiz Token (401)
+```json
+{
+    "valid": false,
+    "user": null
+}
+```
+
+## Test Senaryoları
+
+### Tam Test Akışı
+```bash
+# 1. Sağlık kontrolü
+curl -X GET http://localhost:8006/health
+
+# 2. Giriş yap
+TOKEN=$(curl -s -X POST http://localhost:8006/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "fitness123"}' | \
+  jq -r '.token')
+
+# 3. Kullanıcı bilgilerini al
+curl -X GET http://localhost:8006/api/v1/auth/user \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. Yeni admin kullanıcı oluştur
+curl -X POST http://localhost:8006/api/v1/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "newadmin",
+    "password": "NewPass123!",
+    "email": "newadmin@fitness.com",
+    "firstName": "New",
+    "lastName": "Admin"
+  }'
+
+# 5. İstatistikleri kontrol et
+curl -X GET http://localhost:8006/api/v1/admin/user-stats \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## Notlar
+
+- Maksimum 3 admin kullanıcısı oluşturulabilir
+- Tüm şifreler bcrypt ile hashlenir
+- JWT tokenlar 24 saat süreyle geçerlidir
+- Session yönetimi veritabanı üzerinden yapılır
+- Tüm admin işlemleri için geçerli token gereklidir

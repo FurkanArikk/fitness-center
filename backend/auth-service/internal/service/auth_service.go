@@ -67,7 +67,9 @@ func (s *AuthService) Login(username, password string) (*model.LoginResponse, er
 
 	if err := s.repos.Session.CreateSession(ctx, session); err != nil {
 		// Log error but don't fail login
-		fmt.Printf("Warning: failed to create session: %v\n", err)
+		fmt.Printf("ERROR: failed to create session for user %d: %v\n", user.ID, err)
+		// Actually fail login if session creation fails
+		return nil, fmt.Errorf("session creation failed: %v", err)
 	}
 
 	return &model.LoginResponse{
