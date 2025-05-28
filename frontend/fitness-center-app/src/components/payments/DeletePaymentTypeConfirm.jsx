@@ -6,7 +6,7 @@ const DeletePaymentTypeConfirm = ({ isOpen, onClose, onConfirm, paymentType, isL
   if (!isOpen || !paymentType) return null;
 
   const handleConfirm = () => {
-    onConfirm(paymentType.id);
+    onConfirm(paymentType.payment_type_id);
   };
 
   return (
@@ -30,7 +30,7 @@ const DeletePaymentTypeConfirm = ({ isOpen, onClose, onConfirm, paymentType, isL
           <div className="mb-6">
             <p className="text-gray-700">
               Are you sure you want to delete the payment type{' '}
-              <span className="font-semibold">"{paymentType.name}"</span>?
+              <span className="font-semibold">"{paymentType.type_name}"</span>?
             </p>
             <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-md">
               <p className="text-sm text-red-700">

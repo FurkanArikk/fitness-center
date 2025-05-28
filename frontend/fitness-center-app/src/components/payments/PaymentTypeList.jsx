@@ -20,7 +20,7 @@ import Button from '../common/Button';
 const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoading, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortField, setSortField] = useState('name');
+  const [sortField, setSortField] = useState('type_name');
   const [sortDirection, setSortDirection] = useState('asc');
 
   const handleSort = (field) => {
@@ -45,7 +45,7 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
   const filteredAndSortedTypes = useMemo(() => {
     let filtered = paymentTypes.filter(type => {
       const matchesSearch = !searchTerm || 
-        type.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        type.type_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         type.description?.toLowerCase().includes(searchTerm.toLowerCase());
       
       const matchesStatus = statusFilter === 'all' || 
@@ -205,20 +205,20 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
                   <button
-                    onClick={() => handleSort('id')}
+                    onClick={() => handleSort('payment_type_id')}
                     className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
                   >
                     <span>ID</span>
-                    {getSortIcon('id')}
+                    {getSortIcon('payment_type_id')}
                   </button>
                 </th>
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
                   <button
-                    onClick={() => handleSort('name')}
+                    onClick={() => handleSort('type_name')}
                     className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
                   >
                     <span>Name</span>
-                    {getSortIcon('name')}
+                    {getSortIcon('type_name')}
                   </button>
                 </th>
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">Description</th>
@@ -238,12 +238,12 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
             <tbody className="divide-y divide-gray-200">
               {filteredAndSortedTypes.map((paymentType, index) => (
                 <tr 
-                  key={`payment-type-${paymentType.id || index}`} 
+                  key={`payment-type-${paymentType.payment_type_id || index}`} 
                   className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
                 >
                   <td className="px-6 py-4">
                     <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                      #{paymentType.id}
+                      #{paymentType.payment_type_id}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -253,7 +253,7 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
                       </div>
                       <div>
                         <div className="font-semibold text-gray-900 text-sm">
-                          {paymentType.name}
+                          {paymentType.type_name}
                         </div>
                       </div>
                     </div>
