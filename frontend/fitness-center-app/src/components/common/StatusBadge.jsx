@@ -16,6 +16,12 @@ const StatusBadge = ({ status, variant }) => {
       textColor: 'text-red-800',
       borderColor: 'border-red-200'
     },
+    inactive: {
+      label: 'Inactive',
+      bgColor: 'bg-red-100',
+      textColor: 'text-red-800',
+      borderColor: 'border-red-200'
+    },
     hold_on: {
       label: 'On Hold',
       bgColor: 'bg-orange-100',

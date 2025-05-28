@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CreditCard, Banknote, Smartphone } from 'lucide-react';
 import Button from '../common/Button';
 import { formatCurrency } from '../../utils/formatters';
+import { memberService } from '../../api';
 
 const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], isLoading }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,8 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
   });
 
   const [errors, setErrors] = useState({});
+  const [currentMember, setCurrentMember] = useState(null);
+  const [loadingMember, setLoadingMember] = useState(false);
 
   useEffect(() => {
     if (payment) {
@@ -27,6 +30,11 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
         payment_date: payment.payment_date ? payment.payment_date.split('T')[0] : new Date().toISOString().split('T')[0],
         payment_type_id: payment.payment_type_id || 1
       });
+      
+      // Edit modunda spesifik member bilgisini çek
+      if (payment.member_id) {
+        fetchCurrentMember(payment.member_id);
+      }
     } else {
       setFormData({
         member_id: '',
@@ -37,9 +45,26 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
         payment_date: new Date().toISOString().split('T')[0],
         payment_type_id: 1
       });
+      setCurrentMember(null);
     }
     setErrors({});
   }, [payment, isOpen]);
+
+  // Spesifik member bilgisini getiren fonksiyon
+  const fetchCurrentMember = async (memberId) => {
+    setLoadingMember(true);
+    try {
+      console.log('[PaymentModal] Fetching member details for ID:', memberId);
+      const memberData = await memberService.getMember(memberId);
+      console.log('[PaymentModal] Member data received:', memberData);
+      setCurrentMember(memberData);
+    } catch (error) {
+      console.error('[PaymentModal] Error fetching member:', error);
+      setCurrentMember(null);
+    } finally {
+      setLoadingMember(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -140,18 +165,20 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
             {payment ? (
               // Display selected member when editing
               <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50">
-                <span className="text-gray-700">
-                  {(() => {
-                    const selectedMember = members.find(m => m.id === formData.member_id || m.memberId === formData.member_id);
-                    if (selectedMember) {
-                      const id = selectedMember.id || selectedMember.memberId;
-                      const firstName = selectedMember.firstName || selectedMember.first_name || '';
-                      const lastName = selectedMember.lastName || selectedMember.last_name || '';
+                {loadingMember ? (
+                  <span className="text-gray-500">Loading member info...</span>
+                ) : currentMember ? (
+                  <span className="text-gray-700">
+                    {(() => {
+                      const id = currentMember.id || currentMember.memberId;
+                      const firstName = currentMember.firstName || currentMember.first_name || '';
+                      const lastName = currentMember.lastName || currentMember.last_name || '';
                       return `${id} - ${firstName} ${lastName}`;
-                    }
-                    return 'Member not found';
-                  })()}
-                </span>
+                    })()}
+                  </span>
+                ) : (
+                  <span className="text-red-500">Member information could not be loaded</span>
+                )}
               </div>
             ) : (
               // Show dropdown for new payments

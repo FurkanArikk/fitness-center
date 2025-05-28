@@ -137,6 +137,16 @@ const paymentService = {
   },
   
   // Payment Type methods
+  getAllPaymentTypes: async () => {
+    try {
+      const response = await apiClient.get(ENDPOINTS.paymentTypes);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch all payment types:", error);
+      return { data: [] };
+    }
+  },
+
   getPaymentType: async (id) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.paymentTypes}/${id}`);
