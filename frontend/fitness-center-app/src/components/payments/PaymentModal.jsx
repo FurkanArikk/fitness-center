@@ -142,10 +142,14 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
               <div className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50">
                 <span className="text-gray-700">
                   {(() => {
-                    const selectedMember = members.find(m => m.id === formData.member_id);
-                    return selectedMember 
-                      ? `${selectedMember.firstName} ${selectedMember.lastName} (#${selectedMember.id})`
-                      : 'Member not found';
+                    const selectedMember = members.find(m => m.id === formData.member_id || m.memberId === formData.member_id);
+                    if (selectedMember) {
+                      const id = selectedMember.id || selectedMember.memberId;
+                      const firstName = selectedMember.firstName || selectedMember.first_name || '';
+                      const lastName = selectedMember.lastName || selectedMember.last_name || '';
+                      return `${id} - ${firstName} ${lastName}`;
+                    }
+                    return 'Member not found';
                   })()}
                 </span>
               </div>
@@ -162,11 +166,16 @@ const PaymentModal = ({ isOpen, onClose, onSave, payment = null, members = [], i
                   required
                 >
                   <option value="">Select a member</option>
-                  {members.map(member => (
-                    <option key={member.id} value={member.id}>
-                      {member.firstName} {member.lastName} (#{member.id})
-                    </option>
-                  ))}
+                  {members.map(member => {
+                    const id = member.id || member.memberId;
+                    const firstName = member.firstName || member.first_name || '';
+                    const lastName = member.lastName || member.last_name || '';
+                    return (
+                      <option key={id} value={id}>
+                        {id} - {firstName} {lastName}
+                      </option>
+                    );
+                  })}
                 </select>
                 {errors.member_id && (
                   <p className="mt-1 text-sm text-red-600">{errors.member_id}</p>

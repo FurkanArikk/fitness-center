@@ -10,12 +10,13 @@ import PaymentCharts from '@/components/payments/PaymentCharts';
 import PaymentAnalytics from '@/components/payments/PaymentAnalytics';
 import PaymentModal from '@/components/payments/PaymentModal';
 import DeletePaymentConfirm from '@/components/payments/DeletePaymentConfirm';
-import { paymentService } from '@/api';
+import { paymentService, memberService } from '@/api';
 import { formatCurrency } from '@/utils/formatters';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
   const [paymentStats, setPaymentStats] = useState(null);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   
@@ -34,6 +35,7 @@ const Payments = () => {
   useEffect(() => {
     fetchPayments();
     fetchPaymentStats();
+    fetchMembers();
   }, [currentPage]);
 
   const fetchPayments = async () => {
@@ -59,6 +61,27 @@ const Payments = () => {
       setPaymentStats(statsData);
     } catch (err) {
       console.error('Error fetching payment stats:', err);
+    }
+  };
+
+  const fetchMembers = async () => {
+    try {
+      console.log('[Payments] Fetching members for payment modal...');
+      const response = await memberService.getAllMembers();
+      console.log('[Payments] Members response:', response);
+      
+      // Backend response structure'ı kontrol edelim
+      let membersList = [];
+      if (response && Array.isArray(response.data)) {
+        membersList = response.data;
+      } else if (response && Array.isArray(response)) {
+        membersList = response;
+      }
+      
+      console.log('[Payments] Members list:', membersList);
+      setMembers(membersList);
+    } catch (err) {
+      console.error('Error fetching members:', err);
     }
   };
 
@@ -198,6 +221,8 @@ const Payments = () => {
           onSave={handlePaymentSaved}
           payment={selectedPayment}
           mode={modalMode}
+          members={members}
+          isLoading={loading}
         />
       )}
 

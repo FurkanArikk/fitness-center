@@ -28,7 +28,7 @@ const PaymentAnalytics = ({ stats }) => {
   const analytics = [
     {
       title: 'Total Revenue',
-      value: formatCurrency(stats.total_revenue || 0),
+      value: formatCurrency(stats.total_amounts || 0),
       trend: stats.revenue_trend || 0,
       icon: DollarSign,
       iconBg: 'bg-green-100',
