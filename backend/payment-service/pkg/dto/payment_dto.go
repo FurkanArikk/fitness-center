@@ -13,9 +13,9 @@ type PaymentRequest struct {
 	PaymentDate   time.Time `json:"payment_date"`
 	PaymentMethod string    `json:"payment_method" binding:"required"`
 	PaymentStatus string    `json:"payment_status"`
-	InvoiceNumber *string   `json:"invoice_number"` // Changed to pointer
-	Description   *string   `json:"description"`    // Changed to pointer
-	PaymentTypeID int       `json:"payment_type_id" binding:"required"`
+	InvoiceNumber *string   `json:"invoice_number"`  // Changed to pointer
+	Description   *string   `json:"description"`     // Changed to pointer
+	PaymentTypeID *int      `json:"payment_type_id"` // Changed to pointer to handle NULL
 }
 
 // PaymentResponse represents the payment response to clients
@@ -26,10 +26,10 @@ type PaymentResponse struct {
 	PaymentDate     time.Time `json:"payment_date"`
 	PaymentMethod   string    `json:"payment_method"`
 	PaymentStatus   string    `json:"payment_status"`
-	InvoiceNumber   *string   `json:"invoice_number,omitempty"` // Changed to pointer
-	Description     *string   `json:"description,omitempty"`    // Changed to pointer
-	PaymentTypeID   int       `json:"payment_type_id"`
-	PaymentTypeName string    `json:"payment_type_name,omitempty"`
+	InvoiceNumber   *string   `json:"invoice_number,omitempty"`    // Changed to pointer
+	Description     *string   `json:"description,omitempty"`       // Changed to pointer
+	PaymentTypeID   *int      `json:"payment_type_id,omitempty"`   // Changed to pointer to handle NULL
+	PaymentTypeName *string   `json:"payment_type_name,omitempty"` // Changed to pointer to handle NULL
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }

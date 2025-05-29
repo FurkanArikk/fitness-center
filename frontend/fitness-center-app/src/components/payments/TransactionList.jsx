@@ -12,7 +12,6 @@ import {
   Smartphone,
   RefreshCw,
   Download,
-  Eye,
   Calendar,
   User,
   ArrowUpDown,
@@ -27,7 +26,6 @@ const TransactionList = ({
   payments = [], 
   onEdit, 
   onDelete, 
-  onView,
   onRefresh,
   onExport,
   currentPage = 1, 
@@ -548,15 +546,6 @@ const TransactionList = ({
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        {onView && (
-                          <button 
-                            onClick={() => onView(payment)}
-                            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1 rounded transition-colors"
-                            title="View details"
-                          >
-                            <Eye size={16} />
-                          </button>
-                        )}
                         {onEdit && (
                           <button 
                             onClick={() => onEdit(payment)}

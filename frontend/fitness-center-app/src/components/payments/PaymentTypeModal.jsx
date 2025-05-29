@@ -6,7 +6,6 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    default_amount: '',
     is_active: true
   });
 
@@ -15,16 +14,14 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
   useEffect(() => {
     if (paymentType) {
       setFormData({
-        name: paymentType.name || '',
+        name: paymentType.type_name || '',
         description: paymentType.description || '',
-        default_amount: paymentType.default_amount || '',
         is_active: paymentType.is_active !== undefined ? paymentType.is_active : true
       });
     } else {
       setFormData({
         name: '',
         description: '',
-        default_amount: '',
         is_active: true
       });
     }
@@ -42,10 +39,6 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
       newErrors.description = 'Description is required';
     }
 
-    if (formData.default_amount && parseFloat(formData.default_amount) < 0) {
-      newErrors.default_amount = 'Default amount cannot be negative';
-    }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -58,9 +51,8 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
     }
 
     const paymentTypeData = {
-      name: formData.name.trim(),
+      type_name: formData.name.trim(),
       description: formData.description.trim(),
-      default_amount: formData.default_amount ? parseFloat(formData.default_amount) : null,
       is_active: formData.is_active
     };
 
@@ -153,31 +145,6 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
             {errors.description && (
               <p className="mt-1 text-sm text-red-600">{errors.description}</p>
             )}
-          </div>
-
-          {/* Default Amount */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Default Amount (₺)
-            </label>
-            <input
-              type="number"
-              name="default_amount"
-              value={formData.default_amount}
-              onChange={handleChange}
-              step="0.01"
-              min="0"
-              className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.default_amount ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="0.00 (Optional)"
-            />
-            {errors.default_amount && (
-              <p className="mt-1 text-sm text-red-600">{errors.default_amount}</p>
-            )}
-            <p className="mt-1 text-sm text-gray-500">
-              Leave empty if there's no standard amount
-            </p>
           </div>
 
           {/* Active Status */}

@@ -141,11 +141,6 @@ const Payments = () => {
     setShowDeleteConfirm(true);
   };
 
-  const handleViewPayment = (payment) => {
-    // Detail view functionality - can be implemented in the future
-    console.log('Viewing payment:', payment);
-  };
-
   const handlePaymentSaved = async (paymentData) => {
     try {
       console.log('Payment data received in page:', paymentData); // Debug log
@@ -205,20 +200,16 @@ const Payments = () => {
     setShowDeletePaymentTypeConfirm(true);
   };
 
-  const handleViewPaymentType = (paymentType) => {
-    console.log('Viewing payment type:', paymentType);
-    // Detail view functionality can be implemented later
-  };
-
   const handlePaymentTypeSaved = async (paymentTypeData) => {
     try {
       console.log('Payment type data received:', paymentTypeData);
       console.log('Payment type modal mode:', paymentTypeModalMode);
+      console.log('Selected payment type:', selectedPaymentType);
       
       if (paymentTypeModalMode === 'add') {
         await paymentService.createPaymentType(paymentTypeData);
       } else {
-        await paymentService.updatePaymentType(selectedPaymentType.id, paymentTypeData);
+        await paymentService.updatePaymentType(selectedPaymentType.payment_type_id, paymentTypeData);
       }
       setShowPaymentTypeModal(false);
       await fetchPaymentTypes();
@@ -230,7 +221,7 @@ const Payments = () => {
 
   const handlePaymentTypeDeleted = async () => {
     try {
-      await paymentService.deletePaymentType(selectedPaymentType.id);
+      await paymentService.deletePaymentType(selectedPaymentType.payment_type_id);
       setShowDeletePaymentTypeConfirm(false);
       await fetchPaymentTypes();
     } catch (err) {
@@ -331,7 +322,6 @@ const Payments = () => {
             payments={payments}
             onEdit={handleEditPayment}
             onDelete={handleDeletePayment}
-            onView={handleViewPayment}
             onRefresh={handleRefresh}
             currentPage={currentPage}
             totalPages={totalPages}
@@ -350,17 +340,10 @@ const Payments = () => {
         <>
           {/* Payment Types Management */}
           <Card>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">Payment Types</h2>
-              <div className="text-sm text-gray-500">
-                {paymentTypes.length} payment type(s)
-              </div>
-            </div>
             <PaymentTypeList
               paymentTypes={paymentTypes}
               onEdit={handleEditPaymentType}
               onDelete={handleDeletePaymentType}
-              onView={handleViewPaymentType}
               onRefresh={fetchPaymentTypes}
               isLoading={paymentTypesLoading}
             />

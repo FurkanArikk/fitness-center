@@ -24,7 +24,7 @@ apiClient.interceptors.request.use(logRequestAndResponse, error => {
 });
 
 // Retry interceptor for handling intermittent failures
-const retryInterceptor = (error) => {
+const retryInterceptor = async (error) => {
   const { config } = error;
   
   // If config doesn't exist or we're already retrying, reject
@@ -44,7 +44,8 @@ const retryInterceptor = (error) => {
   });
   
   // Retry the request after delay
-  return delay.then(() => apiClient(config));
+  await delay;
+  return await apiClient(config);
 };
 
 // Add response interceptor for error handling with retry

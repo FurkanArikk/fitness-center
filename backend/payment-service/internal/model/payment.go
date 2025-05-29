@@ -12,13 +12,13 @@ type Payment struct {
 	PaymentDate   time.Time `json:"payment_date" db:"payment_date"`
 	PaymentMethod string    `json:"payment_method" db:"payment_method"`
 	PaymentStatus string    `json:"payment_status" db:"payment_status"`
-	InvoiceNumber *string   `json:"invoice_number" db:"invoice_number"` // Changed to pointer to handle NULL
-	Description   *string   `json:"description" db:"description"`       // Changed to pointer to handle NULL
-	PaymentTypeID int       `json:"payment_type_id" db:"payment_type_id"`
+	InvoiceNumber *string   `json:"invoice_number" db:"invoice_number"`   // Changed to pointer to handle NULL
+	Description   *string   `json:"description" db:"description"`         // Changed to pointer to handle NULL
+	PaymentTypeID *int      `json:"payment_type_id" db:"payment_type_id"` // Changed to pointer to handle NULL
 	CreatedAt     time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 	// Field to store payment type name from JOIN queries
-	PaymentTypeName string `json:"payment_type_name" db:"payment_type_name"`
+	PaymentTypeName *string `json:"payment_type_name" db:"payment_type_name"` // Changed to pointer to handle NULL
 }
 
 // PaymentType represents a type of payment

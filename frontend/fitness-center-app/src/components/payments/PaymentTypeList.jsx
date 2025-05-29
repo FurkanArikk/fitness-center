@@ -2,22 +2,20 @@ import React, { useState, useMemo } from 'react';
 import { 
   Edit2, 
   Trash2, 
-  Eye, 
   Search, 
   Filter, 
   RefreshCw,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  Download,
-  DollarSign,
-  Tag
+  Tag,
+  Calendar
 } from 'lucide-react';
-import { formatCurrency } from '../../utils/formatters';
+import { formatCurrency, formatDate } from '../../utils/formatters';
 import StatusBadge from '../common/StatusBadge';
 import Button from '../common/Button';
 
-const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoading, onRefresh }) => {
+const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, isLoading, onRefresh }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortField, setSortField] = useState('type_name');
@@ -60,9 +58,9 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
       let aValue = a[sortField];
       let bValue = b[sortField];
       
-      if (sortField === 'default_amount') {
-        aValue = parseFloat(aValue || 0);
-        bValue = parseFloat(bValue || 0);
+      if (sortField === 'created_at' || sortField === 'updated_at') {
+        aValue = new Date(aValue || 0);
+        bValue = new Date(bValue || 0);
       }
       
       if (typeof aValue === 'string') {
@@ -103,7 +101,7 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Payment Types</h3>
               <p className="text-sm text-gray-500">
-                Manage payment types and default amounts
+                Manage payment types and their details
               </p>
             </div>
           </div>
@@ -116,13 +114,6 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
               className="px-4 py-2 text-sm font-medium border-gray-300 hover:bg-gray-50 transition-colors"
             >
               Refresh
-            </Button>
-            <Button
-              variant="secondary"
-              icon={<Download size={16} />}
-              className="px-4 py-2 text-sm font-medium border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              Export
             </Button>
           </div>
         </div>
@@ -224,11 +215,20 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">Description</th>
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
                   <button
-                    onClick={() => handleSort('default_amount')}
+                    onClick={() => handleSort('created_at')}
                     className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
                   >
-                    <span>Default Amount</span>
-                    {getSortIcon('default_amount')}
+                    <span>Created At</span>
+                    {getSortIcon('created_at')}
+                  </button>
+                </th>
+                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
+                  <button
+                    onClick={() => handleSort('updated_at')}
+                    className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
+                  >
+                    <span>Updated At</span>
+                    {getSortIcon('updated_at')}
                   </button>
                 </th>
                 <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">Status</th>
@@ -269,16 +269,18 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center space-x-2">
-                      {paymentType.default_amount ? (
-                        <>
-                          <DollarSign className="h-4 w-4 text-green-600" />
-                          <span className="text-sm font-semibold text-gray-900">
-                            {formatCurrency(paymentType.default_amount)}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-sm text-gray-400 italic">Not set</span>
-                      )}
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        {paymentType.created_at ? formatDate(paymentType.created_at) : 'N/A'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center space-x-2">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        {paymentType.updated_at ? formatDate(paymentType.updated_at) : 'N/A'}
+                      </span>
                     </div>
                   </td>
                   <td className="px-6 py-4">
@@ -289,13 +291,6 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, onView, isLoadin
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => onView(paymentType)}
-                        className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors group"
-                        title="View Details"
-                      >
-                        <Eye size={16} className="group-hover:scale-110 transition-transform" />
-                      </button>
                       <button
                         onClick={() => onEdit(paymentType)}
                         className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors group"
