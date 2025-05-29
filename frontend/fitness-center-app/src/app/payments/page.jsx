@@ -1,15 +1,18 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Settings } from 'lucide-react';
+import { Plus, Settings, CreditCard } from 'lucide-react';
 import Button from '@/components/common/Button';
 import Card from '@/components/common/Card';
 import Loader from '@/components/common/Loader';
+import PaymentList from '@/components/payments/PaymentList';
 import TransactionList from '@/components/payments/TransactionList';
 import PaymentCharts from '@/components/payments/PaymentCharts';
 import PaymentAnalytics from '@/components/payments/PaymentAnalytics';
 import PaymentModal from '@/components/payments/PaymentModal';
 import DeletePaymentConfirm from '@/components/payments/DeletePaymentConfirm';
+import TransactionModal from '@/components/payments/TransactionModal';
+import DeleteTransactionConfirm from '@/components/payments/DeleteTransactionConfirm';
 import PaymentTypeModal from '@/components/payments/PaymentTypeModal';
 import PaymentTypeList from '@/components/payments/PaymentTypeList';
 import DeletePaymentTypeConfirm from '@/components/payments/DeletePaymentTypeConfirm';
@@ -18,19 +21,27 @@ import { formatCurrency } from '@/utils/formatters';
 
 const Payments = () => {
   const [payments, setPayments] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [paymentStats, setPaymentStats] = useState(null);
   const [members, setMembers] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
   const [paymentTypesLoading, setPaymentTypesLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('payments'); // 'payments' or 'types'
+  const [activeTab, setActiveTab] = useState('payments'); // 'payments', 'transactions', or 'types'
   
   // Payment Modal states
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState(null);
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
+  
+  // Transaction Modal states
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [showDeleteTransactionConfirm, setShowDeleteTransactionConfirm] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [transactionModalMode, setTransactionModalMode] = useState('add'); // 'add' or 'edit'
   
   // Payment Type Modal states
   const [showPaymentTypeModal, setShowPaymentTypeModal] = useState(false);
@@ -40,8 +51,11 @@ const Payments = () => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
+  const [transactionPage, setTransactionPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [transactionTotalPages, setTransactionTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [transactionTotalCount, setTransactionTotalCount] = useState(0);
   const pageSize = 10;
 
   useEffect(() => {
@@ -50,8 +64,10 @@ const Payments = () => {
     fetchMembers();
     if (activeTab === 'types') {
       fetchPaymentTypes();
+    } else if (activeTab === 'transactions') {
+      fetchTransactions();
     }
-  }, [currentPage, activeTab]);
+  }, [currentPage, transactionPage, activeTab]);
 
   const fetchPayments = async () => {
     setLoading(true);
@@ -123,6 +139,25 @@ const Payments = () => {
     }
   };
 
+  const fetchTransactions = async () => {
+    setTransactionsLoading(true);
+    try {
+      console.log('[Payments] Fetching transactions...');
+      const response = await paymentService.getTransactions({ page: transactionPage, pageSize });
+      console.log('[Payments] Transactions response:', response);
+      
+      setTransactions(response.data || []);
+      setTransactionTotalPages(response.totalPages || 1);
+      setTransactionTotalCount(response.totalItems || 0);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load transaction data");
+      console.error('Error fetching transactions:', err);
+    } finally {
+      setTransactionsLoading(false);
+    }
+  };
+
   const handleAddPayment = () => {
     console.log('Add New Payment button clicked!'); // Debug log
     setSelectedPayment(null);
@@ -186,8 +221,74 @@ const Payments = () => {
   };
 
   const handleRefresh = () => {
-    fetchPayments();
-    fetchPaymentStats();
+    if (activeTab === 'payments') {
+      fetchPayments();
+      fetchPaymentStats();
+    } else if (activeTab === 'transactions') {
+      fetchTransactions();
+    } else if (activeTab === 'types') {
+      fetchPaymentTypes();
+    }
+  };
+
+  // Transaction handlers
+  const handleAddTransaction = () => {
+    setSelectedTransaction(null);
+    setTransactionModalMode('add');
+    // Ensure payments are loaded when opening transaction modal
+    if (payments.length === 0) {
+      fetchPayments();
+    }
+    setShowTransactionModal(true);
+  };
+
+  const handleEditTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setTransactionModalMode('edit');
+    // Ensure payments are loaded when opening transaction modal
+    if (payments.length === 0) {
+      fetchPayments();
+    }
+    setShowTransactionModal(true);
+  };
+
+  const handleDeleteTransaction = (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowDeleteTransactionConfirm(true);
+  };
+
+  const handleTransactionSaved = async (transactionData) => {
+    try {
+      console.log('Transaction data received in page:', transactionData);
+      console.log('Transaction modal mode:', transactionModalMode);
+      console.log('Selected transaction:', selectedTransaction);
+      
+      if (transactionModalMode === 'add') {
+        await paymentService.createTransaction(transactionData);
+      } else {
+        await paymentService.updateTransaction(selectedTransaction.transaction_id, transactionData);
+      }
+      setShowTransactionModal(false);
+      await fetchTransactions();
+    } catch (err) {
+      console.error('Error saving transaction:', err);
+      throw err; // Show error in modal
+    }
+  };
+
+  const handleTransactionDeleted = async () => {
+    try {
+      await paymentService.deleteTransaction(selectedTransaction.transaction_id);
+      setShowDeleteTransactionConfirm(false);
+      await fetchTransactions();
+    } catch (err) {
+      console.error('Error deleting transaction:', err);
+      throw err; // Show error in modal
+    }
+  };
+
+  const handleTransactionPageChange = (page) => {
+    setTransactionPage(page);
   };
 
   // Payment Type handlers
@@ -249,7 +350,7 @@ const Payments = () => {
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Payment Management</h1>
-            <p className="text-gray-600 mt-1">Manage payments and payment types</p>
+            <p className="text-gray-600 mt-1">Manage payments, transactions and payment types</p>
           </div>
           <div className="flex gap-2">
             {activeTab === 'payments' ? (
@@ -260,6 +361,15 @@ const Payments = () => {
                 className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
               >
                 Add New Payment
+              </Button>
+            ) : activeTab === 'transactions' ? (
+              <Button 
+                variant="primary" 
+                icon={<Plus size={18} />}
+                onClick={handleAddTransaction}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
+              >
+                Add New Transaction
               </Button>
             ) : (
               <Button 
@@ -286,6 +396,17 @@ const Payments = () => {
               }`}
             >
               Payments
+            </button>
+            <button
+              onClick={() => setActiveTab('transactions')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'transactions'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <CreditCard size={16} className="inline mr-1" />
+              Transactions
             </button>
             <button
               onClick={() => setActiveTab('types')}
@@ -325,8 +446,8 @@ const Payments = () => {
           {/* Analytics Dashboard */}
           <PaymentAnalytics stats={paymentStats} />
           
-          {/* Transaction List */}
-          <TransactionList 
+          {/* Payment List */}
+          <PaymentList 
             payments={payments}
             onEdit={handleEditPayment}
             onDelete={handleDeletePayment}
@@ -343,6 +464,39 @@ const Payments = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <PaymentCharts stats={paymentStats} />
           </div>
+        </>
+      ) : activeTab === 'transactions' ? (
+        <>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium">Error</h3>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Transaction List */}
+          <TransactionList 
+            transactions={transactions}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onRefresh={handleRefresh}
+            currentPage={transactionPage}
+            totalPages={transactionTotalPages}
+            onPageChange={handleTransactionPageChange}
+            pageSize={pageSize}
+            loading={transactionsLoading}
+            totalCount={transactionTotalCount}
+          />
         </>
       ) : (
         <>
@@ -379,6 +533,27 @@ const Payments = () => {
           onClose={() => setShowDeleteConfirm(false)}
           onConfirm={handlePaymentDeleted}
           payment={selectedPayment}
+        />
+      )}
+
+      {showTransactionModal && (
+        <TransactionModal
+          isOpen={showTransactionModal}
+          onClose={() => setShowTransactionModal(false)}
+          onSave={handleTransactionSaved}
+          transaction={selectedTransaction}
+          payments={payments}
+          isLoading={transactionsLoading}
+        />
+      )}
+
+      {showDeleteTransactionConfirm && selectedTransaction && (
+        <DeleteTransactionConfirm
+          isOpen={showDeleteTransactionConfirm}
+          onClose={() => setShowDeleteTransactionConfirm(false)}
+          onConfirm={handleTransactionDeleted}
+          transaction={selectedTransaction}
+          loading={transactionsLoading}
         />
       )}
 
