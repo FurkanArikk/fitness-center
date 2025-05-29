@@ -127,12 +127,20 @@ const Payments = () => {
     console.log('Add New Payment button clicked!'); // Debug log
     setSelectedPayment(null);
     setModalMode('add');
+    // Ensure payment types are loaded when opening payment modal
+    if (paymentTypes.length === 0) {
+      fetchPaymentTypes();
+    }
     setShowPaymentModal(true);
   };
 
   const handleEditPayment = (payment) => {
     setSelectedPayment(payment);
     setModalMode('edit');
+    // Ensure payment types are loaded when opening payment modal
+    if (paymentTypes.length === 0) {
+      fetchPaymentTypes();
+    }
     setShowPaymentModal(true);
   };
 
@@ -360,6 +368,7 @@ const Payments = () => {
           payment={selectedPayment}
           mode={modalMode}
           members={members}
+          paymentTypes={paymentTypes}
           isLoading={loading}
         />
       )}

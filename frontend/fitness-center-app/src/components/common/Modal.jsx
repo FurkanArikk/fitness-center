@@ -34,7 +34,12 @@ const Modal = ({ title, children, onClose, size = 'medium' }) => {
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 p-4"
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)'
+      }}
       onClick={handleBackdropClick}
     >
       <div 

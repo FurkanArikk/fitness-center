@@ -79,7 +79,14 @@ const PaymentTypeModal = ({ isOpen, onClose, onSave, paymentType = null, isLoadi
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{
+        backgroundColor: 'rgba(0, 0, 0, 0.1)',
+        backdropFilter: 'blur(4px)',
+        WebkitBackdropFilter: 'blur(4px)'
+      }}
+    >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-auto">
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
           <div className="flex items-center space-x-3">
