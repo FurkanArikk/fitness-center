@@ -9,7 +9,7 @@ const EditBenefitModal = ({ benefit, onClose, onSave, memberships = [], isLoadin
   });
   
   useEffect(() => {
-    // Eğer benefit nesnesi varsa (güncelleme durumu)
+    // If benefit object exists (update case)
     if (benefit && Object.keys(benefit).length > 0) {
       setFormData({
         benefit_name: benefit.benefitName || benefit.benefit_name || '',
@@ -17,9 +17,9 @@ const EditBenefitModal = ({ benefit, onClose, onSave, memberships = [], isLoadin
         membership_id: benefit.membershipId || benefit.membership_id || '',
       });
     } else {
-      // Yeni oluşturma durumunda varsayılan değerler
-      // Eğer benefit objesinde membership_id varsa (filtreden geliyorsa) onu kullan, 
-      // yoksa ve memberships dizisi doluysa ilk membership'i kullan
+      // Default values for new creation
+      // If there's a membership_id in benefit object (from filter), use it, 
+      // or if memberships array is not empty, use the first membership
       setFormData({
         benefit_name: '',
         benefit_description: '',
@@ -45,12 +45,16 @@ const EditBenefitModal = ({ benefit, onClose, onSave, memberships = [], isLoadin
     onSave(formData);
   };
 
-  // Başlık metnini belirleme
+  // Determine title text
   const isNewBenefit = !benefit || Object.keys(benefit).length === 0;
   const modalTitle = isNewBenefit ? 'Add Benefit Type' : 'Edit Benefit Type';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.1)'
+    }}>
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-semibold">{modalTitle}</h3>

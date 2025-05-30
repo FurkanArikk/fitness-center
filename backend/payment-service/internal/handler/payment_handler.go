@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/model"
-	"github.com/furkan/fitness-center/backend/payment-service/pkg/dto"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 

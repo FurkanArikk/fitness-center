@@ -8,11 +8,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/config"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/handler"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/repository/postgres"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/server"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/service"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/config"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/repository/postgres"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/server"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/service"
 )
 
 func main() {

@@ -12,9 +12,29 @@ import (
 func (h *MembershipHandler) GetMemberships(c *gin.Context) {
 	// Parse query parameters for pagination
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
 
-	memberships, err := h.service.List(c.Request.Context(), page, pageSize)
+	// Check if pagination is requested
+	if c.Query("page") != "" || c.Query("page_size") != "" {
+		memberships, total, err := h.service.List(c.Request.Context(), page, pageSize)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+
+		params := PaginationParams{
+			Page:      page,
+			PageSize:  pageSize,
+			Offset:    (page - 1) * pageSize,
+			IsPagined: true,
+		}
+		response := CreatePaginatedResponse(memberships, params, total)
+		c.JSON(http.StatusOK, response)
+		return
+	}
+
+	// Return all memberships without pagination
+	memberships, _, err := h.service.List(c.Request.Context(), 1, 1000) // Large page size for all
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -105,7 +125,7 @@ func (h *MembershipHandler) ToggleMembershipStatus(c *gin.Context) {
 	}
 
 	var request struct {
-		IsActive bool `json:"isActive"`
+		IsActive bool `json:"is_active"`
 	}
 
 	if err := c.ShouldBindJSON(&request); err != nil {
@@ -146,15 +166,15 @@ func (h *MembershipHandler) GetMembershipBenefits(c *gin.Context) {
 	// Return empty array when no benefits found
 	if len(benefits) == 0 {
 		c.JSON(http.StatusOK, gin.H{
-			"membershipID": membershipID,
-			"benefits":     []gin.H{},
-			"message":      "No benefits found for this membership",
+			"membership_id": membershipID,
+			"benefits":      []gin.H{},
+			"message":       "No benefits found for this membership",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"membershipID": membershipID,
-		"benefits":     benefits,
+		"membership_id": membershipID,
+		"benefits":      benefits,
 	})
 }

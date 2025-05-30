@@ -5,22 +5,26 @@ import (
 	"errors"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// ClassServiceImpl implements ClassService interface
+// ClassServiceImpl implements model.ClassService interface
 type ClassServiceImpl struct {
-	repo repository.ClassRepository
+	repo model.ClassRepository
 }
 
 // NewClassService creates a new ClassService
-func NewClassService(repo repository.ClassRepository) ClassService {
+func NewClassService(repo model.ClassRepository) model.ClassService {
 	return &ClassServiceImpl{repo: repo}
 }
 
 // GetClasses returns all classes
 func (s *ClassServiceImpl) GetClasses(ctx context.Context, activeOnly bool) ([]model.Class, error) {
 	return s.repo.GetAll(ctx, activeOnly)
+}
+
+// GetClassesPaginated returns paginated classes
+func (s *ClassServiceImpl) GetClassesPaginated(ctx context.Context, activeOnly bool, offset, limit int) ([]model.Class, int, error) {
+	return s.repo.GetAllPaginated(ctx, activeOnly, offset, limit)
 }
 
 // GetClassByID returns a class by its ID

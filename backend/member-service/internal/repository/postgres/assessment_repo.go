@@ -11,19 +11,19 @@ import (
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
-// FitnessAssessmentRepo, fitness değerlendirmeleri veritabanı işlemlerini gerçekleştirir
+// FitnessAssessmentRepo handles fitness assessment database operations
 type FitnessAssessmentRepo struct {
 	db *sql.DB
 }
 
-// NewFitnessAssessmentRepo, yeni bir FitnessAssessmentRepo oluşturur
+// NewFitnessAssessmentRepo creates a new FitnessAssessmentRepo instance
 func NewFitnessAssessmentRepo(db *sql.DB) repository.FitnessAssessmentRepository {
 	return &FitnessAssessmentRepo{
 		db: db,
 	}
 }
 
-// Create, yeni bir fitness değerlendirmesi oluşturur
+// Create adds a new fitness assessment to the database
 func (r *FitnessAssessmentRepo) Create(ctx context.Context, assessment *model.FitnessAssessment) error {
 	query := `
 		INSERT INTO fitness_assessments (
@@ -61,7 +61,7 @@ func (r *FitnessAssessmentRepo) Create(ctx context.Context, assessment *model.Fi
 	return nil
 }
 
-// GetByID, ID'ye göre fitness değerlendirmesi getirir
+// GetByID retrieves a fitness assessment by its ID
 func (r *FitnessAssessmentRepo) GetByID(ctx context.Context, id int64) (*model.FitnessAssessment, error) {
 	query := `
 		SELECT 
@@ -98,7 +98,7 @@ func (r *FitnessAssessmentRepo) GetByID(ctx context.Context, id int64) (*model.F
 	return &assessment, nil
 }
 
-// Update, fitness değerlendirmesi bilgilerini günceller
+// Update updates a fitness assessment's information
 func (r *FitnessAssessmentRepo) Update(ctx context.Context, assessment *model.FitnessAssessment) error {
 	query := `
 		UPDATE fitness_assessments
@@ -152,7 +152,7 @@ func (r *FitnessAssessmentRepo) Update(ctx context.Context, assessment *model.Fi
 	return nil
 }
 
-// Delete, fitness değerlendirmesini siler
+// Delete removes a fitness assessment by its ID
 func (r *FitnessAssessmentRepo) Delete(ctx context.Context, id int64) error {
 	query := `DELETE FROM fitness_assessments WHERE assessment_id = $1`
 
@@ -173,7 +173,7 @@ func (r *FitnessAssessmentRepo) Delete(ctx context.Context, id int64) error {
 	return nil
 }
 
-// ListByMemberID, üyeye ait fitness değerlendirmelerini listeler
+// ListByMemberID retrieves all fitness assessments for a specific member
 func (r *FitnessAssessmentRepo) ListByMemberID(ctx context.Context, memberID int64) ([]*model.FitnessAssessment, error) {
 	query := `
 		SELECT 
@@ -220,7 +220,7 @@ func (r *FitnessAssessmentRepo) ListByMemberID(ctx context.Context, memberID int
 	return assessments, nil
 }
 
-// GetLatestByMemberID, üyenin en son fitness değerlendirmesini getirir
+// GetLatestByMemberID retrieves the most recent fitness assessment for a member
 func (r *FitnessAssessmentRepo) GetLatestByMemberID(ctx context.Context, memberID int64) (*model.FitnessAssessment, error) {
 	query := `
 		SELECT 

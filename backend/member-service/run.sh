@@ -370,52 +370,40 @@ reset_database_without_sample_data() {
     print_success "Database reset successfully without sample data"
 }
 
+# Function to ensure .env file exists
+ensure_env_vars() {
+    local env_file=".env"
+    
+    if [ -f "$env_file" ]; then
+        print_success ".env file exists"
+    else
+        print_error ".env file not found. Please create an .env file before running the script."
+        exit 1
+    fi
+}
+
 # Function to start the service
 start_service() {
     print_header "Starting Member Service"
     
+    # Check if .env file exists
+    if [ ! -f ".env" ]; then
+        print_error "No .env file found. Please create a .env file with required configuration."
+        exit 1
+    else
+        print_success "Found .env file"
+        # Ensure all required variables are set with defaults if missing
+        ensure_env_vars
+    fi
+
     # Dependencies will be managed during Docker build process
     print_info "Preparing Docker build..."
     print_success "Dependencies will be managed by Docker build process"
-    
-    # Create Docker-specific environment file if it doesn't exist
-    if [ ! -f ".env.docker" ]; then
-        print_info "Creating Docker-specific environment file (.env.docker)..."
-        cat > ".env.docker" << EOF
-# Member Service Configuration
-MEMBER_SERVICE_DB_NAME=${MEMBER_SERVICE_DB_NAME:-fitness_member_db}
-MEMBER_SERVICE_DB_PORT=5432
-MEMBER_SERVICE_PORT=${MEMBER_SERVICE_PORT:-8001}
-MEMBER_SERVICE_HOST=${MEMBER_SERVICE_HOST:-0.0.0.0}
-MEMBER_SERVICE_CONTAINER_NAME=${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db}
-MEMBER_SERVICE_READ_TIMEOUT=15s
-MEMBER_SERVICE_WRITE_TIMEOUT=15s
-MEMBER_SERVICE_IDLE_TIMEOUT=60s
 
-# Common Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_SSLMODE=${DB_SSLMODE:-disable}
-
-# Docker Configuration
-DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME:-fitness-network}
-
-# Authentication Configuration
-JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
-JWT_EXPIRATION=24h
-
-# Logging Configuration
-LOG_LEVEL=${LOG_LEVEL:-debug}
-EOF
-        print_success "Created .env.docker file"
-    fi
-
-    # Start the service using docker-compose
-    print_info "Starting member service in Docker container..."
+    # Build and start the service using docker-compose with --build flag
+    print_info "Building Docker image for member service..."
     print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-    if docker-compose up -d member-service; then
+    if docker-compose up -d --build member-service; then
         print_success "Member service container started successfully"
         print_info "The service is running at http://${MEMBER_SERVICE_HOST:-0.0.0.0}:${MEMBER_SERVICE_PORT:-8001}"
         print_info "To view logs, run: docker-compose logs -f member-service"

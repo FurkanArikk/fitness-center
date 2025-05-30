@@ -34,16 +34,12 @@ WORKDIR /app
 # Copy the binary from builder
 COPY --from=builder /app/class-service .
 
-# Copy migrations, configs and scripts
+# Copy migrations and configs
 COPY --from=builder /app/migrations ./migrations
-COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/configs ./configs
 
 # Copy environment files
 COPY --from=builder /app/.env* ./
-
-# Make scripts executable
-RUN chmod +x ./scripts/*.sh
 
 # Create directory for app user to write to
 RUN mkdir -p /app/tmp /app/logs && chown -R appuser:appgroup /app/tmp /app/logs

@@ -34,7 +34,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         </button>
       </div>
       
-      <div className="p-4">
+      <div className="p-4 pb-20">
         <nav className="space-y-1">
           {navItems.map((item) => (
             <Link

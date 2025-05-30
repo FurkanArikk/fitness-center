@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:14
+    image: postgres:17
     container_name: ${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
     environment:
       POSTGRES_USER: ${DB_USER:-fitness_user}
@@ -28,10 +28,10 @@ services:
       dockerfile: Dockerfile
     container_name: fitness-class-service
     env_file:
-      - .env.docker
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Use PostgreSQL's internal port (5432) for Docker networking
+      CLASS_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       CLASS_SERVICE_DB_NAME: ${CLASS_SERVICE_DB_NAME:-fitness_class_db}
@@ -40,6 +40,8 @@ services:
       DB_SSLMODE: ${DB_SSLMODE:-disable}
       JWT_SECRET: ${JWT_SECRET:-your_jwt_secret_key}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
+    ports:
+      - "${CLASS_SERVICE_PORT:-8005}:8005"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.class-service.rule=PathPrefix(`/api/v1/classes`) || PathPrefix(`/api/v1/schedules`) || PathPrefix(`/api/v1/bookings`)"

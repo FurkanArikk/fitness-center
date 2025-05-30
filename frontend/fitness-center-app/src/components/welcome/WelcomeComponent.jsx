@@ -39,7 +39,7 @@ const WelcomeComponent = () => {
               </div>
             </div>
 
-            {/* Login seçenekleri */}
+            {/* Login options */}
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center space-x-2 text-gray-600">
                 <input

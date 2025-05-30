@@ -6,16 +6,15 @@ import (
 	"fmt"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
-// BookingServiceImpl implements BookingService interface
+// BookingServiceImpl implements model.BookingService interface
 type BookingServiceImpl struct {
-	repo repository.BookingRepository
+	repo model.BookingRepository
 }
 
 // NewBookingService creates a new BookingService
-func NewBookingService(repo repository.BookingRepository) BookingService {
+func NewBookingService(repo model.BookingRepository) model.BookingService {
 	return &BookingServiceImpl{repo: repo}
 }
 
@@ -32,6 +31,11 @@ func (s *BookingServiceImpl) GetBookingByID(ctx context.Context, id int) (model.
 // GetBookingsByMemberID returns bookings for a specific member
 func (s *BookingServiceImpl) GetBookingsByMemberID(ctx context.Context, memberID int) ([]model.BookingResponse, error) {
 	return s.repo.GetByMemberID(ctx, memberID)
+}
+
+// GetBookingsPaginated returns paginated bookings
+func (s *BookingServiceImpl) GetBookingsPaginated(ctx context.Context, status string, date string, offset, limit int) ([]model.BookingResponse, int, error) {
+	return s.repo.GetAllPaginated(ctx, status, date, offset, limit)
 }
 
 // CreateBooking creates a new booking

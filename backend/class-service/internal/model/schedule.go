@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"time"
 )
 
@@ -37,4 +38,27 @@ type ScheduleResponse struct {
 	Schedule
 	ClassName     string `json:"class_name"`
 	ClassDuration int    `json:"class_duration"`
+}
+
+// ScheduleRepository defines the operations for schedule data access
+type ScheduleRepository interface {
+	GetAll(ctx context.Context, status string) ([]ScheduleResponse, error)
+	GetAllPaginated(ctx context.Context, status string, offset, limit int) ([]ScheduleResponse, int, error)
+	GetByID(ctx context.Context, id int) (ScheduleResponse, error)
+	GetByClassID(ctx context.Context, classID int) ([]ScheduleResponse, error)
+	Create(ctx context.Context, schedule Schedule) (Schedule, error)
+	Update(ctx context.Context, id int, schedule Schedule) (Schedule, error)
+	Delete(ctx context.Context, id int) error
+	HasBookings(ctx context.Context, id int) (bool, error)
+}
+
+// ScheduleService defines operations for managing schedules
+type ScheduleService interface {
+	GetSchedules(ctx context.Context, status string) ([]ScheduleResponse, error)
+	GetSchedulesPaginated(ctx context.Context, status string, offset, limit int) ([]ScheduleResponse, int, error)
+	GetScheduleByID(ctx context.Context, id int) (ScheduleResponse, error)
+	GetSchedulesByClassID(ctx context.Context, classID int) ([]ScheduleResponse, error)
+	CreateSchedule(ctx context.Context, req ScheduleRequest) (Schedule, error)
+	UpdateSchedule(ctx context.Context, id int, req ScheduleRequest) (Schedule, error)
+	DeleteSchedule(ctx context.Context, id int) error
 }

@@ -3,13 +3,18 @@ import { ENDPOINTS } from './endpoints';
 
 const classService = {
   // Class methods
-  getClasses: async (active = true) => {
+  getClasses: async (active = true, page = 1, pageSize = 10) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.classes}?active=${active}`);
+      const params = new URLSearchParams();
+      if (active !== undefined) params.append('active', active);
+      params.append('page', page);
+      params.append('pageSize', pageSize);
+      
+      const response = await apiClient.get(`${ENDPOINTS.classes}?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch classes:", error);
-      return [];
+      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
     }
   },
   
@@ -54,13 +59,18 @@ const classService = {
   },
 
   // Schedule methods
-  getSchedules: async (status = 'active') => {
+  getSchedules: async (status = 'active', page = 1, pageSize = 10) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.schedules}?status=${status}`);
+      const params = new URLSearchParams();
+      if (status !== undefined) params.append('status', status);
+      params.append('page', page);
+      params.append('pageSize', pageSize);
+      
+      const response = await apiClient.get(`${ENDPOINTS.schedules}?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
-      return [];
+      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
     }
   },
   
@@ -115,23 +125,19 @@ const classService = {
   },
   
   // Booking methods
-  getBookings: async (status = null, date = null) => {
+  getBookings: async (status = null, date = null, page = 1, pageSize = 10) => {
     try {
-      let url = ENDPOINTS.bookings;
-      const params = [];
+      const params = new URLSearchParams();
+      if (status) params.append('status', status);
+      if (date) params.append('date', date);
+      params.append('page', page);
+      params.append('pageSize', pageSize);
       
-      if (status) params.push(`status=${status}`);
-      if (date) params.push(`date=${date}`);
-      
-      if (params.length > 0) {
-        url += `?${params.join('&')}`;
-      }
-      
-      const response = await apiClient.get(url);
+      const response = await apiClient.get(`${ENDPOINTS.bookings}?${params.toString()}`);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
-      return [];
+      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
     }
   },
   
@@ -161,6 +167,41 @@ const classService = {
       return response.data;
     } catch (error) {
       console.error("Failed to create booking:", error);
+      throw error;
+    }
+  },
+
+  updateBookingStatus: async (id, status) => {
+    try {
+      const response = await apiClient.put(`${ENDPOINTS.bookings}/${id}/status`, {
+        attendance_status: status
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update booking ${id} status:`, error);
+      throw error;
+    }
+  },
+
+  addBookingFeedback: async (id, rating, comment) => {
+    try {
+      const response = await apiClient.post(`${ENDPOINTS.bookings}/${id}/feedback`, {
+        rating,
+        comment
+      });
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to add feedback to booking ${id}:`, error);
+      throw error;
+    }
+  },
+
+  cancelBooking: async (id) => {
+    try {
+      const response = await apiClient.delete(`${ENDPOINTS.bookings}/${id}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to cancel booking ${id}:`, error);
       throw error;
     }
   }

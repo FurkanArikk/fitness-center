@@ -407,49 +407,37 @@ reset_database_without_sample_data() {
     print_success "Database reset successfully without sample data"
 }
 
+# Function to ensure .env file exists
+ensure_env_vars() {
+    local env_file=".env"
+    
+    if [ -f "$env_file" ]; then
+        print_success ".env file exists"
+    else
+        print_error ".env file not found. Please create an .env file before running the script."
+        exit 1
+    fi
+}
+
 # Function to start the service
 start_service() {
     print_header "Starting Class Service"
     
     if [ "$USE_DOCKER" = "true" ]; then
-        # Create Docker-specific environment file if it doesn't exist
-        if [ ! -f ".env.docker" ]; then
-            print_info "Creating Docker-specific environment file (.env.docker)..."
-            cat > ".env.docker" << EOF
-# Class Service Configuration
-CLASS_SERVICE_DB_NAME=${CLASS_SERVICE_DB_NAME:-fitness_class_db}
-CLASS_SERVICE_DB_PORT=5432
-CLASS_SERVICE_PORT=${CLASS_SERVICE_PORT:-8005}
-CLASS_SERVICE_HOST=${CLASS_SERVICE_HOST:-0.0.0.0}
-CLASS_SERVICE_CONTAINER_NAME=${CLASS_SERVICE_CONTAINER_NAME:-fitness-class-db}
-CLASS_SERVICE_READ_TIMEOUT=15s
-CLASS_SERVICE_WRITE_TIMEOUT=15s
-CLASS_SERVICE_IDLE_TIMEOUT=60s
-
-# Common Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_SSLMODE=${DB_SSLMODE:-disable}
-
-# Docker Configuration
-DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME:-fitness-network}
-
-# Authentication Configuration
-JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
-JWT_EXPIRATION=24h
-
-# Logging Configuration
-LOG_LEVEL=${LOG_LEVEL:-debug}
-EOF
-            print_success "Created .env.docker file"
+        # Check if .env file exists
+        if [ ! -f ".env" ]; then
+            print_error "No .env file found. Please create a .env file with required configuration."
+            exit 1
+        else
+            print_success "Found .env file"
+            # Ensure all required variables are set with defaults if missing
+            ensure_env_vars
         fi
 
-        # Start the service using docker-compose
-        print_info "Starting class service in Docker container..."
+        # Build and start the service using docker-compose with --build flag
+        print_info "Building Docker image for class service..."
         print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-        if docker-compose up -d class-service; then
+        if docker-compose up -d --build class-service; then
             print_success "Class service container started successfully"
             print_info "The service is running at http://${CLASS_SERVICE_HOST:-0.0.0.0}:${CLASS_SERVICE_PORT:-8005}"
             print_info "To view logs, run: docker-compose logs -f class-service"

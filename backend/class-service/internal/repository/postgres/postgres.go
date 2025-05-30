@@ -9,7 +9,6 @@ import (
 	_ "github.com/lib/pq"
 
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/config"
-	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository"
 )
 
 // PostgresRepository implements repository.Repository
@@ -31,15 +30,6 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*sql.DB, error) {
 
 	log.Println("Connected to PostgreSQL database")
 	return db, nil
-}
-
-// NewRepository creates a new repository with all required repositories
-func NewRepository(db *sql.DB) *repository.Repository {
-	return &repository.Repository{
-		Class:    NewClassRepository(db),
-		Schedule: NewScheduleRepository(db),
-		Booking:  NewBookingRepository(db),
-	}
 }
 
 // Ping checks if the database connection is active

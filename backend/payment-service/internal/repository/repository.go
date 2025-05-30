@@ -3,7 +3,7 @@ package repository
 import (
 	"context"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/model"
 )
 
 // Repository defines all repository methods
