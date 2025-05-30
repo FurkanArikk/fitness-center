@@ -576,7 +576,7 @@ const Classes = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const classesData = await classService.getClasses();
+        const classesData = await classService.getClasses(true); // Only active classes for main view
         setClasses(Array.isArray(classesData) ? classesData : []);
         const schedulesData = await classService.getSchedules();
         setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
@@ -640,7 +640,7 @@ const Classes = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const classesData = await classService.getClasses();
+      const classesData = await classService.getClasses(true); // Only active classes for main view
       setClasses(Array.isArray(classesData) ? classesData : []);
       const schedulesData = await classService.getSchedules();
       setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
@@ -821,11 +821,14 @@ const Classes = () => {
       </div>
       {/* Class Details Modal */}
       {showModal && selectedClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)'
-        }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+          }}
+        >
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
