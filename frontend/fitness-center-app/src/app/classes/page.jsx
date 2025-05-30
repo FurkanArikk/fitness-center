@@ -859,127 +859,43 @@ const Classes = () => {
       )}
       {/* Management Table & Analytics Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Class Management with Quick Actions Panel (large area) */}
-        <Card title="Class Management">
-          <ClassManagement
-            onAddNewClass={() => setAddModalOpen(true)}
-            onEditClasses={() => setEditModalOpen(true)}
-            onExportClassList={() => {
-              /* TODO: Export as PDF/Excel */
-            }}
-            onImportClasses={() => {
-              /* TODO: Import from CSV */
-            }}
-            onGoToAnalytics={() => {
-              setAnalyticsOpen(true);
-              fetchAnalytics();
-            }}
-            onToggleInactiveClasses={() => setShowInactivePanel((v) => !v)}
-            onClassVisibilityClick={() => setShowClassVisibility((v) => !v)}
-            onViewAllTrainers={() => {
-              /* TODO: Go to trainers list */
-            }}
-            onFilterActiveClasses={() => {
-              /* TODO: Filter active classes */
-            }}
-            onFilterUpcomingClasses={() => {
-              /* TODO: Filter upcoming classes */
-            }}
-            analyticsBtnRef={analyticsBtnRef}
-            inactiveBtnRef={inactiveBtnRef}
-            classVisibilityBtnRef={classVisibilityBtnRef}
-          />
-          {/* Placeholder for sortable/searchable table with CRUD actions */}
-          <div className="text-gray-500 text-center py-8">
-            Sortable/searchable table with CRUD actions coming soon.
-          </div>
-          {/* Inactive Classes Floating Panel */}
-          <InactiveClassesPanel
-            anchorRef={inactiveBtnRef}
-            open={showInactivePanel}
-            onClose={() => setShowInactivePanel(false)}
-            onActivate={fetchData}
-            classService={classService}
-          />
-          {/* Class Visibility Floating Panel */}
-          <ClassVisibilityPanel
-            anchorRef={classVisibilityBtnRef}
-            open={showClassVisibility}
-            onClose={() => setShowClassVisibility(false)}
-            classService={classService}
-          />
-        </Card>
+        {/* Quick Actions Panel */}
+        <ClassManagement
+          onAddNewClass={() => setAddModalOpen(true)}
+          onEditClasses={() => setEditModalOpen(true)}
+          onGoToAnalytics={() => {
+            setAnalyticsOpen(true);
+            fetchAnalytics();
+          }}
+          onToggleInactiveClasses={() => setShowInactivePanel((v) => !v)}
+          onClassVisibilityClick={() => setShowClassVisibility((v) => !v)}
+          onViewAllTrainers={() => {
+            /* TODO: Go to trainers list */
+          }}
+          analyticsBtnRef={analyticsBtnRef}
+          inactiveBtnRef={inactiveBtnRef}
+          classVisibilityBtnRef={classVisibilityBtnRef}
+        />
+        {/* Inactive Classes Floating Panel */}
+        <InactiveClassesPanel
+          anchorRef={inactiveBtnRef}
+          open={showInactivePanel}
+          onClose={() => setShowInactivePanel(false)}
+          onActivate={fetchData}
+          classService={classService}
+        />
+        {/* Class Visibility Floating Panel */}
+        <ClassVisibilityPanel
+          anchorRef={classVisibilityBtnRef}
+          open={showClassVisibility}
+          onClose={() => setShowClassVisibility(false)}
+          classService={classService}
+        />
         {/* Enhanced Analytics Section */}
         <Card title="Class Analytics">
-          <div className="space-y-4">
-            {/* Pie Chart for Capacity Distribution by Class */}
-            <div>
-              <p className="text-sm font-medium mb-2">
-                Class Capacity Distribution
-              </p>
-              <ClassCapacityPieChart classes={classes} />
-            </div>
-            {/* Attendance Rate Chart Placeholder */}
-            <div>
-              <p className="text-sm font-medium mb-1">Attendance Rate</p>
-              <div className="w-full h-4 bg-gray-200 rounded-full">
-                <div
-                  className="h-4 bg-green-500 rounded-full"
-                  style={{ width: "78%" }}
-                ></div>
-              </div>
-              <p className="text-right text-sm mt-1">78%</p>
-            </div>
-            {/* Most Popular Times Chart Placeholder */}
-            <div>
-              <p className="text-sm font-medium mb-1">
-                Most Popular Time Slots
-              </p>
-              <div className="grid grid-cols-3 gap-2 text-sm">
-                <div className="p-2 bg-blue-50 rounded text-center">
-                  <p className="font-medium">Morning</p>
-                  <p className="text-blue-700">32%</p>
-                </div>
-                <div className="p-2 bg-yellow-50 rounded text-center">
-                  <p className="font-medium">Afternoon</p>
-                  <p className="text-yellow-700">21%</p>
-                </div>
-                <div className="p-2 bg-purple-50 rounded text-center">
-                  <p className="font-medium">Evening</p>
-                  <p className="text-purple-700">47%</p>
-                </div>
-              </div>
-            </div>
-            {/* Top Trainers Placeholder */}
-            <div>
-              <p className="text-sm font-medium mb-1">Top Trainers</p>
-              <div className="flex gap-2 flex-wrap">
-                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs">
-                  Alex Kim
-                </span>
-                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                  Jamie Lee
-                </span>
-                <span className="bg-pink-100 text-pink-800 px-2 py-1 rounded text-xs">
-                  Morgan Smith
-                </span>
-              </div>
-            </div>
-            {/* Member Feedback Placeholder */}
-            <div>
-              <p className="text-sm font-medium mb-1">Member Feedback</p>
-              <div className="flex items-center space-x-1">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span key={star} className="text-yellow-400">
-                    ★
-                  </span>
-                ))}
-                <span className="ml-2">4.7/5</span>
-              </div>
-              <div className="text-xs text-gray-500 mt-1">
-                "Great variety of classes and amazing trainers!"
-              </div>
-            </div>
+          <div className="flex flex-col items-center justify-center py-3">
+            {/* Class Activity Chart */}
+            <ClassCapacityPieChart classes={classes} />
           </div>
         </Card>
       </div>
