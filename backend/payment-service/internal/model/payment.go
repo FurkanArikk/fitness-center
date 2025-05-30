@@ -31,14 +31,22 @@ type PaymentType struct {
 	UpdatedAt     time.Time `json:"updated_at" db:"updated_at"`
 }
 
+// PaymentMethodStatistic represents payment method distribution
+type PaymentMethodStatistic struct {
+	PaymentMethod string  `json:"payment_method"`
+	Count         int     `json:"count"`
+	Percentage    float64 `json:"percentage"`
+}
+
 // PaymentStatistics holds aggregated payment statistics
 type PaymentStatistics struct {
-	TotalPayments     int     `json:"total_payments"`
-	TotalAmount       float64 `json:"total_amount"`
-	AverageAmount     float64 `json:"average_amount"`
-	PendingPayments   int     `json:"pending_payments"`
-	CompletedPayments int     `json:"completed_payments"`
-	FailedPayments    int     `json:"failed_payments"`
+	TotalPayments           int                      `json:"total_payments"`
+	TotalAmount             float64                  `json:"total_amount"`
+	AverageAmount           float64                  `json:"average_amount"`
+	PendingPayments         int                      `json:"pending_payments"`
+	CompletedPayments       int                      `json:"completed_payments"`
+	FailedPayments          int                      `json:"failed_payments"`
+	PaymentMethodStatistics []PaymentMethodStatistic `json:"payment_method_statistics"`
 }
 
 // Transaction represents a payment transaction record

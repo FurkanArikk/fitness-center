@@ -88,7 +88,7 @@ const Payments = () => {
 
   const fetchPaymentStats = async () => {
     try {
-      const statsData = await paymentService.getPaymentStatistics();
+      const statsData = await paymentService.getStatistics();
       setPaymentStats(statsData);
     } catch (err) {
       console.error('Error fetching payment stats:', err);

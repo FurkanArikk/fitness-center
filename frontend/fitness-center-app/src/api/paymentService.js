@@ -347,6 +347,27 @@ const paymentService = {
       console.error("Failed to process payment:", error);
       throw error;
     }
+  },
+
+  // Payment statistics
+  getStatistics: async (filters = {}) => {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && value !== '') {
+          queryParams.append(key, value);
+        }
+      });
+      
+      const queryString = queryParams.toString();
+      const url = queryString ? `${ENDPOINTS.payments}/statistics?${queryString}` : `${ENDPOINTS.payments}/statistics`;
+      
+      const response = await apiClient.get(url);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch payment statistics:", error);
+      throw error;
+    }
   }
 };
 
