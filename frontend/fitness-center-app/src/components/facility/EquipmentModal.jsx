@@ -159,6 +159,7 @@ const EquipmentModal = ({
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              spellCheck={false}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -236,6 +237,7 @@ const EquipmentModal = ({
                 type="text"
                 value={formData.brand}
                 onChange={(e) => handleInputChange('brand', e.target.value)}
+                spellCheck={false}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter brand"
               />
@@ -250,6 +252,7 @@ const EquipmentModal = ({
                 type="text"
                 value={formData.model}
                 onChange={(e) => handleInputChange('model', e.target.value)}
+                spellCheck={false}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="Enter model"
               />

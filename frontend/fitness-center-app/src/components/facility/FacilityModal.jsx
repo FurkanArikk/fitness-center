@@ -141,6 +141,7 @@ const FacilityModal = ({
               type="text"
               value={formData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
+              spellCheck={false}
               className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                 errors.name ? 'border-red-500' : 'border-gray-300'
               }`}
@@ -216,6 +217,7 @@ const FacilityModal = ({
               type="text"
               value={formData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
+              spellCheck={false}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter facility address"
             />
@@ -232,6 +234,7 @@ const FacilityModal = ({
                 type="tel"
                 value={formData.phone_number}
                 onChange={(e) => handleInputChange('phone_number', e.target.value)}
+                spellCheck={false}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="+1 (555) 123-4567"
               />
@@ -247,6 +250,7 @@ const FacilityModal = ({
                 min="0"
                 value={formData.capacity}
                 onChange={(e) => handleInputChange('capacity', e.target.value)}
+                spellCheck={false}
                 className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.capacity ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -265,6 +269,7 @@ const FacilityModal = ({
               type="text"
               value={formData.operating_hours}
               onChange={(e) => handleInputChange('operating_hours', e.target.value)}
+              spellCheck={false}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="e.g., Mon-Fri 6:00-22:00, Sat-Sun 8:00-20:00"
             />
