@@ -1,103 +1,6 @@
 version: '3.8'
 
 services:
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8000:8000"
-    depends_on:
-      - member-service
-      - staff-service
-      - class-service
-      - facility-service
-      - payment-service
-    environment:
-      - MEMBER_SERVICE_URL=http://member-service:8001
-      - STAFF_SERVICE_URL=http://staff-service:8002
-      - CLASS_SERVICE_URL=http://class-service:8003
-      - FACILITY_SERVICE_URL=http://facility-service:8004
-      - PAYMENT_SERVICE_URL=http://payment-service:8005
-
-  member-service:
-    build: ./member-service
-    ports:
-      - "8001:8001"
-    depends_on:
-      - member-db
-
-  staff-service:
-    build: ./staff-service
-    ports:
-      - "8002:8002"
-    depends_on:
-      - staff-db
-
-  class-service:
-    build: ./class-service
-    ports:
-      - "8003:8003"
-    depends_on:
-      - class-db
-
-  facility-service:
-    build: ./facility-service
-    ports:
-      - "8004:8004"
-    depends_on:
-      - facility-db
-
-  payment-service:
-    build: ./payment-service
-    ports:
-      - "8005:8005"
-    depends_on:
-      - payment-db
-
-  member-db:
-    image: postgres:14
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=member_db
-    volumes:
-      - member-db-data:/var/lib/postgresql/data
-
-  staff-db:
-    image: postgres:14
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=staff_db
-    volumes:
-      - staff-db-data:/var/lib/postgresql/data
-
-  class-db:
-    image: postgres:14
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=class_db
-    volumes:
-      - class-db-data:/var/lib/postgresql/data
-
-  facility-db:
-    image: postgres:14
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=facility_db
-    volumes:
-      - facility-db-data:/var/lib/postgresql/data
-
-  payment-db:
-    image: postgres:14
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=payment_db
-    volumes:
-      - payment-db-data:/var/lib/postgresql/data
-
   traefik:
     image: "traefik:v3.4.0"
     container_name: "traefik_api_gateway"
@@ -106,10 +9,10 @@ services:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
-      # HTTPS için gelecekte eklenebilir:
+      # HTTPS can be added in the future:
       # - "--entrypoints.websecure.address=:443"
       # - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      # - "--certificatesresolvers.myresolver.acme.email=your-email@example.com" # E-posta adresinizi girin
+      # - "--certificatesresolvers.myresolver.acme.email=your-email@example.com" # Enter your email address
       # - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
     ports:
       - "80:80"    # HTTP
@@ -117,16 +20,9 @@ services:
       # - "443:443"  # HTTPS
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      # - "./letsencrypt:/letsencrypt" # SSL sertifikaları için
+      # - "./letsencrypt:/letsencrypt" # For SSL certificates
     networks:
       - fitness-network
-
-volumes:
-  member-db-data:
-  staff-db-data:
-  class-db-data:
-  facility-db-data:
-  payment-db-data:
 
 networks:
   fitness-network:
