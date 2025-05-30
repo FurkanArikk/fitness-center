@@ -293,22 +293,34 @@ const TransactionModal = ({
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Payment <span className="text-red-500">*</span>
               </label>
-              <select
-                name="payment_id"
-                value={formData.payment_id}
-                onChange={handleChange}
-                className={`w-full border rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                  errors.payment_id ? 'border-red-300' : 'border-gray-300'
-                }`}
-                disabled={!!transaction} // Payment ID değiştirilemez edit modunda
-              >
-                <option value="">Select payment</option>
-                {payments.map(payment => (
-                  <option key={payment.payment_id} value={payment.payment_id}>
-                    #{payment.payment_id} - {payment.member_name || `Member #${payment.member_id}`} - ${payment.amount}
-                  </option>
-                ))}
-              </select>
+              {transaction ? (
+                // Edit mode - show as read-only text field
+                <div className="w-full border border-gray-300 rounded-lg py-2.5 px-3 bg-gray-50 text-gray-700">
+                  {(() => {
+                    const selectedPayment = payments.find(p => p.payment_id === parseInt(formData.payment_id));
+                    return selectedPayment 
+                      ? `#${selectedPayment.payment_id} - ${selectedPayment.member_name || `Member #${selectedPayment.member_id}`} - $${selectedPayment.amount}`
+                      : `Payment #${formData.payment_id}`;
+                  })()}
+                </div>
+              ) : (
+                // Add mode - show as dropdown
+                <select
+                  name="payment_id"
+                  value={formData.payment_id}
+                  onChange={handleChange}
+                  className={`w-full border rounded-lg py-2.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    errors.payment_id ? 'border-red-300' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Select payment</option>
+                  {payments.map(payment => (
+                    <option key={payment.payment_id} value={payment.payment_id}>
+                      #{payment.payment_id} - {payment.member_name || `Member #${payment.member_id}`} - ${payment.amount}
+                    </option>
+                  ))}
+                </select>
+              )}
               {errors.payment_id && (
                 <p className="mt-1 text-sm text-red-600">{errors.payment_id}</p>
               )}
