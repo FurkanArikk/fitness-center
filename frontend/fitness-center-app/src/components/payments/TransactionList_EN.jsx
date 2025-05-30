@@ -238,7 +238,7 @@ const TransactionList = ({
             Previous
           </Button>
           <span className="text-sm text-gray-700">
-            Page {currentPage} / {totalPages}
+            Page {currentPage} of {totalPages}
           </span>
           <Button
             variant="outline"
@@ -255,6 +255,7 @@ const TransactionList = ({
         {/* Desktop pagination */}
         <div className="hidden sm:flex items-center justify-between px-6 py-4">
           <div className="text-sm text-gray-700">
+            Showing{' '}
             <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span>
             {' '}-{' '}
             <span className="font-medium">
@@ -306,7 +307,7 @@ const TransactionList = ({
           <div className="relative flex-1">
             <input 
               type="text" 
-              placeholder="Search transactions (ID, reference number, payment ID...)" 
+              placeholder="Search transactions (ID, reference, payment ID...)" 
               className="w-full border border-gray-300 rounded-lg py-2.5 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -321,7 +322,7 @@ const TransactionList = ({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">All Status</option>
+              <option value="all">All Statuses</option>
               <option value="success">Success</option>
               <option value="pending">Pending</option>
               <option value="failed">Failed</option>

@@ -202,7 +202,7 @@ const TransactionList = ({
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // First page
+    // İlk sayfa
     if (startPage > 1) {
       pages.push(renderPaginationButton(1, false));
       if (startPage > 2) {
@@ -210,12 +210,12 @@ const TransactionList = ({
       }
     }
 
-    // Visible pages
+    // Görünür sayfalar
     for (let i = startPage; i <= endPage; i++) {
       pages.push(renderPaginationButton(i, i === currentPage));
     }
 
-    // Last page
+    // Son sayfa
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
         pages.push(<span key="end-ellipsis" className="px-2 py-2 text-gray-500">...</span>);
@@ -262,7 +262,7 @@ const TransactionList = ({
             </span>
             {' '}of{' '}
             <span className="font-medium">{totalCount}</span>
-            {' '}transactions
+            {' '}transactions shown
           </div>
           
           <div className="flex items-center space-x-2">
@@ -471,7 +471,7 @@ const TransactionList = ({
                           <button 
                             onClick={() => onEdit(transaction)}
                             className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 p-1 rounded transition-colors"
-                            title="Edit"
+                            title="Düzenle"
                           >
                             <Edit size={16} />
                           </button>
@@ -480,7 +480,7 @@ const TransactionList = ({
                           <button 
                             onClick={() => onDelete(transaction)}
                             className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
-                            title="Delete"
+                            title="Sil"
                           >
                             <Trash2 size={16} />
                           </button>

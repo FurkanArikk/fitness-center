@@ -11,7 +11,7 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
   });
   
   useEffect(() => {
-    // Eğer üyelik nesnesi boş değilse (güncelleme durumu)
+    // If membership object is not empty (update case)
     if (membership && Object.keys(membership).length > 0) {
       setFormData({
         name: membership.membershipName || '',
@@ -21,7 +21,7 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
         active: membership.isActive ?? true
       });
     } else {
-      // Yeni oluşturma durumunda varsayılan değerler
+      // Default values for new creation
       setFormData({
         name: '',
         description: '',
@@ -46,12 +46,16 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
     onSave(formData);
   };
 
-  // Başlık metnini belirleme
+  // Determine title text
   const isNewMembership = !membership || Object.keys(membership).length === 0;
   const modalTitle = isNewMembership ? 'Add Membership Type' : 'Edit Membership Type';
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{
+      backdropFilter: 'blur(4px)',
+      WebkitBackdropFilter: 'blur(4px)',
+      backgroundColor: 'rgba(0, 0, 0, 0.1)'
+    }}>
       <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
         <div className="flex justify-between items-center p-4 border-b">
           <h3 className="text-lg font-semibold">{modalTitle}</h3>

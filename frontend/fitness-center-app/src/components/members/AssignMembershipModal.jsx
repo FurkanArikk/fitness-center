@@ -22,11 +22,11 @@ const AssignMembershipModal = ({ member, onClose, onSave, isLoading }) => {
     const fetchMemberships = async () => {
       setLoadingMemberships(true);
       try {
-        // Sadece aktif üyelikleri yükle
+        // Load only active memberships
         const data = await memberService.getMemberships(true);
         if (Array.isArray(data)) {
           setMemberships(data);
-          // Varsayılan olarak ilk üyeliği seç
+          // Select the first membership by default
           if (data.length > 0) {
             setSelectedMembership(data[0].id);
             fetchMembershipBenefits(data[0].id);
@@ -42,7 +42,7 @@ const AssignMembershipModal = ({ member, onClose, onSave, isLoading }) => {
     fetchMemberships();
   }, []);
   
-  // Seçilen üyeliğin faydalarını yükle
+  // Load benefits for selected membership
   const fetchMembershipBenefits = async (membershipId) => {
     if (!membershipId) return;
     
@@ -83,7 +83,7 @@ const AssignMembershipModal = ({ member, onClose, onSave, isLoading }) => {
     if (validateForm()) {
       const selectedPlan = memberships.find(m => m.id === selectedMembership);
       
-      // Başlangıç tarihine ve süreye göre bitiş tarihini hesapla
+      // Calculate end date based on start date and duration
       const start = new Date(startDate);
       const end = new Date(start);
       end.setMonth(end.getMonth() + (selectedPlan?.duration || 1));
@@ -103,7 +103,7 @@ const AssignMembershipModal = ({ member, onClose, onSave, isLoading }) => {
     }
   };
   
-  // Seçilen üyelik planını bul
+  // Find selected membership plan
   const getSelectedMembershipDetails = () => {
     return memberships.find(m => m.id === selectedMembership);
   };

@@ -28,7 +28,12 @@ const MainLayout = ({ children }) => {
       {/* Overlay when sidebar is open on mobile */}
       {!isWelcomePage && sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+          className="fixed inset-0 z-10 lg:hidden"
+          style={{
+            backgroundColor: 'rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)'
+          }}
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}

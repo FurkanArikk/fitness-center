@@ -34,23 +34,23 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
       // Üyelik adının ilk harflerine göre bir renk belirle
       const firstChar = type.charAt(0).toLowerCase();
       
-      // Harf aralıklarına göre farklı renkler tanımla
+      // Define different colors based on letter ranges
       if ('abcd'.includes(firstChar)) {
-        return 'bg-pink-100 text-pink-800';  // A-D arası pembe
+        return 'bg-pink-100 text-pink-800';  // A-D range pink
       } else if ('efgh'.includes(firstChar)) {
-        return 'bg-green-100 text-green-800'; // E-H arası yeşil
+        return 'bg-green-100 text-green-800'; // E-H range green
       } else if ('ijkl'.includes(firstChar)) {
-        return 'bg-red-100 text-red-800';    // I-L arası kırmızı
+        return 'bg-red-100 text-red-800';    // I-L range red
       } else if ('mnop'.includes(firstChar)) {
-        return 'bg-indigo-100 text-indigo-800'; // M-P arası indigo
+        return 'bg-indigo-100 text-indigo-800'; // M-P range indigo
       } else if ('qrst'.includes(firstChar)) {
-        return 'bg-yellow-100 text-yellow-800'; // Q-T arası sarı
+        return 'bg-yellow-100 text-yellow-800'; // Q-T range yellow
       } else {
-        return 'bg-teal-100 text-teal-800';    // U-Z arası teal
+        return 'bg-teal-100 text-teal-800';    // U-Z range teal
       }
     }
     
-    // Tip yoksa varsayılan gri renk
+    // Default gray color if no type
     return 'bg-gray-100 text-gray-800';
   };
 
@@ -110,22 +110,22 @@ const MemberList = ({ members = [], onEdit, onDelete, onAssignMembership, onView
                   <button 
                     className="p-1 text-purple-500 hover:bg-purple-50 rounded"
                     onClick={() => onViewDetails && onViewDetails(member)}
-                    title="Üye Detayları"
+                    title="Member Details"
                   >
                     <Info size={16} />
                   </button>
-                  {/* Değerlendirme (Assessment) Butonu */}
+                  {/* Assessment Button */}
                   <button 
                     className="p-1 text-amber-500 hover:bg-amber-50 rounded"
                     onClick={() => onViewAssessments && onViewAssessments(member)}
-                    title="Değerlendirmeleri Görüntüle"
+                    title="View Assessments"
                   >
                     <ActivitySquare size={16} />
                   </button>
                   <button 
                     className="p-1 text-red-500 hover:bg-red-50 rounded"
                     onClick={() => onDelete && onDelete(member.id)}
-                    title="Üyeyi Sil"
+                    title="Delete Member"
                   >
                     <Trash2 size={16} />
                   </button>

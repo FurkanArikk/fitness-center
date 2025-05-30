@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { 
   Search, 
@@ -7,23 +8,26 @@ import {
   ChevronLeft, 
   ChevronRight, 
   CreditCard, 
+  Banknote, 
+  Smartphone,
   RefreshCw,
+  Download,
   Calendar,
-  DollarSign,
+  User,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown,
-  ExternalLink
+  ArrowDown
 } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 import Button from '../common/Button';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 
-const TransactionList = ({ 
-  transactions = [], 
+const PaymentList = ({ 
+  payments = [], 
   onEdit, 
   onDelete, 
   onRefresh,
+  onExport,
   currentPage = 1, 
   totalPages = 1, 
   onPageChange, 
@@ -33,15 +37,67 @@ const TransactionList = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [sortField, setSortField] = useState('transaction_date');
+  const [methodFilter, setMethodFilter] = useState('all');
+  const [sortField, setSortField] = useState('payment_date');
   const [sortDirection, setSortDirection] = useState('desc');
+  const getPaymentMethodIcon = (method) => {
+    switch (method?.toLowerCase()) {
+      case 'credit_card':
+        return <CreditCard size={14} className="text-blue-500" />;
+      case 'cash':
+        return <Banknote size={14} className="text-green-500" />;
+      case 'bank_transfer':
+        return <Smartphone size={14} className="text-purple-500" />;
+      default:
+        return <CreditCard size={14} className="text-gray-500" />;
+    }
+  };
+
+  const getMethodDisplayName = (method) => {
+    switch (method?.toLowerCase()) {
+      case 'credit_card':
+        return 'Credit Card';
+      case 'cash':
+        return 'Cash';
+      case 'bank_transfer':
+        return 'Bank Transfer';
+      default:
+        return method || 'Credit Card';
+    }
+  };
+
+  const getStatusBadgeColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'failed':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
+
+  const getStatusDisplayName = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return 'Completed';
+      case 'pending':
+        return 'Pending';
+      case 'failed':
+        return 'Failed';
+      default:
+        return status || 'Pending';
+    }
+  };
 
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection('asc');
     }
   };
 
@@ -54,43 +110,21 @@ const TransactionList = ({
       : <ArrowDown size={14} className="text-blue-500" />;
   };
 
-  const getStatusDisplayName = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'success':
-        return 'Success';
-      case 'failed':
-        return 'Failed';
-      case 'pending':
-        return 'Pending';
-      default:
-        return status || 'Unknown';
-    }
-  };
-
-  const getStatusBadgeColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'success':
-        return 'success';
-      case 'failed':
-        return 'error';
-      case 'pending':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const sortedAndFilteredTransactions = useMemo(() => {
-    let filtered = transactions.filter(transaction => {
+  const sortedAndFilteredPayments = useMemo(() => {
+    let filtered = payments.filter(payment => {
       const matchesSearch = searchTerm === '' || 
-        transaction.transaction_reference?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        transaction.transaction_id?.toString().includes(searchTerm) ||
-        transaction.payment_id?.toString().includes(searchTerm);
+        payment.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        payment.member_id?.toString().includes(searchTerm) ||
+        payment.payment_id?.toString().includes(searchTerm) ||
+        payment.member_name?.toLowerCase().includes(searchTerm.toLowerCase());
         
       const matchesStatus = statusFilter === 'all' || 
-        transaction.transaction_status?.toLowerCase() === statusFilter.toLowerCase();
+        payment.payment_status?.toLowerCase() === statusFilter.toLowerCase();
+
+      const matchesMethod = methodFilter === 'all' ||
+        payment.payment_method?.toLowerCase() === methodFilter.toLowerCase();
         
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && matchesMethod;
     });
 
     // Sorting
@@ -98,9 +132,12 @@ const TransactionList = ({
       let aValue = a[sortField];
       let bValue = b[sortField];
 
-      if (sortField === 'transaction_date') {
+      if (sortField === 'payment_date') {
         aValue = new Date(aValue);
         bValue = new Date(bValue);
+      } else if (sortField === 'amount') {
+        aValue = parseFloat(aValue) || 0;
+        bValue = parseFloat(bValue) || 0;
       } else if (typeof aValue === 'string') {
         aValue = aValue.toLowerCase();
         bValue = bValue?.toLowerCase() || '';
@@ -114,16 +151,18 @@ const TransactionList = ({
     });
 
     return filtered;
-  }, [transactions, searchTerm, statusFilter, sortField, sortDirection]);
+  }, [payments, searchTerm, statusFilter, methodFilter, sortField, sortDirection]);
 
   const handleClearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
+    setMethodFilter('all');
   };
 
   const activeFiltersCount = 
     (searchTerm ? 1 : 0) + 
-    (statusFilter !== 'all' ? 1 : 0);
+    (statusFilter !== 'all' ? 1 : 0) + 
+    (methodFilter !== 'all' ? 1 : 0);
   
   if (loading) {
     return (
@@ -134,21 +173,22 @@ const TransactionList = ({
             <div className="h-10 bg-gray-200 rounded-lg flex-1"></div>
             <div className="flex gap-2">
               <div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
+              <div className="h-10 w-32 bg-gray-200 rounded-lg"></div>
               <div className="h-10 w-24 bg-gray-200 rounded-lg"></div>
             </div>
           </div>
           <div className="border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 p-4">
-              <div className="grid grid-cols-7 gap-4">
-                {Array.from({ length: 7 }).map((_, i) => (
+              <div className="grid grid-cols-8 gap-4">
+                {Array.from({ length: 8 }).map((_, i) => (
                   <div key={i} className="h-4 bg-gray-200 rounded"></div>
                 ))}
               </div>
             </div>
             {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="p-4 border-b border-gray-200">
-                <div className="grid grid-cols-7 gap-4">
-                  {Array.from({ length: 7 }).map((_, j) => (
+                <div className="grid grid-cols-8 gap-4">
+                  {Array.from({ length: 8 }).map((_, j) => (
                     <div key={j} className="h-4 bg-gray-200 rounded"></div>
                   ))}
                 </div>
@@ -160,15 +200,15 @@ const TransactionList = ({
     );
   }
   
-  if (!transactions.length && !loading) {
+  if (!payments.length && !loading) {
     return (
       <div className="py-16 text-center bg-white rounded-lg border border-gray-200">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gray-100 flex items-center justify-center">
           <CreditCard size={32} className="text-gray-400" />
         </div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-3">No transactions found</h3>
+        <h3 className="text-xl font-semibold text-gray-900 mb-3">No payments found</h3>
         <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-          There are no transactions in the system yet. Transactions are automatically created after payment processing.
+          No payments are registered in the system. You can use the button above to add the first payment.
         </p>
       </div>
     );
@@ -202,7 +242,7 @@ const TransactionList = ({
       startPage = Math.max(1, endPage - maxVisiblePages + 1);
     }
 
-    // First page
+    // İlk sayfa
     if (startPage > 1) {
       pages.push(renderPaginationButton(1, false));
       if (startPage > 2) {
@@ -210,12 +250,12 @@ const TransactionList = ({
       }
     }
 
-    // Visible pages
+    // Görünür sayfalar
     for (let i = startPage; i <= endPage; i++) {
       pages.push(renderPaginationButton(i, i === currentPage));
     }
 
-    // Last page
+    // Son sayfa
     if (endPage < totalPages) {
       if (endPage < totalPages - 1) {
         pages.push(<span key="end-ellipsis" className="px-2 py-2 text-gray-500">...</span>);
@@ -260,9 +300,9 @@ const TransactionList = ({
             <span className="font-medium">
               {Math.min(currentPage * pageSize, totalCount)}
             </span>
-            {' '}of{' '}
+            {' '}arası, toplam{' '}
             <span className="font-medium">{totalCount}</span>
-            {' '}transactions
+            {' '}ödeme gösteriliyor
           </div>
           
           <div className="flex items-center space-x-2">
@@ -306,7 +346,7 @@ const TransactionList = ({
           <div className="relative flex-1">
             <input 
               type="text" 
-              placeholder="Search transactions (ID, reference number, payment ID...)" 
+              placeholder="Search payments (ID, description, member ID or name...)" 
               className="w-full border border-gray-300 rounded-lg py-2.5 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
@@ -321,10 +361,21 @@ const TransactionList = ({
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">All Status</option>
-              <option value="success">Success</option>
+              <option value="all">All Statuses</option>
+              <option value="completed">Completed</option>
               <option value="pending">Pending</option>
               <option value="failed">Failed</option>
+            </select>
+
+            <select 
+              className="border border-gray-300 rounded-lg py-2.5 px-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[140px]"
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+            >
+              <option value="all">All Methods</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="cash">Cash</option>
+              <option value="bank_transfer">Bank Transfer</option>
             </select>
 
             {/* Clear button */}
@@ -353,32 +404,23 @@ const TransactionList = ({
                 Refresh
               </Button>
             )}
+
           </div>
         </div>
 
         {/* Result count */}
-        {sortedAndFilteredTransactions.length !== transactions.length && (
+        {sortedAndFilteredPayments.length !== payments.length && (
           <div className="text-sm text-gray-600 mb-4">
-            Showing {sortedAndFilteredTransactions.length} of {transactions.length} transactions
+            Showing {sortedAndFilteredPayments.length} of {payments.length} payments
           </div>
         )}
       </div>
-
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th 
-                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('transaction_id')}
-                >
-                  <div className="flex items-center gap-1">
-                    Transaction ID
-                    {getSortIcon('transaction_id')}
-                  </div>
-                </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                   onClick={() => handleSort('payment_id')}
@@ -390,27 +432,48 @@ const TransactionList = ({
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('transaction_date')}
+                  onClick={() => handleSort('member_id')}
                 >
                   <div className="flex items-center gap-1">
-                    Date
-                    {getSortIcon('transaction_date')}
+                    Member
+                    {getSortIcon('member_id')}
                   </div>
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Reference
                 </th>
                 <th 
                   className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                  onClick={() => handleSort('transaction_status')}
+                  onClick={() => handleSort('payment_date')}
                 >
                   <div className="flex items-center gap-1">
-                    Status
-                    {getSortIcon('transaction_status')}
+                    Date
+                    {getSortIcon('payment_date')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('amount')}
+                >
+                  <div className="flex items-center gap-1">
+                    Amount
+                    {getSortIcon('amount')}
                   </div>
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Gateway Response
+                  Method
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Type
+                </th>
+                <th 
+                  className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                  onClick={() => handleSort('payment_status')}
+                >
+                  <div className="flex items-center gap-1">
+                    Status
+                    {getSortIcon('payment_status')}
+                  </div>
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Description
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -418,58 +481,74 @@ const TransactionList = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {sortedAndFilteredTransactions.length === 0 ? (
+              {sortedAndFilteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                     <div className="flex flex-col items-center">
                       <Search size={24} className="text-gray-300 mb-2" />
-                      No transactions found matching your search criteria.
+                      No payments found matching your search criteria.
                     </div>
                   </td>
                 </tr>
               ) : (
-                sortedAndFilteredTransactions.map((transaction, index) => (
-                  <tr key={transaction.transaction_id || index} className="hover:bg-gray-50 transition-colors">
+                sortedAndFilteredPayments.map((payment, index) => (
+                  <tr key={payment.payment_id || index} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      #{transaction.transaction_id || `TXN-${1000 + index}`}
+                      #{payment.payment_id || `PAY-${1000 + index}`}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center text-sm text-gray-900">
-                        <ExternalLink size={14} className="text-gray-400 mr-2" />
-                        <span className="font-medium">#{transaction.payment_id || 'N/A'}</span>
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-8 w-8">
+                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                            <User size={14} className="text-gray-500" />
+                          </div>
+                        </div>
+                        <div className="ml-3">
+                          <div className="text-sm font-medium text-gray-900">
+                            {payment.member_name || `Member #${payment.member_id || 'N/A'}`}
+                          </div>
+                          {payment.member_name && (
+                            <div className="text-sm text-gray-500">
+                              ID: {payment.member_id}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-sm text-gray-900">
                         <Calendar size={14} className="text-gray-400 mr-1" />
-                        {formatDate(transaction.transaction_date) || 'N/A'}
+                        {formatDate(payment.payment_date) || 'N/A'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
-                      {transaction.transaction_reference || 'N/A'}
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                      {formatCurrency(payment.amount) || 'N/A'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center text-sm text-gray-900">
+                        {getPaymentMethodIcon(payment.payment_method)}
+                        <span className="ml-2">{getMethodDisplayName(payment.payment_method)}</span>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <StatusBadge 
-                        status={getStatusDisplayName(transaction.transaction_status)} 
-                        variant={getStatusBadgeColor(transaction.transaction_status)}
+                        status={payment.payment_type_name || 'Other'}
                       />
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs">
-                      <div className="truncate">
-                        {transaction.gateway_response ? (
-                          <span className="bg-gray-100 px-2 py-1 rounded text-xs font-mono">
-                            {JSON.parse(transaction.gateway_response).processor || 'N/A'}
-                          </span>
-                        ) : (
-                          'N/A'
-                        )}
-                      </div>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <StatusBadge 
+                        status={getStatusDisplayName(payment.payment_status)} 
+                        variant={getStatusBadgeColor(payment.payment_status)}
+                      />
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate">
+                      {payment.description || 'Monthly membership payment'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         {onEdit && (
                           <button 
-                            onClick={() => onEdit(transaction)}
+                            onClick={() => onEdit(payment)}
                             className="text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50 p-1 rounded transition-colors"
                             title="Edit"
                           >
@@ -478,7 +557,7 @@ const TransactionList = ({
                         )}
                         {onDelete && (
                           <button 
-                            onClick={() => onDelete(transaction)}
+                            onClick={() => onDelete(payment)}
                             className="text-red-600 hover:text-red-800 hover:bg-red-50 p-1 rounded transition-colors"
                             title="Delete"
                           >
@@ -501,4 +580,4 @@ const TransactionList = ({
   );
 };
 
-export default TransactionList;
+export default PaymentList;

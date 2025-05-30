@@ -235,7 +235,7 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 		whereClause = "WHERE " + strings.Join(where, " AND ")
 	}
 
-	// Query for getting the statistics
+	// Query for getting the basic statistics
 	query := fmt.Sprintf(`
 		SELECT 
 			COUNT(*) as total_payments,
@@ -263,6 +263,49 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 
 	if err != nil {
 		return nil, fmt.Errorf("getting payment statistics: %w", err)
+	}
+
+	// Query for payment method statistics
+	methodQuery := fmt.Sprintf(`
+		SELECT 
+			payment_method,
+			COUNT(*) as count,
+			CASE WHEN (SELECT COUNT(*) FROM payments %s) > 0 
+				THEN ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM payments %s), 2)
+				ELSE 0 
+			END as percentage
+		FROM payments
+		%s
+		GROUP BY payment_method
+		ORDER BY count DESC
+	`, whereClause, whereClause, whereClause)
+
+	// Execute the payment method statistics query
+	rows, err := r.db.QueryContext(ctx, methodQuery, append(args, args...)...)
+	if err != nil {
+		return nil, fmt.Errorf("getting payment method statistics: %w", err)
+	}
+	defer rows.Close()
+
+	// Initialize the payment method statistics slice
+	stats.PaymentMethodStatistics = make([]model.PaymentMethodStatistic, 0)
+
+	// Scan the payment method statistics
+	for rows.Next() {
+		var methodStat model.PaymentMethodStatistic
+		err := rows.Scan(
+			&methodStat.PaymentMethod,
+			&methodStat.Count,
+			&methodStat.Percentage,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning payment method statistics: %w", err)
+		}
+		stats.PaymentMethodStatistics = append(stats.PaymentMethodStatistics, methodStat)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating payment method statistics: %w", err)
 	}
 
 	return stats, nil

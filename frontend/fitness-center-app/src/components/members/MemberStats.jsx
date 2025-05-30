@@ -31,9 +31,9 @@ const MemberStats = ({ stats, membershipStats = [] }) => {
   // Filter out zero values to avoid empty segments in the chart
   const filteredStatusData = statusData.filter(item => item.value > 0);
   
-  // Etiketleri dilim rengine göre değişen renkte gösteren özel render fonksiyonu
+  // Custom render function to show labels in colors that vary according to slice color
   const renderCustomLabel = () => {
-    // Etiket gösterme - boş döndür
+    // Label display - return empty
     return null;
   };
 
