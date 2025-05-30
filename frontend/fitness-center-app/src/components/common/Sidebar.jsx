@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
     { path: '/members', label: 'Members', icon: <Users size={20} /> },
     { path: '/classes', label: 'Classes', icon: <Calendar size={20} /> },
     { path: '/trainers', label: 'Trainers', icon: <Award size={20} /> },
-    { path: '/equipment', label: 'Equipment', icon: <Dumbbell size={20} /> },
+    { path: '/facility', label: 'Facility', icon: <Dumbbell size={20} /> },
     { path: '/payments', label: 'Payments', icon: <CreditCard size={20} /> },
   ];
 
