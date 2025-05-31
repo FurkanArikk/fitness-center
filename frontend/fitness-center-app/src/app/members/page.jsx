@@ -1,27 +1,34 @@
 "use client";
 
-import React, { useState, useEffect, useId } from 'react';
-import { Plus, Search, Filter, ChevronDown } from 'lucide-react';
-import Card from '@/components/common/Card';
-import Button from '@/components/common/Button';
-import Loader from '@/components/common/Loader';
-import MemberList from '@/components/members/MemberList';
-import MemberStats from '@/components/members/MemberStats';
-import EditMemberModal from '@/components/members/EditMemberModal';
-import DeleteMemberConfirm from '@/components/members/DeleteMemberConfirm';
-import AddMemberModal from '@/components/members/AddMemberModal';
-import AssignMembershipModal from '@/components/members/AssignMembershipModal';
-import MemberDetailsModal from '@/components/members/MemberDetailsModal';
-import EditMembershipModal from '@/components/members/EditMembershipModal';
-import DeleteMembershipConfirm from '@/components/members/DeleteMembershipConfirm';
-import EditBenefitModal from '@/components/members/EditBenefitModal';
-import DeleteBenefitConfirm from '@/components/members/DeleteBenefitConfirm';
-import BenefitTypesList from '@/components/members/BenefitTypesList'; 
-import MemberAssessmentsModal from '@/components/members/MemberAssessmentsModal';
-import AddAssessmentModal from '@/components/members/AddAssessmentModal';
-import EditAssessmentModal from '@/components/members/EditAssessmentModal';
-import DeleteAssessmentConfirm from '@/components/members/DeleteAssessmentConfirm';
-import { memberService } from '@/api';
+import React, { useState, useEffect, useId } from "react";
+import {
+  Plus,
+  Search,
+  Filter,
+  ChevronDown,
+  UserPlus,
+  Sparkles,
+} from "lucide-react";
+import Card from "@/components/common/Card";
+import Button from "@/components/common/Button";
+import Loader from "@/components/common/Loader";
+import MemberList from "@/components/members/MemberList";
+import MemberStats from "@/components/members/MemberStats";
+import EditMemberModal from "@/components/members/EditMemberModal";
+import DeleteMemberConfirm from "@/components/members/DeleteMemberConfirm";
+import AddMemberModal from "@/components/members/AddMemberModal";
+import AssignMembershipModal from "@/components/members/AssignMembershipModal";
+import MemberDetailsModal from "@/components/members/MemberDetailsModal";
+import EditMembershipModal from "@/components/members/EditMembershipModal";
+import DeleteMembershipConfirm from "@/components/members/DeleteMembershipConfirm";
+import EditBenefitModal from "@/components/members/EditBenefitModal";
+import DeleteBenefitConfirm from "@/components/members/DeleteBenefitConfirm";
+import BenefitTypesList from "@/components/members/BenefitTypesList";
+import MemberAssessmentsModal from "@/components/members/MemberAssessmentsModal";
+import AddAssessmentModal from "@/components/members/AddAssessmentModal";
+import EditAssessmentModal from "@/components/members/EditAssessmentModal";
+import DeleteAssessmentConfirm from "@/components/members/DeleteAssessmentConfirm";
+import { memberService } from "@/api";
 
 const Members = () => {
   const [members, setMembers] = useState([]);
@@ -34,16 +41,16 @@ const Members = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
-  
+
   // States for member operations
   const [editMember, setEditMember] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  
+
   // State for membership assignment
   const [assignMembershipMember, setAssignMembershipMember] = useState(null);
-  
+
   // Added state variable for statistics
   const [memberStats, setMemberStats] = useState({
     totalMembers: 0,
@@ -51,7 +58,7 @@ const Members = () => {
     inactiveMembers: 0,
     holdMembers: 0,
     newMembersThisMonth: 0,
-    averageAttendance: 0
+    averageAttendance: 0,
   });
 
   // State for member details modal
@@ -83,26 +90,40 @@ const Members = () => {
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
     try {
-      console.log('[Members Page] Fetching all members for statistics');
+      console.log("[Members Page] Fetching all members for statistics");
       const data = await memberService.getAllMembers();
-      
+
       if (data) {
-        const membersArray = Array.isArray(data) ? data : (data.members && Array.isArray(data.members) ? data.members : []);
-        const totalCount = Array.isArray(data) ? data.length : (data.totalCount || membersArray.length);
-        
+        const membersArray = Array.isArray(data)
+          ? data
+          : data.members && Array.isArray(data.members)
+          ? data.members
+          : [];
+        const totalCount = Array.isArray(data)
+          ? data.length
+          : data.totalCount || membersArray.length;
+
         // Calculate counts based on member status
-        const activeCount = membersArray.filter(member => member.status === 'active').length;
-        const inactiveCount = membersArray.filter(member => member.status === 'de_active').length;
-        const holdCount = membersArray.filter(member => member.status === 'hold_on').length;
-        
+        const activeCount = membersArray.filter(
+          (member) => member.status === "active"
+        ).length;
+        const inactiveCount = membersArray.filter(
+          (member) => member.status === "de_active"
+        ).length;
+        const holdCount = membersArray.filter(
+          (member) => member.status === "hold_on"
+        ).length;
+
         // Calculate new members this month
         const currentDate = new Date();
-        const newMembersCount = membersArray.filter(m => {
+        const newMembersCount = membersArray.filter((m) => {
           const joinDate = new Date(m.joinDate);
-          return joinDate.getMonth() === currentDate.getMonth() && 
-                 joinDate.getFullYear() === currentDate.getFullYear();
+          return (
+            joinDate.getMonth() === currentDate.getMonth() &&
+            joinDate.getFullYear() === currentDate.getFullYear()
+          );
         }).length;
-        
+
         // Update statistics
         setMemberStats({
           totalMembers: totalCount,
@@ -110,10 +131,14 @@ const Members = () => {
           inactiveMembers: inactiveCount,
           holdMembers: holdCount,
           newMembersThisMonth: newMembersCount,
-          averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+          averageAttendance: Math.round(activeCount * 0.7), // Example calculation for average attendance
         });
-        
-        console.log('[Members Page] Statistics updated:', totalCount, 'members');
+
+        console.log(
+          "[Members Page] Statistics updated:",
+          totalCount,
+          "members"
+        );
       }
     } catch (err) {
       console.error("[Members Page] Error fetching statistics data:", err);
@@ -125,29 +150,39 @@ const Members = () => {
     setLoadingMemberships(true);
     setError(null); // Clear previous errors
     try {
-      console.log('[Members Page] Fetching memberships...');
+      console.log("[Members Page] Fetching memberships...");
       const data = await memberService.getMemberships();
-      console.log('[Members Page] Memberships fetched:', data?.length || 0);
-      
+      console.log("[Members Page] Memberships fetched:", data?.length || 0);
+
       // Fetch benefits for all memberships
       if (Array.isArray(data) && data.length > 0) {
-        const membershipsWithBenefits = await Promise.all(data.map(async (membership) => {
-          try {
-            const benefits = await memberService.getMembershipBenefits(membership.id);
-            return { ...membership, benefits: benefits || [] };
-          } catch (err) {
-            console.error(`Error fetching benefits for membership ${membership.id}:`, err);
-            return { ...membership, benefits: [] };
-          }
-        }));
+        const membershipsWithBenefits = await Promise.all(
+          data.map(async (membership) => {
+            try {
+              const benefits = await memberService.getMembershipBenefits(
+                membership.id
+              );
+              return { ...membership, benefits: benefits || [] };
+            } catch (err) {
+              console.error(
+                `Error fetching benefits for membership ${membership.id}:`,
+                err
+              );
+              return { ...membership, benefits: [] };
+            }
+          })
+        );
         setMembershipsData(membershipsWithBenefits);
-        console.log('[Members Page] Memberships with benefits loaded:', membershipsWithBenefits.length);
+        console.log(
+          "[Members Page] Memberships with benefits loaded:",
+          membershipsWithBenefits.length
+        );
       } else {
         setMembershipsData(data || []);
       }
     } catch (err) {
-      console.error('Error fetching memberships:', err);
-      setError(`Failed to load memberships: ${err.message || 'Unknown error'}`);
+      console.error("Error fetching memberships:", err);
+      setError(`Failed to load memberships: ${err.message || "Unknown error"}`);
       setMembershipsData([]); // Set empty array on error
     } finally {
       setLoadingMemberships(false);
@@ -159,13 +194,13 @@ const Members = () => {
     setLoadingBenefits(true);
     setError(null); // Clear previous errors
     try {
-      console.log('[Members Page] Fetching benefits...');
+      console.log("[Members Page] Fetching benefits...");
       const data = await memberService.getBenefits();
-      console.log('[Members Page] Benefits fetched:', data?.length || 0);
+      console.log("[Members Page] Benefits fetched:", data?.length || 0);
       setBenefitsData(data || []);
     } catch (err) {
-      console.error('Error fetching benefits:', err);
-      setError(`Failed to load benefits: ${err.message || 'Unknown error'}`);
+      console.error("Error fetching benefits:", err);
+      setError(`Failed to load benefits: ${err.message || "Unknown error"}`);
       setBenefitsData([]); // Set empty array on error
     } finally {
       setLoadingBenefits(false);
@@ -175,7 +210,7 @@ const Members = () => {
   // Function to fetch member assessments
   const fetchMemberAssessments = async (memberId) => {
     if (!memberId) return;
-    
+
     setLoadingAssessments(true);
     try {
       const assessments = await memberService.getMemberAssessments(memberId);
@@ -199,16 +234,19 @@ const Members = () => {
     setActionLoading(true);
     try {
       await memberService.createAssessment(formData);
-      console.log('[Members] Assessment created for member:', formData.memberId);
-      
+      console.log(
+        "[Members] Assessment created for member:",
+        formData.memberId
+      );
+
       // Reload assessments
       await fetchMemberAssessments(formData.memberId);
-      
+
       // Close modal
       setAddAssessmentMember(null);
     } catch (err) {
-      console.error('Error creating assessment:', err);
-      setError('An error occurred while creating the assessment');
+      console.error("Error creating assessment:", err);
+      setError("An error occurred while creating the assessment");
     } finally {
       setActionLoading(false);
     }
@@ -217,20 +255,20 @@ const Members = () => {
   // Assessment edit function
   const handleEditAssessment = async (formData) => {
     if (!formData || !formData.id) return;
-    
+
     setActionLoading(true);
     try {
       await memberService.updateAssessment(formData.id, formData);
-      console.log('[Members] Assessment updated:', formData.id);
-      
+      console.log("[Members] Assessment updated:", formData.id);
+
       // Reload assessments to reflect changes
       await fetchMemberAssessments(formData.memberId);
-      
+
       // Close modal
       setEditAssessment(null);
     } catch (err) {
-      console.error('Error updating assessment:', err);
-      setError('An error occurred while updating the assessment');
+      console.error("Error updating assessment:", err);
+      setError("An error occurred while updating the assessment");
     } finally {
       setActionLoading(false);
     }
@@ -239,25 +277,25 @@ const Members = () => {
   // Assessment delete function
   const handleDeleteAssessment = async (id) => {
     if (!id || !viewAssessmentsMember) return;
-    
+
     setActionLoading(true);
     try {
       const success = await memberService.deleteAssessment(id);
-      
+
       if (success) {
-        console.log('[Members] Assessment deleted:', id);
-        
+        console.log("[Members] Assessment deleted:", id);
+
         // Reload assessments to reflect changes
         await fetchMemberAssessments(viewAssessmentsMember.id);
       } else {
-        setError('Failed to delete assessment');
+        setError("Failed to delete assessment");
       }
-      
+
       // Close delete confirmation modal
       setDeleteAssessmentConfirm(null);
     } catch (err) {
-      console.error('Error deleting assessment:', err);
-      setError('An error occurred while deleting the assessment');
+      console.error("Error deleting assessment:", err);
+      setError("An error occurred while deleting the assessment");
     } finally {
       setActionLoading(false);
     }
@@ -267,16 +305,18 @@ const Members = () => {
     const fetchMembers = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        console.log(`[Members Page] Fetching members, page: ${currentPage}, size: ${pageSize}`);
+        console.log(
+          `[Members Page] Fetching members, page: ${currentPage}, size: ${pageSize}`
+        );
         const data = await memberService.getMembers(currentPage, pageSize);
-        
-        console.log('[Members Page] API Response:', data);
-        
+
+        console.log("[Members Page] API Response:", data);
+
         if (data) {
           let membersData = [];
-          
+
           // Handle the specific API response format
           if (data.data && Array.isArray(data.data)) {
             // Pagination response format: { data: [...], page: 1, pageSize: 10, totalPages: X, totalItems: Y }
@@ -291,80 +331,97 @@ const Members = () => {
             membersData = data;
             setTotalPages(Math.max(1, Math.ceil(data.length / 10)));
           } else {
-            console.warn('[Members Page] Unknown API response format:', data);
+            console.warn("[Members Page] Unknown API response format:", data);
             setMembers([]);
             setTotalPages(1);
             return;
           }
-          
+
           // Fetch active memberships for members
-          const membersWithMemberships = await Promise.all(membersData.map(async (member) => {
-            try {
-              // First, get all memberships of the member
-              let memberMemberships = [];
-              
+          const membersWithMemberships = await Promise.all(
+            membersData.map(async (member) => {
               try {
-                memberMemberships = await memberService.getMemberMemberships(member.id);
-                if (!Array.isArray(memberMemberships)) {
-                  console.warn(`Unexpected response format for member ${member.id} memberships:`, memberMemberships);
+                // First, get all memberships of the member
+                let memberMemberships = [];
+
+                try {
+                  memberMemberships = await memberService.getMemberMemberships(
+                    member.id
+                  );
+                  if (!Array.isArray(memberMemberships)) {
+                    console.warn(
+                      `Unexpected response format for member ${member.id} memberships:`,
+                      memberMemberships
+                    );
+                    memberMemberships = [];
+                  }
+                } catch (err) {
+                  console.error(
+                    `Error fetching memberships for member ${member.id}:`,
+                    err
+                  );
                   memberMemberships = [];
                 }
-              } catch (err) {
-                console.error(`Error fetching memberships for member ${member.id}:`, err);
-                memberMemberships = [];
-              }
-              
-              if (memberMemberships.length > 0) {
-                // Sort by ID (highest ID first)
-                const sortedMemberships = [...memberMemberships].sort((a, b) => 
-                  b.id - a.id
-                );
-                
-                // Get the membership with the highest ID
-                const latestMembership = sortedMemberships[0];
-                
-                if (latestMembership) {
-                  // Get details of the membership type
-                  try {
-                    const membershipDetails = await memberService.getMembership(latestMembership.membershipId);
-                    if (membershipDetails) {
-                      member.activeMembership = {
-                        ...latestMembership,
-                        membershipName: membershipDetails?.membershipName || 'Unknown',
-                        description: membershipDetails?.description || '',
-                        price: membershipDetails?.price || 0
-                      };
+
+                if (memberMemberships.length > 0) {
+                  // Sort by ID (highest ID first)
+                  const sortedMemberships = [...memberMemberships].sort(
+                    (a, b) => b.id - a.id
+                  );
+
+                  // Get the membership with the highest ID
+                  const latestMembership = sortedMemberships[0];
+
+                  if (latestMembership) {
+                    // Get details of the membership type
+                    try {
+                      const membershipDetails =
+                        await memberService.getMembership(
+                          latestMembership.membershipId
+                        );
+                      if (membershipDetails) {
+                        member.activeMembership = {
+                          ...latestMembership,
+                          membershipName:
+                            membershipDetails?.membershipName || "Unknown",
+                          description: membershipDetails?.description || "",
+                          price: membershipDetails?.price || 0,
+                        };
+                      }
+                    } catch (err) {
+                      console.error(
+                        `Error fetching membership details for member ${member.id}:`,
+                        err
+                      );
                     }
-                  } catch (err) {
-                    console.error(`Error fetching membership details for member ${member.id}:`, err);
                   }
                 }
+
+                return member;
+              } catch (err) {
+                console.error(`Error processing member ${member.id}:`, err);
+                return member;
               }
-              
-              return member;
-            } catch (err) {
-              console.error(`Error processing member ${member.id}:`, err);
-              return member;
-            }
-          }));
-          
+            })
+          );
+
           setMembers(membersWithMemberships);
-          
+
           // Calculate membership distribution statistics
           const membershipColors = {
-            'basic': '#3B82F6',    // Blue
-            'premium': '#8B5CF6',  // Purple
-            'gold': '#F59E0B',     // Amber
-            'platinum': '#6B7280', // Gray
+            basic: "#3B82F6", // Blue
+            premium: "#8B5CF6", // Purple
+            gold: "#F59E0B", // Amber
+            platinum: "#6B7280", // Gray
           };
-          
+
           // Count by membership type
           const membershipCounts = {};
-          
-          membersWithMemberships.forEach(member => {
+
+          membersWithMemberships.forEach((member) => {
             if (member.activeMembership?.membershipName) {
               const membershipName = member.activeMembership.membershipName;
-              
+
               if (!membershipCounts[membershipName]) {
                 membershipCounts[membershipName] = 1;
               } else {
@@ -372,33 +429,43 @@ const Members = () => {
               }
             }
           });
-          
+
           // Create membership statistics
-          const membershipStatsData = Object.keys(membershipCounts).map(name => ({
-            name,
-            value: membershipCounts[name],
-            color: membershipColors[name.toLowerCase()] || '#60A5FA'
-          }));
-          
+          const membershipStatsData = Object.keys(membershipCounts).map(
+            (name) => ({
+              name,
+              value: membershipCounts[name],
+              color: membershipColors[name.toLowerCase()] || "#60A5FA",
+            })
+          );
+
           setMembershipStats(membershipStatsData);
-          
+
           // Update statistics
-          const activeCount = membersWithMemberships.filter(member => member.status === 'active').length;
-          const inactiveCount = membersWithMemberships.filter(member => member.status === 'de_active').length;
-          const holdCount = membersWithMemberships.filter(member => member.status === 'hold_on').length;
-          
+          const activeCount = membersWithMemberships.filter(
+            (member) => member.status === "active"
+          ).length;
+          const inactiveCount = membersWithMemberships.filter(
+            (member) => member.status === "de_active"
+          ).length;
+          const holdCount = membersWithMemberships.filter(
+            (member) => member.status === "hold_on"
+          ).length;
+
           setMemberStats({
             totalMembers: data.totalCount || membersWithMemberships.length,
             activeMembers: activeCount,
             inactiveMembers: inactiveCount,
             holdMembers: holdCount,
-            newMembersThisMonth: membersWithMemberships.filter(m => {
+            newMembersThisMonth: membersWithMemberships.filter((m) => {
               const joinDate = new Date(m.joinDate);
               const now = new Date();
-              return joinDate.getMonth() === now.getMonth() && 
-                     joinDate.getFullYear() === now.getFullYear();
+              return (
+                joinDate.getMonth() === now.getMonth() &&
+                joinDate.getFullYear() === now.getFullYear()
+              );
             }).length,
-            averageAttendance: Math.round(activeCount * 0.7) // Example calculation for average attendance
+            averageAttendance: Math.round(activeCount * 0.7), // Example calculation for average attendance
           });
         } else {
           setMembers([]);
@@ -414,7 +481,7 @@ const Members = () => {
     };
 
     fetchMembers();
-    
+
     // Update statistics when the application starts
     fetchAndUpdateStats();
 
@@ -430,19 +497,19 @@ const Members = () => {
     setActionLoading(true);
     try {
       const newMember = await memberService.createMember(formData);
-      console.log('[Members] Member added:', newMember);
-      
+      console.log("[Members] Member added:", newMember);
+
       // Update state - add the new member to the list
       setMembers([newMember, ...members]);
-      
+
       // Update statistics after adding a member
       fetchAndUpdateStats();
-      
+
       // Close modal
       setShowAddModal(false);
     } catch (err) {
-      console.error('Error adding member:', err);
-      setError('An error occurred while adding the member');
+      console.error("Error adding member:", err);
+      setError("An error occurred while adding the member");
     } finally {
       setActionLoading(false);
     }
@@ -454,22 +521,27 @@ const Members = () => {
 
     setActionLoading(true);
     try {
-      const updatedMember = await memberService.updateMember(editMember.id, formData);
-      console.log('[Members] Member updated:', updatedMember);
-      
+      const updatedMember = await memberService.updateMember(
+        editMember.id,
+        formData
+      );
+      console.log("[Members] Member updated:", updatedMember);
+
       // Update state
-      setMembers(members.map(member => 
-        member.id === updatedMember.id ? updatedMember : member
-      ));
-      
+      setMembers(
+        members.map((member) =>
+          member.id === updatedMember.id ? updatedMember : member
+        )
+      );
+
       // Update statistics after editing a member
       fetchAndUpdateStats();
-      
+
       // Close modal
       setEditMember(null);
     } catch (err) {
-      console.error('Error updating member:', err);
-      setError('An error occurred while updating the member');
+      console.error("Error updating member:", err);
+      setError("An error occurred while updating the member");
     } finally {
       setActionLoading(false);
     }
@@ -481,19 +553,19 @@ const Members = () => {
     try {
       const success = await memberService.deleteMember(id);
       if (success) {
-        console.log('[Members] Member deleted:', id);
-        
+        console.log("[Members] Member deleted:", id);
+
         // Remove deleted member from the list
-        setMembers(members.filter(member => member.id !== id));
-        
+        setMembers(members.filter((member) => member.id !== id));
+
         // Update statistics after deleting a member
         fetchAndUpdateStats();
       } else {
-        setError('Failed to delete member');
+        setError("Failed to delete member");
       }
     } catch (err) {
-      console.error('Error deleting member:', err);
-      setError('An error occurred while deleting the member');
+      console.error("Error deleting member:", err);
+      setError("An error occurred while deleting the member");
     } finally {
       setActionLoading(false);
       setDeleteConfirm(null);
@@ -505,41 +577,54 @@ const Members = () => {
     setActionLoading(true);
     try {
       // API call
-      const result = await memberService.assignMembershipToMember(membershipData);
-      console.log('[Members] Membership assigned:', result);
-      
+      const result = await memberService.assignMembershipToMember(
+        membershipData
+      );
+      console.log("[Members] Membership assigned:", result);
+
       // Fetch updated member details
       try {
-        const updatedMemberDetails = await memberService.getMember(membershipData.memberId);
-        const membershipDetails = await memberService.getMembership(membershipData.membershipId);
-        
+        const updatedMemberDetails = await memberService.getMember(
+          membershipData.memberId
+        );
+        const membershipDetails = await memberService.getMembership(
+          membershipData.membershipId
+        );
+
         if (updatedMemberDetails && membershipDetails) {
           const activeMembership = {
             membershipId: membershipData.membershipId,
             startDate: membershipData.startDate,
             endDate: membershipData.endDate,
-            membershipName: membershipDetails.membershipName || 'Unknown',
-            description: membershipDetails.description || '',
-            price: membershipDetails.price || 0
+            membershipName: membershipDetails.membershipName || "Unknown",
+            description: membershipDetails.description || "",
+            price: membershipDetails.price || 0,
           };
-          
-          setMembers(currentMembers => currentMembers.map(member => {
-            if (member.id === membershipData.memberId) {
-              return { ...member, activeMembership };
-            }
-            return member;
-          }));
-          
-          console.log('[Members] Member list updated with new membership information');
+
+          setMembers((currentMembers) =>
+            currentMembers.map((member) => {
+              if (member.id === membershipData.memberId) {
+                return { ...member, activeMembership };
+              }
+              return member;
+            })
+          );
+
+          console.log(
+            "[Members] Member list updated with new membership information"
+          );
         }
       } catch (updateErr) {
-        console.error('Error updating member details after assignment:', updateErr);
+        console.error(
+          "Error updating member details after assignment:",
+          updateErr
+        );
       }
-      
+
       setAssignMembershipMember(null); // Close modal
     } catch (err) {
-      console.error('Error assigning membership:', err);
-      setError('An error occurred while assigning membership');
+      console.error("Error assigning membership:", err);
+      setError("An error occurred while assigning membership");
     } finally {
       setActionLoading(false);
     }
@@ -550,25 +635,29 @@ const Members = () => {
     setActionLoading(true);
     try {
       const result = await memberService.deleteMembershipWithBenefits(id);
-      
+
       if (result.success) {
-        console.log('[Members] Membership deleted:', id);
-        
+        console.log("[Members] Membership deleted:", id);
+
         // Update both membership types and benefit types
         await fetchMemberships();
         await fetchBenefits();
-        
+
         setDeleteMembershipConfirm(null);
       } else {
-        setError(result.error || 'Failed to delete membership');
-        
+        setError(result.error || "Failed to delete membership");
+
         if (result.error && result.error.includes("in use by members")) {
-          setError("This membership type is currently in use by active members and cannot be deleted. Please transfer all members to another membership type first.");
+          setError(
+            "This membership type is currently in use by active members and cannot be deleted. Please transfer all members to another membership type first."
+          );
         }
       }
     } catch (err) {
-      console.error('Error deleting membership:', err);
-      setError('An error occurred while deleting the membership: ' + err.message);
+      console.error("Error deleting membership:", err);
+      setError(
+        "An error occurred while deleting the membership: " + err.message
+      );
     } finally {
       setActionLoading(false);
     }
@@ -580,18 +669,18 @@ const Members = () => {
     try {
       if (id) {
         await memberService.updateMembership(id, data);
-        console.log('[Members] Membership updated:', id);
+        console.log("[Members] Membership updated:", id);
       } else {
         const newMembership = await memberService.createMembership(data);
-        console.log('[Members] New membership created:', newMembership);
+        console.log("[Members] New membership created:", newMembership);
       }
-      
+
       await fetchMemberships();
-      
+
       setEditMembership(null);
     } catch (err) {
-      console.error('Error updating/creating membership:', err);
-      setError('An error occurred while updating/creating the membership');
+      console.error("Error updating/creating membership:", err);
+      setError("An error occurred while updating/creating the membership");
     } finally {
       setActionLoading(false);
     }
@@ -601,16 +690,18 @@ const Members = () => {
   const handleUpdateMembershipStatus = async (id, isActive) => {
     setActionLoading(true);
     try {
-      const result = await memberService.updateMembershipStatus(id, { isActive: !isActive });
-      
+      const result = await memberService.updateMembershipStatus(id, {
+        isActive: !isActive,
+      });
+
       if (result.success) {
         await fetchMemberships();
       } else {
-        setError(result.error || 'Failed to update membership status');
+        setError(result.error || "Failed to update membership status");
       }
     } catch (err) {
-      console.error('Error updating membership status:', err);
-      setError('An error occurred while updating membership status');
+      console.error("Error updating membership status:", err);
+      setError("An error occurred while updating membership status");
     } finally {
       setActionLoading(false);
     }
@@ -622,15 +713,15 @@ const Members = () => {
     try {
       const success = await memberService.deleteBenefit(id);
       if (success) {
-        console.log('[Members] Benefit deleted:', id);
-        
+        console.log("[Members] Benefit deleted:", id);
+
         await fetchBenefits();
       } else {
-        setError('Failed to delete benefit');
+        setError("Failed to delete benefit");
       }
     } catch (err) {
-      console.error('Error deleting benefit:', err);
-      setError('An error occurred while deleting the benefit');
+      console.error("Error deleting benefit:", err);
+      setError("An error occurred while deleting the benefit");
     } finally {
       setActionLoading(false);
       setDeleteBenefitConfirm(null);
@@ -643,22 +734,22 @@ const Members = () => {
     try {
       if (id) {
         await memberService.updateBenefit(id, data);
-        console.log('[Members] Benefit updated:', id);
+        console.log("[Members] Benefit updated:", id);
       } else {
         const newBenefit = await memberService.createBenefit(data);
-        console.log('[Members] New benefit created:', newBenefit);
+        console.log("[Members] New benefit created:", newBenefit);
       }
-      
+
       // Fetch updated benefits
       await fetchBenefits();
-      
+
       // Also fetch memberships to update the membership cards with latest benefit info
       await fetchMemberships();
-      
+
       setEditBenefit(null);
     } catch (err) {
-      console.error('Error updating/creating benefit:', err);
-      setError('An error occurred while updating/creating the benefit');
+      console.error("Error updating/creating benefit:", err);
+      setError("An error occurred while updating/creating the benefit");
     } finally {
       setActionLoading(false);
     }
@@ -669,14 +760,14 @@ const Members = () => {
   }
 
   // Only filter by status and search term
-  const filteredMembers = members.filter(member => {
+  const filteredMembers = members.filter((member) => {
     // Debug: Log member structure
-    console.log('[Members Page] Filtering member:', member);
-    
-    const firstName = member.firstName || member.first_name || '';
-    const lastName = member.lastName || member.last_name || '';
-    const email = member.email || '';
-    
+    console.log("[Members Page] Filtering member:", member);
+
+    const firstName = member.firstName || member.first_name || "";
+    const lastName = member.lastName || member.last_name || "";
+    const email = member.email || "";
+
     const fullName = `${firstName} ${lastName}, ${email}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase());
     const matchesStatus = !filterStatus || member.status === filterStatus;
@@ -686,42 +777,92 @@ const Members = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold">Member Management</h2>
-        <Button 
-          variant="primary" 
-          icon={<Plus size={18} />}
+        <div>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            Member Management
+          </h2>
+          <p className="text-gray-600 mt-1">
+            Manage your fitness center members and memberships
+          </p>
+        </div>
+
+        {/* Enhanced Add New Member Button */}
+        <button
           onClick={() => setShowAddModal(true)}
+          className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3"
         >
-          Add New Member
-        </Button>
+          {/* Background Animation */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+          {/* Sparkle Effect */}
+          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="absolute top-2 left-3 w-1 h-1 bg-white rounded-full animate-ping"></div>
+            <div
+              className="absolute top-4 right-6 w-1 h-1 bg-white rounded-full animate-ping"
+              style={{ animationDelay: "0.2s" }}
+            ></div>
+            <div
+              className="absolute bottom-3 left-6 w-1 h-1 bg-white rounded-full animate-ping"
+              style={{ animationDelay: "0.4s" }}
+            ></div>
+          </div>
+
+          {/* Icon with Animation */}
+          <div className="relative bg-white/20 rounded-full p-2 group-hover:bg-white/30 transition-all duration-300 group-hover:rotate-180">
+            <UserPlus className="w-5 h-5" />
+          </div>
+
+          {/* Text */}
+          <span className="relative text-lg">Add New Member</span>
+
+          {/* Arrow Icon */}
+          <div className="relative transform group-hover:translate-x-1 transition-transform duration-300">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M13 7l5 5m0 0l-5 5m5-5H6"
+              />
+            </svg>
+          </div>
+        </button>
       </div>
-      
+
       {/* Added statistics cards */}
       <MemberStats stats={memberStats} membershipStats={membershipStats} />
-      
+
       {error && (
         <div className="bg-red-50 text-red-700 p-4 rounded-lg">
           <p className="font-medium">Error:</p>
           <p>{error}</p>
         </div>
       )}
-      
+
       <Card>
         <div className="p-4 border-b">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold">Member List</h3>
             <div className="flex gap-2">
               <div className="relative">
-                <input 
+                <input
                   id={searchInputId}
-                  type="text" 
-                  placeholder="Search members..." 
+                  type="text"
+                  placeholder="Search members..."
                   className="border rounded-md py-2 px-4 pl-9 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   suppressHydrationWarning
                   value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <Search size={18} className="absolute left-3 top-2.5 text-gray-400" />
+                <Search
+                  size={18}
+                  className="absolute left-3 top-2.5 text-gray-400"
+                />
               </div>
               <div className="relative">
                 <button
@@ -735,11 +876,13 @@ const Members = () => {
                 {filterOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-20 p-4">
                     <div className="mb-3">
-                      <label className="block text-xs font-semibold mb-1">Status</label>
+                      <label className="block text-xs font-semibold mb-1">
+                        Status
+                      </label>
                       <select
                         className="w-full border rounded px-2 py-1 text-sm"
                         value={filterStatus}
-                        onChange={e => setFilterStatus(e.target.value)}
+                        onChange={(e) => setFilterStatus(e.target.value)}
                       >
                         <option value="">All</option>
                         <option value="active">Active</option>
@@ -778,47 +921,55 @@ const Members = () => {
           ) : (
             <>
               {/* Using the MemberList component with new onViewAssessments prop */}
-              <MemberList 
-                members={filteredMembers} 
+              <MemberList
+                members={filteredMembers}
                 onEdit={(member) => setEditMember(member)}
                 onDelete={(id) => {
-                  const member = members.find(m => m.id === id);
+                  const member = members.find((m) => m.id === id);
                   setDeleteConfirm(member);
                 }}
-                onAssignMembership={(member) => setAssignMembershipMember(member)}
+                onAssignMembership={(member) =>
+                  setAssignMembershipMember(member)
+                }
                 onViewDetails={(member) => setDetailsMember(member)}
                 onViewAssessments={handleViewAssessments} // New assessment button click handler
               />
-              
+
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-sm text-gray-500 flex items-center gap-2">
                   Showing page {currentPage} of {totalPages}
                 </div>
                 <div className="flex space-x-2">
-                  <button 
+                  <button
                     className="px-3 py-1 border rounded hover:bg-gray-50"
                     disabled={currentPage === 1}
-                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.max(prev - 1, 1))
+                    }
                   >
                     Previous
                   </button>
-                  
+
                   {Array.from({ length: Math.min(totalPages, 3) }, (_, i) => (
-                    <button 
+                    <button
                       key={i}
                       className={`px-3 py-1 border rounded ${
-                        currentPage === i + 1 ? 'bg-blue-50 text-blue-600' : 'hover:bg-gray-50'
+                        currentPage === i + 1
+                          ? "bg-blue-50 text-blue-600"
+                          : "hover:bg-gray-50"
                       }`}
                       onClick={() => setCurrentPage(i + 1)}
                     >
                       {i + 1}
                     </button>
                   ))}
-                  
-                  <button 
+
+                  <button
                     className="px-3 py-1 border rounded hover:bg-gray-50"
                     disabled={currentPage === totalPages}
-                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                    onClick={() =>
+                      setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    }
                   >
                     Next
                   </button>
@@ -829,114 +980,375 @@ const Members = () => {
         </div>
       </Card>
 
-      {/* Membership Types Cards */}
-      <Card title="Membership Types">
+      {/* Membership Types Cards - Redesigned */}
+      <Card>
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+                Membership Types
+              </h3>
+              <p className="text-gray-500 mt-1">
+                Manage your fitness center membership plans
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-1 text-sm text-gray-500">
+                <Sparkles className="w-4 h-4" />
+                <span>{membershipsData.length} Plans Available</span>
+              </div>
+
+              {/* Compact Add New Membership Type Button */}
+              <button
+                onClick={() => setEditMembership({})}
+                className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-2"
+              >
+                {/* Background Animation */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+                {/* Sparkle Effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute top-1 left-2 w-1 h-1 bg-white rounded-full animate-ping"></div>
+                  <div
+                    className="absolute top-2 right-3 w-1 h-1 bg-white rounded-full animate-ping"
+                    style={{ animationDelay: "0.2s" }}
+                  ></div>
+                  <div
+                    className="absolute bottom-1 left-4 w-1 h-1 bg-white rounded-full animate-ping"
+                    style={{ animationDelay: "0.4s" }}
+                  ></div>
+                </div>
+
+                {/* Icon with Animation */}
+                <div className="relative bg-white/20 rounded-lg p-1.5 group-hover:bg-white/30 transition-all duration-300 group-hover:rotate-12">
+                  <Plus className="w-4 h-4" />
+                </div>
+
+                {/* Text */}
+                <span className="relative font-medium">
+                  Add New Membership Type
+                </span>
+
+                {/* Arrow Icon */}
+                <div className="relative transform group-hover:translate-x-0.5 transition-transform duration-300">
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+
         {loadingMemberships ? (
-          <div className="p-4">
+          <div className="p-8">
             <Loader size="small" message="Loading membership types..." />
           </div>
         ) : (
-          <div className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {membershipsData.length > 0 ? (
-                membershipsData.map(membership => (
-                  <div 
-                    key={membership.id} 
-                    className={`border rounded-lg shadow p-4 ${membership.isActive ? 'border-green-200' : 'border-gray-200'}`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <h4 className="text-lg font-medium">{membership.membershipName}</h4>
-                      <div>
-                        {membership.isActive ? (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                            Inactive
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 space-y-2">
-                      <p className="text-gray-600 text-sm">{membership.description || 'No description'}</p>
-                      
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <span className="text-gray-500 text-xs">Duration</span>
-                          <p className="font-medium">{membership.duration} month{membership.duration !== 1 ? 's' : ''}</p>
+                membershipsData.map((membership) => {
+                  // Define theme colors based on membership type
+                  const getThemeColors = (name) => {
+                    const lowerName = name?.toLowerCase() || "";
+                    if (lowerName.includes("basic")) {
+                      return {
+                        gradient: "from-blue-500 to-blue-600",
+                        bg: "bg-gradient-to-br from-blue-50 to-blue-100/50",
+                        border: "border-blue-200",
+                        text: "text-blue-600",
+                        badge: "bg-blue-100 text-blue-700",
+                        accent: "bg-blue-500",
+                      };
+                    } else if (lowerName.includes("premium")) {
+                      return {
+                        gradient: "from-purple-500 to-purple-600",
+                        bg: "bg-gradient-to-br from-purple-50 to-purple-100/50",
+                        border: "border-purple-200",
+                        text: "text-purple-600",
+                        badge: "bg-purple-100 text-purple-700",
+                        accent: "bg-purple-500",
+                      };
+                    } else if (lowerName.includes("gold")) {
+                      return {
+                        gradient: "from-amber-500 to-yellow-500",
+                        bg: "bg-gradient-to-br from-amber-50 to-yellow-100/50",
+                        border: "border-amber-200",
+                        text: "text-amber-600",
+                        badge: "bg-amber-100 text-amber-700",
+                        accent: "bg-amber-500",
+                      };
+                    } else if (lowerName.includes("platinum")) {
+                      return {
+                        gradient: "from-slate-600 to-slate-700",
+                        bg: "bg-gradient-to-br from-slate-50 to-slate-100/50",
+                        border: "border-slate-200",
+                        text: "text-slate-600",
+                        badge: "bg-slate-100 text-slate-700",
+                        accent: "bg-slate-600",
+                      };
+                    }
+                    // Default theme
+                    return {
+                      gradient: "from-gray-500 to-gray-600",
+                      bg: "bg-gradient-to-br from-gray-50 to-gray-100/50",
+                      border: "border-gray-200",
+                      text: "text-gray-600",
+                      badge: "bg-gray-100 text-gray-700",
+                      accent: "bg-gray-500",
+                    };
+                  };
+
+                  const theme = getThemeColors(membership.membershipName);
+
+                  return (
+                    <div
+                      key={membership.id}
+                      className={`group relative overflow-hidden rounded-2xl ${theme.bg} ${theme.border} border-2 shadow-lg hover:shadow-2xl transform hover:scale-105 transition-all duration-300 ease-out`}
+                    >
+                      {/* Accent Border */}
+                      <div
+                        className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.gradient}`}
+                      ></div>
+
+                      {/* Content */}
+                      <div className="p-6 relative">
+                        {/* Header */}
+                        <div className="flex justify-between items-start mb-4">
+                          <div>
+                            <h4 className="text-xl font-bold text-gray-900 mb-1">
+                              {membership.membershipName}
+                            </h4>
+                            <div className="flex items-center space-x-2">
+                              {membership.isActive ? (
+                                <span
+                                  className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold ${theme.badge} ring-1 ring-inset ring-current/20`}
+                                >
+                                  <div
+                                    className={`w-1.5 h-1.5 ${theme.accent} rounded-full mr-1.5`}
+                                  ></div>
+                                  Active
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 ring-1 ring-inset ring-gray-200">
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full mr-1.5"></div>
+                                  Inactive
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Premium Badge for higher tier plans */}
+                          {(membership.membershipName
+                            ?.toLowerCase()
+                            .includes("premium") ||
+                            membership.membershipName
+                              ?.toLowerCase()
+                              .includes("gold") ||
+                            membership.membershipName
+                              ?.toLowerCase()
+                              .includes("platinum")) && (
+                            <div
+                              className={`relative ${theme.accent} rounded-full p-2 opacity-10 group-hover:opacity-20 transition-opacity duration-300`}
+                            >
+                              <Sparkles className="w-5 h-5 text-white" />
+                            </div>
+                          )}
                         </div>
-                        <div>
-                          <span className="text-gray-500 text-xs">Price</span>
-                          <p className="font-medium text-right">${membership.price}</p>
+
+                        {/* Description */}
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[2.5rem]">
+                          {membership.description ||
+                            "Premium fitness membership with exclusive benefits"}
+                        </p>
+
+                        {/* Duration and Price */}
+                        <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/20">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                Duration
+                              </span>
+                              <p className="text-lg font-bold text-gray-900">
+                                {membership.duration} month
+                                {membership.duration !== 1 ? "s" : ""}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                                Price
+                              </span>
+                              <p className={`text-2xl font-bold ${theme.text}`}>
+                                ${membership.price}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Benefits */}
+                        {membership.benefits &&
+                          membership.benefits.length > 0 && (
+                            <div className="mb-6">
+                              <h5 className="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                                <div
+                                  className={`w-3 h-3 ${theme.accent} rounded-full mr-2`}
+                                ></div>
+                                Benefits
+                              </h5>
+                              <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar">
+                                {membership.benefits.map((benefit, index) => (
+                                  <div
+                                    key={
+                                      benefit.id || benefit.benefit_id || index
+                                    }
+                                    className="flex items-center space-x-2 text-sm"
+                                  >
+                                    <div
+                                      className={`w-1.5 h-1.5 ${theme.accent} rounded-full flex-shrink-0`}
+                                    ></div>
+                                    <span className="text-gray-700 font-medium">
+                                      {benefit.benefitName ||
+                                        benefit.benefit_name}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            className={`flex-1 min-w-[80px] px-3 py-2 text-sm font-medium rounded-lg border-2 ${theme.border} ${theme.text} hover:bg-white/80 hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-1`}
+                            onClick={() => setEditMembership(membership)}
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                              />
+                            </svg>
+                            <span>Edit</span>
+                          </button>
+
+                          <button
+                            className="flex-1 min-w-[80px] px-3 py-2 text-sm font-medium rounded-lg border-2 border-red-200 text-red-600 hover:bg-red-50 hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-1"
+                            onClick={() =>
+                              setDeleteMembershipConfirm(membership)
+                            }
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            <span>Delete</span>
+                          </button>
+
+                          <button
+                            className={`flex-1 min-w-[100px] px-3 py-2 text-sm font-medium rounded-lg border-2 ${
+                              membership.isActive
+                                ? "border-amber-200 text-amber-600 hover:bg-amber-50"
+                                : "border-emerald-200 text-emerald-600 hover:bg-emerald-50"
+                            } hover:shadow-md transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-1`}
+                            onClick={() =>
+                              handleUpdateMembershipStatus(
+                                membership.id,
+                                membership.isActive
+                              )
+                            }
+                          >
+                            {membership.isActive ? (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                                  />
+                                </svg>
+                                <span>Deactivate</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="w-4 h-4"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M14.828 14.828a4 4 0 01-5.656 0M9 10h1m4 0h1m-6 4h8m-9-10h10a2 2 0 012 2v8a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2z"
+                                  />
+                                </svg>
+                                <span>Activate</span>
+                              </>
+                            )}
+                          </button>
                         </div>
                       </div>
 
-                      {/* Membership Benefits */}
-                      {membership.benefits && membership.benefits.length > 0 && (
-                        <div className="mt-4">
-                          <h5 className="text-sm font-medium text-gray-700 mb-2">Benefits:</h5>
-                          <ul className="space-y-1">
-                            {membership.benefits.map((benefit, index) => (
-                              <li 
-                                key={benefit.id || benefit.benefit_id || index} 
-                                className="text-sm text-gray-800 px-2 py-1 rounded border border-gray-200 flex items-center justify-between"
-                              >
-                                <span>{benefit.benefitName || benefit.benefit_name}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        </div>
-                      )}
+                      {/* Hover Glow Effect */}
+                      <div
+                        className={`absolute inset-0 opacity-0 group-hover:opacity-10 bg-gradient-to-br ${theme.gradient} transition-opacity duration-300 pointer-events-none`}
+                      ></div>
                     </div>
-                    
-                    <div className="mt-4 flex justify-end space-x-2">
-                      <button
-                        className="px-3 py-1 text-sm border rounded text-blue-500 hover:bg-blue-50"
-                        onClick={() => setEditMembership(membership)}
-                      >
-                        Edit
-                      </button>
-                      
-                      <button
-                        className="px-3 py-1 text-sm border rounded text-red-500 hover:bg-red-50"
-                        onClick={() => setDeleteMembershipConfirm(membership)}
-                      >
-                        Delete
-                      </button>
-                      
-                      <button
-                        className={`px-3 py-1 text-sm border rounded ${membership.isActive ? 'text-amber-500 hover:bg-amber-50' : 'text-green-500 hover:bg-green-50'}`}
-                        onClick={() => handleUpdateMembershipStatus(membership.id, membership.isActive)}
-                      >
-                        {membership.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </div>
-                  </div>
-                ))
+                  );
+                })
               ) : (
-                <div className="col-span-full p-4 text-center text-gray-500 border rounded-lg border-dashed">
-                  <p>No membership types found.</p>
-                  <button
-                    className="mt-2 px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    onClick={() => setEditMembership({})}
-                  >
-                    Add New Membership Type
-                  </button>
-                </div>
-              )}
-              
-              {/* Add New Membership Type Card */}
-              {membershipsData.length > 0 && (
-                <div className="border border-dashed rounded-lg p-4 flex items-center justify-center hover:bg-gray-50 cursor-pointer"
-                  onClick={() => setEditMembership({})}
-                >
-                  <div className="text-center">
-                    <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
-                      <Plus size={24} className="text-blue-500" />
+                <div className="col-span-full">
+                  <div className="text-center py-12 px-6 bg-gradient-to-br from-gray-50 to-gray-100/50 rounded-2xl border-2 border-dashed border-gray-300">
+                    <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+                      <Plus className="w-8 h-8 text-white" />
                     </div>
-                    <h4 className="mt-2 font-medium text-blue-500">Add New Membership Type</h4>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      No membership types found
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      Create your first membership plan to get started
+                    </p>
+                    <button
+                      className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 space-x-2"
+                      onClick={() => setEditMembership({})}
+                    >
+                      <Plus className="w-5 h-5" />
+                      <span>Add New Membership Type</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -963,7 +1375,7 @@ const Members = () => {
           isLoading={actionLoading}
         />
       )}
-      
+
       {/* Using DeleteMemberConfirm component */}
       {deleteConfirm && (
         <DeleteMemberConfirm
@@ -973,7 +1385,7 @@ const Members = () => {
           isLoading={actionLoading}
         />
       )}
-      
+
       {/* Using AddMemberModal component */}
       {showAddModal && (
         <AddMemberModal
@@ -982,7 +1394,7 @@ const Members = () => {
           isLoading={actionLoading}
         />
       )}
-      
+
       {/* Membership assignment modal */}
       {assignMembershipMember && (
         <AssignMembershipModal
@@ -1050,7 +1462,11 @@ const Members = () => {
         <DeleteBenefitConfirm
           benefit={deleteBenefitConfirm}
           onClose={() => setDeleteBenefitConfirm(null)}
-          onConfirm={() => handleDeleteBenefit(deleteBenefitConfirm.id || deleteBenefitConfirm.benefit_id)}
+          onConfirm={() =>
+            handleDeleteBenefit(
+              deleteBenefitConfirm.id || deleteBenefitConfirm.benefit_id
+            )
+          }
           isLoading={actionLoading}
         />
       )}
