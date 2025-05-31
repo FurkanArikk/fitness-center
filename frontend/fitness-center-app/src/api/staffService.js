@@ -463,6 +463,144 @@ const staffService = {
       throw error;
     }
   },
+
+  // Schedule methods for trainers
+  getTrainerSchedules: async (trainerId) => {
+    try {
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}?trainer_id=${trainerId}`
+      );
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error(
+        `Failed to fetch schedules for trainer ${trainerId}:`,
+        error
+      );
+      return [];
+    }
+  },
+
+  // Get trainer schedules with pagination
+  getTrainerSchedulesPaginated: async (
+    trainerId,
+    page = 1,
+    pageSize = 10,
+    filters = {}
+  ) => {
+    try {
+      let queryParams = `trainer_id=${trainerId}&page=${page}&pageSize=${pageSize}`;
+
+      // Add optional filters
+      if (filters.status) queryParams += `&status=${filters.status}`;
+      if (filters.dayOfWeek) queryParams += `&day_of_week=${filters.dayOfWeek}`;
+      if (filters.classId) queryParams += `&class_id=${filters.classId}`;
+
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}?${queryParams}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(
+        `Failed to fetch paginated schedules for trainer ${trainerId}:`,
+        error
+      );
+      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
+    }
+  },
+
+  // Get all schedules
+  getAllSchedules: async () => {
+    try {
+      const response = await apiClient.get(ENDPOINTS.schedules);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error("Failed to fetch all schedules:", error);
+      return [];
+    }
+  },
+
+  // Get all schedules with pagination
+  getAllSchedulesPaginated: async (page = 1, pageSize = 10, filters = {}) => {
+    try {
+      let queryParams = `page=${page}&pageSize=${pageSize}`;
+
+      // Add optional filters
+      if (filters.status) queryParams += `&status=${filters.status}`;
+      if (filters.trainerId) queryParams += `&trainer_id=${filters.trainerId}`;
+      if (filters.classId) queryParams += `&class_id=${filters.classId}`;
+      if (filters.dayOfWeek) queryParams += `&day_of_week=${filters.dayOfWeek}`;
+
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}?${queryParams}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Failed to fetch paginated schedules:", error);
+      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
+    }
+  },
+
+  // Get schedule by ID
+  getScheduleById: async (scheduleId) => {
+    try {
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}/${scheduleId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to fetch schedule ${scheduleId}:`, error);
+      return null;
+    }
+  },
+
+  // Get schedules by class ID
+  getSchedulesByClass: async (classId) => {
+    try {
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}/class/${classId}`
+      );
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      console.error(`Failed to fetch schedules for class ${classId}:`, error);
+      return [];
+    }
+  },
+
+  // Create schedule
+  createSchedule: async (scheduleData) => {
+    try {
+      const response = await apiClient.post(ENDPOINTS.schedules, scheduleData);
+      return response.data;
+    } catch (error) {
+      console.error("Failed to create schedule:", error);
+      throw error;
+    }
+  },
+
+  // Update schedule
+  updateSchedule: async (scheduleId, scheduleData) => {
+    try {
+      const response = await apiClient.put(
+        `${ENDPOINTS.schedules}/${scheduleId}`,
+        scheduleData
+      );
+      return response.data;
+    } catch (error) {
+      console.error(`Failed to update schedule ${scheduleId}:`, error);
+      throw error;
+    }
+  },
+
+  // Delete schedule
+  deleteSchedule: async (scheduleId) => {
+    try {
+      await apiClient.delete(`${ENDPOINTS.schedules}/${scheduleId}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to delete schedule ${scheduleId}:`, error);
+      return false;
+    }
+  },
 };
 
 export default staffService;

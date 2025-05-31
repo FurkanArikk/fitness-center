@@ -1,7 +1,8 @@
 import React, { useMemo } from "react";
-import { Award, User, ChevronDown, ChevronUp, Calendar } from "lucide-react";
+import { Award, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 import Button from "../common/Button";
 import { formatFullName } from "../../utils/formatters";
+import { TrainerAvatar } from "../../utils/avatarGenerator";
 
 // Array of visually pleasing background colors for the cards
 const cardColors = [
@@ -67,6 +68,8 @@ const TrainerCard = ({
       "rating",
       "specialization",
       "profileImage",
+      "created_at", // Database timestamp - exclude
+      "updated_at", // Database timestamp - exclude
     ];
     const fields = [];
 
@@ -75,14 +78,42 @@ const TrainerCard = ({
         !excludeFields.includes(key) &&
         value !== undefined &&
         value !== null &&
-        value !== ""
+        value !== "" &&
+        value !== 0 // Also exclude zero values for cleaner display
       ) {
-        // Format the key from camelCase to Title Case
-        const formattedKey = key
+        // Format the key from camelCase to readable format
+        let formattedKey = key
           .replace(/([A-Z])/g, " $1")
           .replace(/^./, (str) => str.toUpperCase());
 
-        fields.push({ key: formattedKey, value });
+        // Custom formatting for specific fields
+        if (key === "is_active") {
+          formattedKey = "Status";
+        } else if (key === "experience") {
+          formattedKey = "Experience";
+        } else if (key === "certification") {
+          formattedKey = "Certification";
+        } else if (key === "hourly_rate") {
+          formattedKey = "Hourly Rate";
+        } else if (key === "phone_number") {
+          formattedKey = "Phone";
+        } else if (key === "email") {
+          formattedKey = "Email";
+        }
+
+        // Format the value for better display
+        let formattedValue = value;
+        if (key === "is_active") {
+          formattedValue = value ? "Active" : "Inactive";
+        } else if (key === "experience") {
+          formattedValue = `${value} years`;
+        } else if (key === "hourly_rate") {
+          formattedValue = `$${value}/hour`;
+        } else if (typeof value === "boolean") {
+          formattedValue = value ? "Yes" : "No";
+        }
+
+        fields.push({ key: formattedKey, value: formattedValue });
       }
     }
 
@@ -122,26 +153,26 @@ const TrainerCard = ({
       {/* Card Header - Always visible */}
       <div className="p-4">
         <div className="flex items-center gap-4">
-          {trainer.profileImage ? (
-            <img
-              src={trainer.profileImage}
-              alt={trainerName}
-              className="w-16 h-16 rounded-full object-cover"
-            />
-          ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center">
-              <User size={32} className="text-gray-400" />
-            </div>
-          )}
+          <TrainerAvatar
+            trainer={trainer}
+            size="w-16 h-16"
+            className="flex-shrink-0 border-2 border-white shadow-lg ring-2 ring-gray-100"
+            showIcon={true}
+          />
           <div className="flex-1">
             <h3 className="font-bold text-lg">{trainerName}</h3>
             {trainer.specialization && (
-              <p className="text-sm text-gray-600">{trainer.specialization}</p>
+              <p className="text-sm text-gray-600 font-medium capitalize">
+                {trainer.specialization} Specialist
+              </p>
             )}
             {trainer.rating && (
               <div className="flex items-center mt-1 text-yellow-500">
-                <span className="mr-1">{trainer.rating}</span>
+                <span className="mr-1 font-semibold">{trainer.rating}</span>
                 <Award size={16} />
+                <span className="ml-1 text-xs text-gray-500">
+                  fitness rating
+                </span>
               </div>
             )}
           </div>
