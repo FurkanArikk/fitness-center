@@ -201,9 +201,9 @@ const facilityService = {
     }
   },
   
-  getAllAttendance: async (page = 1, size = 10) => {
+  getAllAttendance: async (page = 1, pageSize = 10) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.attendance}?page=${page}&size=${size}`);
+      const response = await apiClient.get(`${ENDPOINTS.attendance}?page=${page}&pageSize=${pageSize}`);
       return response.data;
     } catch (error) {
       console.error("Failed to fetch attendance records:", error);

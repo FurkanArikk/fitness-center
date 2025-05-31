@@ -14,8 +14,8 @@ type FacilityResponse struct {
 	Description string    `json:"description"`
 	Capacity    int       `json:"capacity"`
 	Status      string    `json:"status"`
-	OpeningHour time.Time `json:"opening_hour"`
-	ClosingHour time.Time `json:"closing_hour"`
+	OpeningHour TimeOnly  `json:"opening_hour"`
+	ClosingHour TimeOnly  `json:"closing_hour"`
 	IsDeleted   bool      `json:"is_deleted,omitempty"`
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at"`
@@ -41,23 +41,17 @@ type FacilityUpdateRequest struct {
 	ClosingHour string `json:"closing_hour" binding:"required"`
 }
 
-// parseTimeFromString converts time string (HH:MM:SS) to time.Time with today's date
-func parseTimeFromString(timeStr string) (time.Time, error) {
-	// Use a reference date and combine with the time
-	today := time.Now().Format("2006-01-02")
-	return time.Parse("2006-01-02 15:04:05", today+" "+timeStr)
-}
-
 // ToModel converts FacilityCreateRequest to model.Facility
 func (r *FacilityCreateRequest) ToModel() (model.Facility, error) {
-	openingTime, err := parseTimeFromString(r.OpeningHour)
+	// Parse time strings directly to time.Time using TIME format
+	openingTime, err := time.Parse("15:04:05", r.OpeningHour)
 	if err != nil {
-		return model.Facility{}, fmt.Errorf("invalid opening hour format: %w", err)
+		return model.Facility{}, fmt.Errorf("invalid opening hour format, expected HH:MM:SS: %w", err)
 	}
 
-	closingTime, err := parseTimeFromString(r.ClosingHour)
+	closingTime, err := time.Parse("15:04:05", r.ClosingHour)
 	if err != nil {
-		return model.Facility{}, fmt.Errorf("invalid closing hour format: %w", err)
+		return model.Facility{}, fmt.Errorf("invalid closing hour format, expected HH:MM:SS: %w", err)
 	}
 
 	return model.Facility{
@@ -72,14 +66,15 @@ func (r *FacilityCreateRequest) ToModel() (model.Facility, error) {
 
 // ToModel converts FacilityUpdateRequest to model.Facility
 func (r *FacilityUpdateRequest) ToModel() (model.Facility, error) {
-	openingTime, err := parseTimeFromString(r.OpeningHour)
+	// Parse time strings directly to time.Time using TIME format
+	openingTime, err := time.Parse("15:04:05", r.OpeningHour)
 	if err != nil {
-		return model.Facility{}, fmt.Errorf("invalid opening hour format: %w", err)
+		return model.Facility{}, fmt.Errorf("invalid opening hour format, expected HH:MM:SS: %w", err)
 	}
 
-	closingTime, err := parseTimeFromString(r.ClosingHour)
+	closingTime, err := time.Parse("15:04:05", r.ClosingHour)
 	if err != nil {
-		return model.Facility{}, fmt.Errorf("invalid closing hour format: %w", err)
+		return model.Facility{}, fmt.Errorf("invalid closing hour format, expected HH:MM:SS: %w", err)
 	}
 
 	return model.Facility{
@@ -100,8 +95,8 @@ func FacilityResponseFromModel(model model.Facility) FacilityResponse {
 		Description: model.Description,
 		Capacity:    model.Capacity,
 		Status:      model.Status,
-		OpeningHour: model.OpeningHour,
-		ClosingHour: model.ClosingHour,
+		OpeningHour: TimeOnly(model.OpeningHour),
+		ClosingHour: TimeOnly(model.ClosingHour),
 		IsDeleted:   model.IsDeleted,
 		CreatedAt:   model.CreatedAt,
 		UpdatedAt:   model.UpdatedAt,

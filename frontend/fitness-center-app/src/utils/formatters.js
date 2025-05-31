@@ -9,6 +9,20 @@ export const formatDate = (dateString) => {
   });
 };
 
+// Date and time formatting
+export const formatDateTime = (dateTimeString) => {
+  if (!dateTimeString) return '';
+  const date = new Date(dateTimeString);
+  return date.toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
 // Time formatting
 export const formatTime = (timeString) => {
   if (!timeString) return '';
