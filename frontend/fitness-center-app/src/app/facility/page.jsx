@@ -534,7 +534,6 @@ const Facility = () => {
             attendance={attendance}
             onEdit={handleEditAttendance}
             onDelete={handleDeleteAttendance}
-            onCheckOut={handleCheckOut}
             onRefresh={handleRefresh}
             currentPage={attendancePage}
             totalPages={attendanceTotalPages}

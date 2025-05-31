@@ -61,10 +61,10 @@ const DeleteAttendanceConfirm = ({
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">
-                Katılım Kaydını Sil
+                Delete Attendance Record
               </h3>
               <p className="text-sm text-gray-600 mt-1">
-                Bu işlem geri alınamaz
+                This action cannot be undone
               </p>
             </div>
           </div>
@@ -81,32 +81,32 @@ const DeleteAttendanceConfirm = ({
         <div className="p-6">
           <div className="mb-6">
             <p className="text-gray-700 mb-4">
-              Bu katılım kaydını silmek istediğinizden emin misiniz?
+              Are you sure you want to delete this attendance record?
             </p>
             
             {/* Attendance Details */}
             <div className="bg-gray-50 p-4 rounded-lg space-y-2">
               <div className="flex justify-between">
-                <span className="text-sm font-medium text-gray-600">Üye:</span>
+                <span className="text-sm font-medium text-gray-600">Member:</span>
                 <span className="text-sm text-gray-900">
                   {attendance.member_name || `ID: ${attendance.member_id}`}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm font-medium text-gray-600">Tesis:</span>
+                <span className="text-sm font-medium text-gray-600">Facility:</span>
                 <span className="text-sm text-gray-900">
                   {attendance.facility_name || `ID: ${attendance.facility_id}`}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-sm font-medium text-gray-600">Giriş Zamanı:</span>
+                <span className="text-sm font-medium text-gray-600">Check-in Time:</span>
                 <span className="text-sm text-gray-900">
                   {formatDate(attendance.check_in_time)}
                 </span>
               </div>
               {attendance.check_out_time && (
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium text-gray-600">Çıkış Zamanı:</span>
+                  <span className="text-sm font-medium text-gray-600">Check-out Time:</span>
                   <span className="text-sm text-gray-900">
                     {formatDate(attendance.check_out_time)}
                   </span>
@@ -114,7 +114,7 @@ const DeleteAttendanceConfirm = ({
               )}
               {attendance.notes && (
                 <div className="pt-2 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-600">Notlar:</span>
+                  <span className="text-sm font-medium text-gray-600">Notes:</span>
                   <p className="text-sm text-gray-900 mt-1">{attendance.notes}</p>
                 </div>
               )}
@@ -129,7 +129,7 @@ const DeleteAttendanceConfirm = ({
               onClick={onClose}
               disabled={deleting}
             >
-              İptal
+              Cancel
             </Button>
             <Button
               type="button"
@@ -138,7 +138,7 @@ const DeleteAttendanceConfirm = ({
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {deleting ? 'Siliniyor...' : 'Sil'}
+              {deleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
         </div>

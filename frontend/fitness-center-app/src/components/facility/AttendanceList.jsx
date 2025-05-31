@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Clock, User, MapPin, Calendar, Search, Filter, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut } from 'lucide-react';
+import { Clock, User, MapPin, Calendar, Search, Filter, RotateCcw, ArrowUpDown, ArrowUp, ArrowDown, LogIn, LogOut, Edit2, Trash2 } from 'lucide-react';
 import Button from '../common/Button';
 import Pagination from '../common/Pagination';
 import { formatDateTime } from '../../utils/formatters';
@@ -12,7 +12,9 @@ const AttendanceList = ({
   onPageChange, 
   pageSize, 
   loading = false,
-  totalCount = 0 
+  totalCount = 0,
+  onEdit,
+  onDelete
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -242,12 +244,15 @@ const AttendanceList = ({
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Status
               </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {loading ? (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center">
+                <td colSpan="7" className="px-6 py-12 text-center">
                   <div className="flex items-center justify-center">
                     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                     <span className="ml-2 text-gray-500">Loading attendance records...</span>
@@ -256,7 +261,7 @@ const AttendanceList = ({
               </tr>
             ) : filteredAndSortedAttendance.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-12 text-center">
+                <td colSpan="7" className="px-6 py-12 text-center">
                   <div className="text-gray-500">
                     <Clock className="mx-auto h-12 w-12 text-gray-400 mb-4" />
                     <h3 className="text-sm font-medium text-gray-900 mb-1">No attendance records found</h3>
@@ -319,6 +324,24 @@ const AttendanceList = ({
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {getStatusBadge(record)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => onEdit && onEdit(record)}
+                        className="text-blue-600 hover:text-blue-900 transition-colors p-1 rounded hover:bg-blue-50"
+                        title="Edit attendance record"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => onDelete && onDelete(record)}
+                        className="text-red-600 hover:text-red-900 transition-colors p-1 rounded hover:bg-red-50"
+                        title="Delete attendance record"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
