@@ -1,0 +1,36 @@
+services:
+  auth-service:
+    build: .
+    container_name: auth-service
+    ports:
+      - "8085:8085"
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8085
+      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+      - JWT_EXPIRE_HOURS=24
+      - ADMIN_USERNAME=admin
+      - ADMIN_PASSWORD=admin
+    labels:
+      - "traefik.enable=true"
+      # Auth endpoints (login and health check don't require auth)
+      - "traefik.http.routers.auth-service.rule=PathPrefix(`/api/v1/login`) || PathPrefix(`/health`)"
+      - "traefik.http.routers.auth-service.entrypoints=web"
+      - "traefik.http.services.auth-service.loadbalancer.server.port=8085"
+      
+      # ForwardAuth middleware definition
+      - "traefik.http.middlewares.auth-middleware.forwardauth.address=http://auth-service:8085/api/v1/auth"
+      - "traefik.http.middlewares.auth-middleware.forwardauth.authResponseHeaders=X-Forwarded-User"
+      
+      # Internal auth endpoint (only for Traefik access)
+      - "traefik.http.routers.auth-internal.rule=PathPrefix(`/api/v1/auth`)"
+      - "traefik.http.routers.auth-internal.entrypoints=web"
+      - "traefik.http.routers.auth-internal.service=auth-service"
+    networks:
+      - fitness-network
+    restart: unless-stopped
+
+networks:
+  fitness-network:
+    name: ${DOCKER_NETWORK_NAME:-fitness-network}
+    external: true

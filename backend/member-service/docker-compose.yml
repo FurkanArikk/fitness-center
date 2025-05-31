@@ -43,6 +43,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.member-service.rule=PathPrefix(`/api/v1/members`) || PathPrefix(`/api/v1/memberships`) || PathPrefix(`/api/v1/benefits`) || PathPrefix(`/api/v1/assessments`) || PathPrefix(`/api/v1/member-memberships`)"
       - "traefik.http.routers.member-service.entrypoints=web"
+      - "traefik.http.routers.member-service.middlewares=auth-middleware"
       - "traefik.http.services.member-service.loadbalancer.server.port=8001"
       - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:
