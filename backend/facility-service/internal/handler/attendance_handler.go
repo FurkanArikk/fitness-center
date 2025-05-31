@@ -184,8 +184,11 @@ func (h *Handler) ListAttendanceByMember(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
@@ -217,8 +220,11 @@ func (h *Handler) ListAttendanceByFacility(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
@@ -245,8 +251,11 @@ func (h *Handler) ListAttendanceByDate(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
