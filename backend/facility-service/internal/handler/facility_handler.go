@@ -151,8 +151,11 @@ func (h *Handler) ListFacilitiesByStatus(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.FacilityResponseListFromModel(facilities)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       facilities,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,

@@ -85,7 +85,7 @@ func (r *equipmentRepository) Update(ctx context.Context, equipment *model.Equip
 			next_maintenance_date = $10,
 			updated_at = NOW()
 		WHERE equipment_id = $11
-		RETURNING updated_at
+		RETURNING created_at, updated_at
 	`
 
 	err := r.db.QueryRowContext(
@@ -102,7 +102,7 @@ func (r *equipmentRepository) Update(ctx context.Context, equipment *model.Equip
 		equipment.LastMaintenanceDate,
 		equipment.NextMaintenanceDate,
 		equipment.EquipmentID,
-	).Scan(&equipment.UpdatedAt)
+	).Scan(&equipment.CreatedAt, &equipment.UpdatedAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("updating equipment: %w", err)
