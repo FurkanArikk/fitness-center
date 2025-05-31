@@ -94,7 +94,17 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
       return;
     }
 
-    onSave(formData);
+    // Map the form data to match backend API expectations
+    const apiData = {
+      membershipName: formData.name, // Backend expects 'membershipName' not 'name'
+      description: formData.description,
+      duration: formData.durationMonths, // Backend expects 'duration' not 'durationMonths'
+      price: formData.price,
+      isActive: formData.active, // Backend expects 'isActive' not 'active'
+    };
+
+    console.log("[EditMembershipModal] Sending data to API:", apiData);
+    onSave(apiData);
   };
 
   // Determine title text

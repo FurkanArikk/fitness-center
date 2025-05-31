@@ -1062,6 +1062,8 @@ const Members = () => {
                   // Define theme colors based on membership type
                   const getThemeColors = (name) => {
                     const lowerName = name?.toLowerCase() || "";
+
+                    // Primary tier colors
                     if (lowerName.includes("basic")) {
                       return {
                         gradient: "from-blue-500 to-blue-600",
@@ -1099,15 +1101,241 @@ const Members = () => {
                         accent: "bg-slate-600",
                       };
                     }
-                    // Default theme
-                    return {
-                      gradient: "from-gray-500 to-gray-600",
-                      bg: "bg-gradient-to-br from-gray-50 to-gray-100/50",
-                      border: "border-gray-200",
-                      text: "text-gray-600",
-                      badge: "bg-gray-100 text-gray-700",
-                      accent: "bg-gray-500",
-                    };
+
+                    // Extended color palette for new membership types
+                    else if (
+                      lowerName.includes("emerald") ||
+                      lowerName.includes("elite") ||
+                      lowerName.includes("pro")
+                    ) {
+                      return {
+                        gradient: "from-emerald-500 to-emerald-600",
+                        bg: "bg-gradient-to-br from-emerald-50 to-emerald-100/50",
+                        border: "border-emerald-200",
+                        text: "text-emerald-600",
+                        badge: "bg-emerald-100 text-emerald-700",
+                        accent: "bg-emerald-500",
+                      };
+                    } else if (
+                      lowerName.includes("ruby") ||
+                      lowerName.includes("vip") ||
+                      lowerName.includes("executive")
+                    ) {
+                      return {
+                        gradient: "from-rose-500 to-pink-500",
+                        bg: "bg-gradient-to-br from-rose-50 to-pink-100/50",
+                        border: "border-rose-200",
+                        text: "text-rose-600",
+                        badge: "bg-rose-100 text-rose-700",
+                        accent: "bg-rose-500",
+                      };
+                    } else if (
+                      lowerName.includes("sapphire") ||
+                      lowerName.includes("royal") ||
+                      lowerName.includes("diamond")
+                    ) {
+                      return {
+                        gradient: "from-indigo-500 to-blue-600",
+                        bg: "bg-gradient-to-br from-indigo-50 to-blue-100/50",
+                        border: "border-indigo-200",
+                        text: "text-indigo-600",
+                        badge: "bg-indigo-100 text-indigo-700",
+                        accent: "bg-indigo-500",
+                      };
+                    } else if (
+                      lowerName.includes("teal") ||
+                      lowerName.includes("aqua") ||
+                      lowerName.includes("wellness")
+                    ) {
+                      return {
+                        gradient: "from-teal-500 to-cyan-500",
+                        bg: "bg-gradient-to-br from-teal-50 to-cyan-100/50",
+                        border: "border-teal-200",
+                        text: "text-teal-600",
+                        badge: "bg-teal-100 text-teal-700",
+                        accent: "bg-teal-500",
+                      };
+                    } else if (
+                      lowerName.includes("orange") ||
+                      lowerName.includes("energy") ||
+                      lowerName.includes("boost")
+                    ) {
+                      return {
+                        gradient: "from-orange-500 to-red-500",
+                        bg: "bg-gradient-to-br from-orange-50 to-red-100/50",
+                        border: "border-orange-200",
+                        text: "text-orange-600",
+                        badge: "bg-orange-100 text-orange-700",
+                        accent: "bg-orange-500",
+                      };
+                    } else if (
+                      lowerName.includes("lime") ||
+                      lowerName.includes("fresh") ||
+                      lowerName.includes("nature")
+                    ) {
+                      return {
+                        gradient: "from-lime-500 to-green-500",
+                        bg: "bg-gradient-to-br from-lime-50 to-green-100/50",
+                        border: "border-lime-200",
+                        text: "text-lime-600",
+                        badge: "bg-lime-100 text-lime-700",
+                        accent: "bg-lime-500",
+                      };
+                    } else if (
+                      lowerName.includes("violet") ||
+                      lowerName.includes("cosmic") ||
+                      lowerName.includes("mystic")
+                    ) {
+                      return {
+                        gradient: "from-violet-500 to-purple-600",
+                        bg: "bg-gradient-to-br from-violet-50 to-purple-100/50",
+                        border: "border-violet-200",
+                        text: "text-violet-600",
+                        badge: "bg-violet-100 text-violet-700",
+                        accent: "bg-violet-500",
+                      };
+                    } else if (
+                      lowerName.includes("fuchsia") ||
+                      lowerName.includes("luxury") ||
+                      lowerName.includes("exclusive")
+                    ) {
+                      return {
+                        gradient: "from-fuchsia-500 to-pink-600",
+                        bg: "bg-gradient-to-br from-fuchsia-50 to-pink-100/50",
+                        border: "border-fuchsia-200",
+                        text: "text-fuchsia-600",
+                        badge: "bg-fuchsia-100 text-fuchsia-700",
+                        accent: "bg-fuchsia-500",
+                      };
+                    } else if (
+                      lowerName.includes("sky") ||
+                      lowerName.includes("cloud") ||
+                      lowerName.includes("horizon")
+                    ) {
+                      return {
+                        gradient: "from-sky-500 to-blue-500",
+                        bg: "bg-gradient-to-br from-sky-50 to-blue-100/50",
+                        border: "border-sky-200",
+                        text: "text-sky-600",
+                        badge: "bg-sky-100 text-sky-700",
+                        accent: "bg-sky-500",
+                      };
+                    } else if (
+                      lowerName.includes("bronze") ||
+                      lowerName.includes("copper") ||
+                      lowerName.includes("starter")
+                    ) {
+                      return {
+                        gradient: "from-amber-600 to-orange-600",
+                        bg: "bg-gradient-to-br from-amber-50 to-orange-100/50",
+                        border: "border-amber-300",
+                        text: "text-amber-700",
+                        badge: "bg-amber-100 text-amber-800",
+                        accent: "bg-amber-600",
+                      };
+                    } else if (
+                      lowerName.includes("silver") ||
+                      lowerName.includes("steel") ||
+                      lowerName.includes("standard")
+                    ) {
+                      return {
+                        gradient: "from-gray-400 to-slate-500",
+                        bg: "bg-gradient-to-br from-gray-50 to-slate-100/50",
+                        border: "border-gray-300",
+                        text: "text-gray-600",
+                        badge: "bg-gray-100 text-gray-700",
+                        accent: "bg-gray-400",
+                      };
+                    } else if (
+                      lowerName.includes("rainbow") ||
+                      lowerName.includes("ultimate") ||
+                      lowerName.includes("supreme")
+                    ) {
+                      return {
+                        gradient: "from-pink-500 via-purple-500 to-indigo-500",
+                        bg: "bg-gradient-to-br from-pink-50 via-purple-50 to-indigo-100/50",
+                        border: "border-pink-200",
+                        text: "text-purple-600",
+                        badge:
+                          "bg-gradient-to-r from-pink-100 to-purple-100 text-purple-700",
+                        accent: "bg-gradient-to-r from-pink-500 to-purple-500",
+                      };
+                    }
+
+                    // Dynamic color assignment based on name hash for truly unique colors
+                    else {
+                      const colorPalettes = [
+                        {
+                          gradient: "from-green-500 to-emerald-600",
+                          bg: "bg-gradient-to-br from-green-50 to-emerald-100/50",
+                          border: "border-green-200",
+                          text: "text-green-600",
+                          badge: "bg-green-100 text-green-700",
+                          accent: "bg-green-500",
+                        },
+                        {
+                          gradient: "from-red-500 to-rose-600",
+                          bg: "bg-gradient-to-br from-red-50 to-rose-100/50",
+                          border: "border-red-200",
+                          text: "text-red-600",
+                          badge: "bg-red-100 text-red-700",
+                          accent: "bg-red-500",
+                        },
+                        {
+                          gradient: "from-yellow-500 to-amber-600",
+                          bg: "bg-gradient-to-br from-yellow-50 to-amber-100/50",
+                          border: "border-yellow-200",
+                          text: "text-yellow-600",
+                          badge: "bg-yellow-100 text-yellow-700",
+                          accent: "bg-yellow-500",
+                        },
+                        {
+                          gradient: "from-pink-500 to-rose-600",
+                          bg: "bg-gradient-to-br from-pink-50 to-rose-100/50",
+                          border: "border-pink-200",
+                          text: "text-pink-600",
+                          badge: "bg-pink-100 text-pink-700",
+                          accent: "bg-pink-500",
+                        },
+                        {
+                          gradient: "from-cyan-500 to-blue-600",
+                          bg: "bg-gradient-to-br from-cyan-50 to-blue-100/50",
+                          border: "border-cyan-200",
+                          text: "text-cyan-600",
+                          badge: "bg-cyan-100 text-cyan-700",
+                          accent: "bg-cyan-500",
+                        },
+                        {
+                          gradient: "from-stone-500 to-neutral-600",
+                          bg: "bg-gradient-to-br from-stone-50 to-neutral-100/50",
+                          border: "border-stone-200",
+                          text: "text-stone-600",
+                          badge: "bg-stone-100 text-stone-700",
+                          accent: "bg-stone-500",
+                        },
+                        {
+                          gradient: "from-zinc-500 to-gray-600",
+                          bg: "bg-gradient-to-br from-zinc-50 to-gray-100/50",
+                          border: "border-zinc-200",
+                          text: "text-zinc-600",
+                          badge: "bg-zinc-100 text-zinc-700",
+                          accent: "bg-zinc-500",
+                        },
+                      ];
+
+                      // Create a simple hash from the membership name
+                      let hash = 0;
+                      for (let i = 0; i < lowerName.length; i++) {
+                        const char = lowerName.charCodeAt(i);
+                        hash = (hash << 5) - hash + char;
+                        hash = hash & hash; // Convert to 32-bit integer
+                      }
+
+                      // Use hash to select a color palette
+                      const paletteIndex =
+                        Math.abs(hash) % colorPalettes.length;
+                      return colorPalettes[paletteIndex];
+                    }
                   };
 
                   const theme = getThemeColors(membership.membershipName);
