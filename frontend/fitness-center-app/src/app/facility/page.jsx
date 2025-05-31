@@ -1,25 +1,33 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Wrench } from 'lucide-react';
+import { Plus, MapPin, Wrench, Users } from 'lucide-react';
 import Button from '@/components/common/Button';
 import Loader from '@/components/common/Loader';
 import FacilityList from '@/components/facility/FacilityList';
 import EquipmentList from '@/components/facility/EquipmentList';
+import AttendanceList from '@/components/facility/AttendanceList';
 import FacilityAnalytics from '@/components/facility/FacilityAnalytics';
 import FacilityModal from '@/components/facility/FacilityModal';
 import EquipmentModal from '@/components/facility/EquipmentModal';
+import CheckInModal from '@/components/facility/CheckInModal';
+import AttendanceModal from '@/components/facility/AttendanceModal';
 import DeleteFacilityConfirm from '@/components/facility/DeleteFacilityConfirm';
 import DeleteEquipmentConfirm from '@/components/facility/DeleteEquipmentConfirm';
-import { facilityService } from '@/api';
+import DeleteAttendanceConfirm from '@/components/facility/DeleteAttendanceConfirm';
+import { facilityService, memberService } from '@/api';
 
 const Facility = () => {
   const [facilities, setFacilities] = useState([]);
   const [equipment, setEquipment] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [equipmentLoading, setEquipmentLoading] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [membersLoading, setMembersLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('facilities'); // 'facilities' or 'equipment'
+  const [activeTab, setActiveTab] = useState('facilities'); // 'facilities', 'equipment', or 'attendance'
 
   // Facility Modal states
   const [showFacilityModal, setShowFacilityModal] = useState(false);
@@ -33,13 +41,23 @@ const Facility = () => {
   const [selectedEquipment, setSelectedEquipment] = useState(null);
   const [equipmentModalMode, setEquipmentModalMode] = useState('add');
 
+  // Attendance Modal states
+  const [showCheckInModal, setShowCheckInModal] = useState(false);
+  const [showAttendanceModal, setShowAttendanceModal] = useState(false);
+  const [showDeleteAttendanceConfirm, setShowDeleteAttendanceConfirm] = useState(false);
+  const [selectedAttendance, setSelectedAttendance] = useState(null);
+  const [attendanceModalMode, setAttendanceModalMode] = useState('add');
+
   // Pagination states
   const [facilityPage, setFacilityPage] = useState(1);
   const [equipmentPage, setEquipmentPage] = useState(1);
+  const [attendancePage, setAttendancePage] = useState(1);
   const [facilityTotalPages, setFacilityTotalPages] = useState(1);
   const [equipmentTotalPages, setEquipmentTotalPages] = useState(1);
+  const [attendanceTotalPages, setAttendanceTotalPages] = useState(1);
   const [facilityTotalCount, setFacilityTotalCount] = useState(0);
   const [equipmentTotalCount, setEquipmentTotalCount] = useState(0);
+  const [attendanceTotalCount, setAttendanceTotalCount] = useState(0);
   const pageSize = 10;
 
   useEffect(() => {
@@ -47,8 +65,36 @@ const Facility = () => {
       fetchFacilities();
     } else if (activeTab === 'equipment') {
       fetchEquipment();
+    } else if (activeTab === 'attendance') {
+      // Ensure both facilities and members are loaded for attendance tab
+      if (facilities.length === 0) {
+        fetchFacilities();
+      }
+      if (members.length === 0) {
+        fetchMembers();
+      }
+      fetchAttendance();
     }
-  }, [facilityPage, equipmentPage, activeTab]);
+  }, [facilityPage, equipmentPage, attendancePage, activeTab]);
+
+  // Fetch members for attendance modal
+  const fetchMembers = async () => {
+    setMembersLoading(true);
+    try {
+      const response = await memberService.getAllMembers();
+      console.log('Members API Response:', response);
+      // Handle both array response and object with members array
+      const membersData = Array.isArray(response) ? response : (response.members || []);
+      setMembers(membersData);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load members data");
+      console.error('Error fetching members:', err);
+      setMembers([]);
+    } finally {
+      setMembersLoading(false);
+    }
+  };
 
   const fetchFacilities = async () => {
     setLoading(true);
@@ -81,6 +127,36 @@ const Facility = () => {
       console.error('Error fetching equipment:', err);
     } finally {
       setEquipmentLoading(false);
+    }
+  };
+
+  const fetchAttendance = async () => {
+    setAttendanceLoading(true);
+    try {
+      const response = await facilityService.getAllAttendance(attendancePage, pageSize);
+      console.log('Attendance API Response:', response);
+      
+      // Enrich attendance data with member and facility names
+      const enrichedAttendance = (response.data || []).map(record => {
+        const member = members.find(m => (m.member_id || m.id) === record.member_id);
+        const facility = facilities.find(f => (f.facility_id || f.id) === record.facility_id);
+        
+        return {
+          ...record,
+          member_name: member ? `${member.first_name} ${member.last_name}` : `Member ${record.member_id}`,
+          facility_name: facility ? facility.name : `Facility ${record.facility_id}`
+        };
+      });
+      
+      setAttendance(enrichedAttendance);
+      setAttendanceTotalPages(response.totalPages || 1);
+      setAttendanceTotalCount(response.totalItems || 0);
+      setError(null);
+    } catch (err) {
+      setError("Failed to load attendance data");
+      console.error('Error fetching attendance:', err);
+    } finally {
+      setAttendanceLoading(false);
     }
   };
 
@@ -194,11 +270,88 @@ const Facility = () => {
     setEquipmentPage(page);
   };
 
+  // Attendance handlers
+  const handleAddAttendance = () => {
+    setSelectedAttendance(null);
+    setAttendanceModalMode('add');
+    // Ensure both facilities and members are loaded for the attendance modal
+    if (facilities.length === 0) {
+      fetchFacilities();
+    }
+    if (members.length === 0) {
+      fetchMembers();
+    }
+    setShowAttendanceModal(true);
+  };
+
+  const handleEditAttendance = (attendance) => {
+    setSelectedAttendance(attendance);
+    setAttendanceModalMode('edit');
+    // Ensure both facilities and members are loaded for the attendance modal
+    if (facilities.length === 0) {
+      fetchFacilities();
+    }
+    if (members.length === 0) {
+      fetchMembers();
+    }
+    setShowAttendanceModal(true);
+  };
+
+  const handleDeleteAttendance = (attendance) => {
+    setSelectedAttendance(attendance);
+    setShowDeleteAttendanceConfirm(true);
+  };
+
+  const handleCheckOut = async (attendanceId) => {
+    try {
+      await facilityService.checkOut(attendanceId);
+      await fetchAttendance();
+    } catch (err) {
+      console.error('Error checking out:', err);
+      throw err;
+    }
+  };
+
+  const handleAttendanceSaved = async (attendanceData) => {
+    try {
+      console.log('Attendance data received:', attendanceData);
+      console.log('Attendance modal mode:', attendanceModalMode);
+      
+      if (attendanceModalMode === 'add') {
+        await facilityService.createAttendance(attendanceData);
+      } else {
+        await facilityService.updateAttendance(selectedAttendance.attendance_id, attendanceData);
+      }
+      setShowAttendanceModal(false);
+      await fetchAttendance();
+    } catch (err) {
+      console.error('Error saving attendance:', err);
+      throw err;
+    }
+  };
+
+  const handleAttendanceDeleted = async () => {
+    try {
+      await facilityService.deleteAttendance(selectedAttendance.attendance_id);
+      setShowDeleteAttendanceConfirm(false);
+      await fetchAttendance();
+    } catch (err) {
+      console.error('Error deleting attendance:', err);
+      throw err;
+    }
+  };
+
+  const handleAttendancePageChange = (page) => {
+    setAttendancePage(page);
+  };
+
   const handleRefresh = () => {
     if (activeTab === 'facilities') {
       fetchFacilities();
     } else if (activeTab === 'equipment') {
       fetchEquipment();
+    } else if (activeTab === 'attendance') {
+      fetchAttendance();
     }
   };
 
@@ -225,7 +378,7 @@ const Facility = () => {
               >
                 Add New Facility
               </Button>
-            ) : (
+            ) : activeTab === 'equipment' ? (
               <Button 
                 variant="primary" 
                 icon={<Plus size={18} />}
@@ -233,6 +386,15 @@ const Facility = () => {
                 className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
               >
                 Add New Equipment
+              </Button>
+            ) : (
+              <Button 
+                variant="primary" 
+                icon={<Plus size={18} />}
+                onClick={handleAddAttendance}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
+              >
+                Add Check-in
               </Button>
             )}
           </div>
@@ -262,6 +424,17 @@ const Facility = () => {
             >
               <Wrench size={16} className="inline mr-1" />
               Equipment
+            </button>
+            <button
+              onClick={() => setActiveTab('attendance')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                activeTab === 'attendance'
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <Users size={16} className="inline mr-1" />
+              Attendance
             </button>
           </nav>
         </div>
@@ -304,7 +477,7 @@ const Facility = () => {
             totalCount={facilityTotalCount}
           />
         </>
-      ) : (
+      ) : activeTab === 'equipment' ? (
         <>
           {/* Error Message */}
           {error && (
@@ -335,6 +508,40 @@ const Facility = () => {
             pageSize={pageSize}
             loading={equipmentLoading}
             totalCount={equipmentTotalCount}
+          />
+        </>
+      ) : (
+        <>
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium">Error</h3>
+                  <p className="text-sm mt-1">{error}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Attendance List */}
+          <AttendanceList 
+            attendance={attendance}
+            onEdit={handleEditAttendance}
+            onDelete={handleDeleteAttendance}
+            onCheckOut={handleCheckOut}
+            onRefresh={handleRefresh}
+            currentPage={attendancePage}
+            totalPages={attendanceTotalPages}
+            onPageChange={handleAttendancePageChange}
+            pageSize={pageSize}
+            loading={attendanceLoading}
+            totalCount={attendanceTotalCount}
           />
         </>
       )}
@@ -380,6 +587,29 @@ const Facility = () => {
           onConfirm={handleEquipmentDeleted}
           equipment={selectedEquipment}
           isLoading={equipmentLoading}
+        />
+      )}
+
+      {showAttendanceModal && (
+        <AttendanceModal
+          isOpen={showAttendanceModal}
+          onClose={() => setShowAttendanceModal(false)}
+          onSave={handleAttendanceSaved}
+          attendance={selectedAttendance}
+          mode={attendanceModalMode}
+          facilities={facilities}
+          members={members}
+          isLoading={attendanceLoading}
+        />
+      )}
+
+      {showDeleteAttendanceConfirm && selectedAttendance && (
+        <DeleteAttendanceConfirm
+          isOpen={showDeleteAttendanceConfirm}
+          onClose={() => setShowDeleteAttendanceConfirm(false)}
+          onConfirm={handleAttendanceDeleted}
+          attendance={selectedAttendance}
+          isLoading={attendanceLoading}
         />
       )}
     </div>
