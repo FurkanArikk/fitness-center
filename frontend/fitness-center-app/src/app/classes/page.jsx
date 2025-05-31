@@ -921,6 +921,12 @@ const Classes = () => {
   const [showClassVisibility, setShowClassVisibility] = useState(false);
   const [showAllTrainers, setShowAllTrainers] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalClasses, setTotalClasses] = useState(0);
+  const ITEMS_PER_PAGE = 8;
+
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -941,6 +947,18 @@ const Classes = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    // Update total classes count and calculate total pages
+    setTotalClasses(classes.length);
+    setTotalPages(Math.ceil(classes.length / ITEMS_PER_PAGE));
+  }, [classes]);
+
+  useEffect(() => {
+    // Reset to first page when search or filter changes
+    setCurrentPage(1);
+  }, [search, difficulty]);
+
+  // Calculate filtered classes
   const filteredClasses = classes.filter((c) => {
     const matchesSearch = c.class_name
       .toLowerCase()
@@ -950,6 +968,48 @@ const Classes = () => {
       : true;
     return matchesSearch && matchesDifficulty;
   });
+
+  // Calculate pagination values - using the totalPages from state
+  const totalFilteredClasses = filteredClasses.length;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentPageClasses = filteredClasses.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   const handleCardClick = (classItem) => {
     setSelectedClass(classItem);
@@ -1336,53 +1396,348 @@ const Classes = () => {
   }
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <h2 className="text-2xl font-bold">Class Schedule</h2>
-      </div>
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-3 items-center mb-2">
-        <div className="relative w-full md:w-1/3">
-          <input
-            type="text"
-            className="w-full border rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring"
-            placeholder="Search classes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+    <div className="space-y-8 relative">
+      {/* Modern Header Section */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+            Class Schedule
+          </h2>
+          <p className="text-gray-600 text-sm">
+            Discover and book your perfect fitness classes
+          </p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter size={18} className="text-gray-400" />
-          <select
-            className="border rounded-lg py-2 px-3 focus:outline-none"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-          >
-            {difficultyOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+
+        {/* Quick Stats Cards */}
+        <div className="flex gap-3">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl px-4 py-2 shadow-sm">
+            <div className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">
+              Active Classes
+            </div>
+            <div className="text-lg font-bold text-blue-700">
+              {filteredClasses.length}
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl px-4 py-2 shadow-sm">
+            <div className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">
+              Total Capacity
+            </div>
+            <div className="text-lg font-bold text-green-700">
+              {filteredClasses.reduce((sum, c) => sum + (c.capacity || 0), 0)}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Enhanced Search and Filter Controls */}
+      <div className="bg-gradient-to-r from-white via-gray-50/30 to-white backdrop-blur-sm rounded-2xl border-2 border-gray-200/60 p-6 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full lg:max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search
+                className="text-gray-400 transition-colors duration-200"
+                size={20}
+              />
+            </div>
+            <input
+              type="text"
+              className="
+                w-full 
+                bg-white/80 
+                backdrop-blur-sm 
+                border-2 
+                border-gray-200 
+                rounded-xl 
+                pl-12 
+                pr-4 
+                py-3 
+                text-gray-900 
+                placeholder-gray-500
+                focus:outline-none 
+                focus:ring-4 
+                focus:ring-blue-200/50 
+                focus:border-blue-400
+                transition-all 
+                duration-200
+                shadow-sm
+                hover:shadow-md
+                hover:border-gray-300
+              "
+              placeholder="Search classes by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XCircle size={18} />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Dropdown */}
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-2 text-gray-500">
+              <Filter size={18} className="text-gray-400" />
+              <span className="text-sm font-medium hidden sm:inline">
+                Filter by level:
+              </span>
+            </div>
+            <select
+              className="
+                bg-white/80 
+                backdrop-blur-sm 
+                border-2 
+                border-gray-200 
+                rounded-xl 
+                px-4 
+                py-3 
+                text-gray-900
+                focus:outline-none 
+                focus:ring-4 
+                focus:ring-blue-200/50 
+                focus:border-blue-400
+                transition-all 
+                duration-200
+                shadow-sm
+                hover:shadow-md
+                hover:border-gray-300
+                min-w-[140px]
+                cursor-pointer
+              "
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+            >
+              {difficultyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="py-2">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Active Filters Display */}
+          {(search || difficulty) && (
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                Active filters:
+              </span>
+              <div className="flex gap-2 flex-wrap">
+                {search && (
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
+                    Search: "{search}"
+                  </span>
+                )}
+                {difficulty && (
+                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium border border-purple-200">
+                    Level: {difficulty}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setDifficulty("");
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Enhanced Class Cards Grid */}
+      <div className="space-y-6">
+        {/* Results Summary */}
+        {filteredClasses.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-gray-600 text-sm">
+              Showing{" "}
+              <span className="font-semibold text-gray-900">
+                {Math.min(
+                  (currentPage - 1) * ITEMS_PER_PAGE + 1,
+                  filteredClasses.length
+                )}
+                -
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredClasses.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredClasses.length}
+              </span>{" "}
+              {filteredClasses.length === 1 ? "class" : "classes"}
+              {(search || difficulty) && " matching your criteria"}
+            </p>
+            {classes.length !== filteredClasses.length && (
+              <p className="text-xs text-gray-500">
+                {classes.length - filteredClasses.length} classes hidden by
+                filters
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 4x2 Grid Layout (8 classes per page) */}
+        {filteredClasses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {currentPageClasses.map((classItem, idx) => (
+              <div
+                key={classItem.class_id}
+                className="transform transition-all duration-200 hover:scale-105"
+              >
+                <ClassCard
+                  classItem={classItem}
+                  index={(currentPage - 1) * ITEMS_PER_PAGE + idx}
+                  onClick={handleCardClick}
+                />
+              </div>
             ))}
-          </select>
-        </div>
-      </div>
-      {/* Class Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {filteredClasses.map((classItem, idx) => (
-          <ClassCard
-            key={classItem.class_id}
-            classItem={classItem}
-            index={idx}
-            onClick={handleCardClick}
-          />
-        ))}
-        {filteredClasses.length === 0 && (
-          <div className="col-span-full text-center text-gray-500 py-8">
-            No classes found.
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 64 64"
+                fill="currentColor"
+              >
+                <path d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8zm0 44c-11 0-20-9-20-20s9-20 20-20 20 9 20 20-9 20-20 20z" />
+                <path d="M26 24h12v4H26zM26 32h12v4H26zM26 40h8v4h-8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No classes found
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              {search || difficulty
+                ? "Try adjusting your search criteria or filters to find more classes."
+                : "No classes are currently available. Please check back later or contact support."}
+            </p>
+            {(search || difficulty) && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setDifficulty("");
+                }}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Modern Pagination Controls */}
+        {Math.ceil(filteredClasses.length / ITEMS_PER_PAGE) > 1 && (
+          <div className="flex justify-center items-center gap-2 py-6">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${
+                  currentPage === 1
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow-md"
+                }
+              `}
+              disabled={currentPage === 1}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"
+                />
+              </svg>
+              Previous
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page, index) => {
+                if (page === "...") {
+                  return (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-3 py-2 text-gray-500 text-sm"
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                const isCurrentPage = page === currentPage;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`
+                      px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                      ${
+                        isCurrentPage
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-200 transform scale-105"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm"
+                      }
+                    `}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(
+                    prev + 1,
+                    Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+                  )
+                )
+              }
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${
+                  currentPage ===
+                  Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow-md"
+                }
+              `}
+              disabled={
+                currentPage ===
+                Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+              }
+            >
+              Next
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+                />
+              </svg>
+            </button>
           </div>
         )}
       </div>
+
       {/* Class Details Modal */}
       {showModal && selectedClass && (
         <div
