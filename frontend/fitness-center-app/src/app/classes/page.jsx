@@ -265,7 +265,7 @@ const InactiveClassesPanel = ({
   );
 };
 
-const ClassVisibilityPanel = ({ anchorRef, open, onClose, classService }) => {
+const ClassVisibilityPanel = ({ open, onClose, classService }) => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
@@ -291,49 +291,6 @@ const ClassVisibilityPanel = ({ anchorRef, open, onClose, classService }) => {
       )
     : classes;
 
-  // Popper-style positioning and arrow
-  const [panelStyle, setPanelStyle] = useState({});
-  const [arrowStyle, setArrowStyle] = useState({});
-  useEffect(() => {
-    if (open && anchorRef?.current) {
-      const rect = anchorRef.current.getBoundingClientRect();
-      setPanelStyle({
-        position: "absolute",
-        top: rect.bottom + window.scrollY + 12,
-        left: rect.left + window.scrollX,
-        minWidth: rect.width,
-        zIndex: 1000,
-        transition: "opacity 0.2s cubic-bezier(.4,0,.2,1)",
-        // Remove any marginTop, paddingTop, or height that could cause a bar
-      });
-      setArrowStyle({
-        position: "absolute",
-        top: -8, // Only enough for the arrow SVG
-        left: 32,
-        zIndex: 1001,
-        width: 24,
-        height: 12,
-        pointerEvents: "none", // Arrow should not block clicks
-      });
-    }
-  }, [open, anchorRef]);
-
-  // Dismiss on outside click
-  useEffect(() => {
-    if (!open) return;
-    const handle = (e) => {
-      if (
-        anchorRef?.current &&
-        !anchorRef.current.contains(e.target) &&
-        !document.getElementById("class-visibility-panel")?.contains(e.target)
-      ) {
-        onClose();
-      }
-    };
-    document.addEventListener("mousedown", handle);
-    return () => document.removeEventListener("mousedown", handle);
-  }, [open, anchorRef, onClose]);
-
   // Toggle class active/inactive
   const handleToggle = async (cls) => {
     setToggling((prev) => ({ ...prev, [cls.class_id]: true }));
@@ -352,95 +309,486 @@ const ClassVisibilityPanel = ({ anchorRef, open, onClose, classService }) => {
   };
 
   if (!open) return null;
+
   return (
     <div
-      id="class-visibility-panel"
-      style={panelStyle}
-      className="bg-white rounded-xl shadow-2xl border p-4 max-w-md w-[350px] animate-fade-in relative transition-all duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
+      }}
     >
-      {/* Only render the small arrow, no extra bar */}
-      <div style={arrowStyle}>
-        <svg width="24" height="12" viewBox="0 0 24 12">
-          <polygon
-            points="12,0 24,12 0,12"
-            fill="#fff"
-            stroke="#e5e7eb"
-            strokeWidth="1"
-          />
-        </svg>
-      </div>
-      <div className="flex justify-between items-center mb-2">
-        <span className="font-semibold text-lg">Class Visibility</span>
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[75vh] overflow-y-auto relative animate-fade-in mx-4">
         <button
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl z-10"
           onClick={onClose}
           aria-label="Close"
-          className="text-gray-400 hover:text-gray-700"
         >
-          <XCircle size={22} />
+          ×
         </button>
-      </div>
-      <div className="mb-3 flex items-center gap-2">
-        <Search size={18} className="text-gray-400" />
-        <input
-          className="border rounded px-2 py-1 w-full text-sm"
-          placeholder="Search by name..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-      {loading ? (
-        <Loader size="small" message="Loading classes..." />
-      ) : error ? (
-        <div className="text-red-500 text-sm mb-2">{error}</div>
-      ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center text-gray-500 py-8">
-          <XCircle size={36} className="mb-2" />
-          <span>No classes found</span>
-        </div>
-      ) : (
-        <div className="space-y-3 max-h-72 overflow-y-auto">
-          {filtered.map((cls) => (
-            <div
-              key={cls.class_id}
-              className={`border rounded-lg p-3 flex items-center justify-between bg-gray-50 shadow-sm transition-all duration-200 ${
-                toggling[cls.class_id] ? "opacity-60" : ""
-              }`}
-            >
-              <div>
-                <div className="font-medium text-sm">{cls.class_name}</div>
-                <div className="text-xs text-gray-600">
-                  Duration: {cls.duration} min
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-xs px-2 py-1 rounded-full ${
-                    cls.is_active
-                      ? "bg-green-100 text-green-700"
-                      : "bg-gray-200 text-gray-500"
+
+        {/* Modal Content */}
+        <div className="p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            Class Visibility
+          </h2>
+
+          {/* Search Bar */}
+          <div className="mb-6 flex items-center gap-3">
+            <Search size={18} className="text-gray-400" />
+            <input
+              className="border rounded-lg px-4 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+              placeholder="Search by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-red-500 text-sm mb-4 p-3 bg-red-50 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader size="large" message="Loading classes..." />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center text-gray-500 py-12">
+              <XCircle size={48} className="mb-4" />
+              <span className="text-lg">No classes found</span>
+            </div>
+          ) : (
+            /* Class List */
+            <div className="space-y-4 max-h-[50vh] overflow-y-auto">
+              {filtered.map((cls) => (
+                <div
+                  key={cls.class_id}
+                  className={`border rounded-lg p-4 flex items-center justify-between bg-gray-50 hover:bg-gray-100 shadow-sm transition-all duration-200 ${
+                    toggling[cls.class_id] ? "opacity-60" : ""
                   }`}
                 >
-                  {cls.is_active ? "Active" : "Inactive"}
-                </span>
-                <Switch
-                  checked={!!cls.is_active}
-                  onChange={() => handleToggle(cls)}
-                  className={`$${
-                    cls.is_active ? "bg-green-500" : "bg-gray-300"
-                  } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-200`}
-                  disabled={!!toggling[cls.class_id]}
-                >
-                  <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                      cls.is_active ? "translate-x-5" : "translate-x-1"
-                    }`}
-                  />
-                </Switch>
+                  <div className="flex-1">
+                    <div className="font-medium text-lg text-gray-900">
+                      {cls.class_name}
+                    </div>
+                    <div className="text-sm text-gray-600 mt-1">
+                      Duration: {cls.duration} min
+                      {cls.capacity && ` • Capacity: ${cls.capacity}`}
+                      {cls.difficulty && ` • Level: ${cls.difficulty}`}
+                    </div>
+                    {cls.description && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        {cls.description}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 ml-4">
+                    <span
+                      className={`text-sm px-3 py-1 rounded-full font-medium ${
+                        cls.is_active
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {cls.is_active ? "Active" : "Inactive"}
+                    </span>
+                    <Switch
+                      checked={!!cls.is_active}
+                      onChange={() => handleToggle(cls)}
+                      className={`${
+                        cls.is_active ? "bg-green-500" : "bg-gray-300"
+                      } relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-200`}
+                      disabled={!!toggling[cls.class_id]}
+                    >
+                      <span
+                        className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          cls.is_active ? "translate-x-5" : "translate-x-1"
+                        }`}
+                      />
+                    </Switch>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Summary */}
+          {!loading && filtered.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600 text-center">
+                Showing {filtered.length} of {classes.length} classes •{" "}
+                {classes.filter((c) => c.is_active).length} active •{" "}
+                {classes.filter((c) => !c.is_active).length} inactive
               </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
+      </div>
+    </div>
+  );
+};
+
+const ViewAllTrainersPanel = ({ open, onClose, staffService }) => {
+  const [trainers, setTrainers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [error, setError] = useState(null);
+  const [specializationFilter, setSpecializationFilter] = useState("");
+
+  // Helper function to get trainer name safely from API response
+  const getTrainerName = (trainer) => {
+    if (!trainer) return "Unknown Trainer";
+
+    // Check for direct name field
+    if (trainer.name) {
+      return trainer.name;
+    }
+
+    // Check for first_name and last_name
+    if (trainer.first_name && trainer.last_name) {
+      return `${trainer.first_name} ${trainer.last_name}`;
+    }
+
+    // Check for staff object with first_name and last_name
+    if (trainer.staff && trainer.staff.first_name && trainer.staff.last_name) {
+      return `${trainer.staff.first_name} ${trainer.staff.last_name}`;
+    }
+
+    // Fallback to just first_name or last_name if available
+    if (trainer.first_name) {
+      return trainer.first_name;
+    }
+
+    if (trainer.last_name) {
+      return trainer.last_name;
+    }
+
+    // Final fallback with ID
+    const trainerId = trainer.trainer_id || trainer.staff_id || trainer.id;
+    return `Trainer #${trainerId}`;
+  };
+
+  // Fetch all trainers
+  useEffect(() => {
+    if (!open) return;
+
+    const fetchTrainers = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Try to get trainers first
+        let trainerData = await staffService.getTrainers();
+
+        // If no trainers or empty, try to get all staff and filter for trainers
+        if (!trainerData || trainerData.length === 0) {
+          const staffData = await staffService.getStaff();
+          // Filter staff who are trainers (have trainer-related fields or position)
+          trainerData = staffData.filter(
+            (staff) =>
+              staff.position?.toLowerCase().includes("trainer") ||
+              staff.specialization ||
+              staff.certification ||
+              staff.rating
+          );
+        }
+
+        setTrainers(Array.isArray(trainerData) ? trainerData : []);
+      } catch (err) {
+        console.error("Error fetching trainers:", err);
+        setError("Failed to fetch trainers.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTrainers();
+  }, [open, staffService]);
+
+  // Get unique specializations for filter (handle multiple possible field names)
+  const specializations = [
+    ...new Set(
+      trainers
+        .map(
+          (t) =>
+            t.specialization ||
+            t.specialty ||
+            t.area_of_expertise ||
+            (t.position?.toLowerCase().includes("trainer") ? t.position : null)
+        )
+        .filter(Boolean)
+    ),
+  ];
+
+  // Enhanced filtering function
+  const filtered = trainers.filter((trainer) => {
+    const trainerName = getTrainerName(trainer);
+    const email = trainer.email || trainer.staff?.email || "";
+    const specialization =
+      trainer.specialization ||
+      trainer.specialty ||
+      trainer.area_of_expertise ||
+      "";
+    const position = trainer.position || "";
+
+    const matchesSearch = search
+      ? trainerName.toLowerCase().includes(search.toLowerCase()) ||
+        email.toLowerCase().includes(search.toLowerCase()) ||
+        specialization.toLowerCase().includes(search.toLowerCase()) ||
+        position.toLowerCase().includes(search.toLowerCase())
+      : true;
+
+    const matchesSpecialization = specializationFilter
+      ? specialization.toLowerCase() === specializationFilter.toLowerCase() ||
+        position.toLowerCase() === specializationFilter.toLowerCase()
+      : true;
+
+    return matchesSearch && matchesSpecialization;
+  });
+
+  if (!open) return null;
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
+        backgroundColor: "rgba(0, 0, 0, 0.3)",
+      }}
+    >
+      <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[75vh] overflow-y-auto relative animate-fade-in mx-4">
+        <button
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl z-10"
+          onClick={onClose}
+          aria-label="Close"
+        >
+          ×
+        </button>
+
+        {/* Modal Content */}
+        <div className="p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
+            All Trainers
+          </h2>
+
+          {/* Search and Filter Bar */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-3">
+            <div className="flex items-center gap-3 flex-1">
+              <Search size={18} className="text-gray-400" />
+              <input
+                className="border rounded-lg px-4 py-2 w-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                placeholder="Search by name, email, or specialization..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            {specializations.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Filter size={18} className="text-gray-400" />
+                <select
+                  className="border rounded-lg py-2 px-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  value={specializationFilter}
+                  onChange={(e) => setSpecializationFilter(e.target.value)}
+                >
+                  <option value="">All Specializations</option>
+                  {specializations.map((spec) => (
+                    <option key={spec} value={spec}>
+                      {spec}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="text-red-500 text-sm mb-4 p-3 bg-red-50 rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <Loader size="large" message="Loading trainers..." />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center text-gray-500 py-12">
+              <XCircle size={48} className="mb-4" />
+              <span className="text-lg">
+                {trainers.length === 0
+                  ? "No trainers found"
+                  : "No trainers match your search"}
+              </span>
+              {trainers.length === 0 && (
+                <p className="text-sm mt-2 text-center">
+                  Add staff members with trainer positions or create trainer
+                  profiles to see them here.
+                </p>
+              )}
+            </div>
+          ) : (
+            /* Trainers Grid */
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[50vh] overflow-y-auto">
+              {filtered.map((trainer) => {
+                const trainerName = getTrainerName(trainer);
+                const email =
+                  trainer.email || trainer.staff?.email || "No email provided";
+                const phone = trainer.phone || trainer.staff?.phone;
+                const specialization =
+                  trainer.specialization ||
+                  trainer.specialty ||
+                  trainer.area_of_expertise ||
+                  trainer.position;
+                const rating = trainer.rating || trainer.average_rating;
+                const experience =
+                  trainer.experience ||
+                  trainer.experience_years ||
+                  trainer.years_of_experience;
+                const hourlyRate =
+                  trainer.hourly_rate ||
+                  trainer.rate_per_hour ||
+                  trainer.salary;
+                const isAvailable =
+                  trainer.is_available !== false &&
+                  trainer.status !== "Inactive";
+                const bio = trainer.bio || trainer.description;
+                const certifications =
+                  trainer.certifications || trainer.certification
+                    ? [trainer.certification]
+                    : [];
+                const trainerId =
+                  trainer.trainer_id || trainer.staff_id || trainer.id;
+
+                return (
+                  <div
+                    key={trainerId}
+                    className="border rounded-lg p-4 bg-gray-50 hover:bg-gray-100 shadow-sm transition-all duration-200"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <div className="font-medium text-lg text-gray-900 mb-1">
+                          {trainerName}
+                        </div>
+                        <div className="text-sm text-gray-600 mb-2">
+                          📧 {email}
+                        </div>
+                        {phone && (
+                          <div className="text-sm text-gray-600 mb-2">
+                            📞 {phone}
+                          </div>
+                        )}
+                      </div>
+                      {rating && rating > 0 && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-500">⭐</span>
+                          <span className="text-sm font-medium">
+                            {Number(rating).toFixed(1)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-2">
+                      {specialization && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                            {specialization}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                        {experience && (
+                          <span className="bg-gray-200 px-2 py-1 rounded">
+                            {experience} years exp.
+                          </span>
+                        )}
+                        {hourlyRate && (
+                          <span className="bg-green-100 text-green-700 px-2 py-1 rounded">
+                            ${Number(hourlyRate).toFixed(0)}/hr
+                          </span>
+                        )}
+                        <span
+                          className={`px-2 py-1 rounded ${
+                            isAvailable
+                              ? "bg-green-100 text-green-700"
+                              : "bg-red-100 text-red-700"
+                          }`}
+                        >
+                          {isAvailable ? "Available" : "Unavailable"}
+                        </span>
+                      </div>
+
+                      {bio && (
+                        <div className="text-xs text-gray-500 mt-2 line-clamp-2">
+                          {bio}
+                        </div>
+                      )}
+
+                      {certifications && certifications.length > 0 && (
+                        <div className="mt-2">
+                          <div className="text-xs text-gray-500 mb-1">
+                            Certifications:
+                          </div>
+                          <div className="flex flex-wrap gap-1">
+                            {certifications.slice(0, 3).map((cert, idx) => (
+                              <span
+                                key={idx}
+                                className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded"
+                              >
+                                {cert}
+                              </span>
+                            ))}
+                            {certifications.length > 3 && (
+                              <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                +{certifications.length - 3} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Summary */}
+          {!loading && filtered.length > 0 && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <div className="text-sm text-gray-600 text-center">
+                Showing {filtered.length} of {trainers.length} trainers
+                {specializationFilter &&
+                  ` • Filtered by: ${specializationFilter}`}
+                {trainers.filter(
+                  (t) => t.is_available !== false && t.status !== "Inactive"
+                ).length > 0 && (
+                  <>
+                    {" "}
+                    •{" "}
+                    {
+                      trainers.filter(
+                        (t) =>
+                          t.is_available !== false && t.status !== "Inactive"
+                      ).length
+                    }{" "}
+                    available
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
@@ -571,12 +919,19 @@ const Classes = () => {
   const classVisibilityBtnRef = useRef();
   const [showInactivePanel, setShowInactivePanel] = useState(false);
   const [showClassVisibility, setShowClassVisibility] = useState(false);
+  const [showAllTrainers, setShowAllTrainers] = useState(false);
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalClasses, setTotalClasses] = useState(0);
+  const ITEMS_PER_PAGE = 8;
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const classesData = await classService.getClasses();
+        const classesData = await classService.getClasses(true); // Only active classes for main view
         setClasses(Array.isArray(classesData) ? classesData : []);
         const schedulesData = await classService.getSchedules();
         setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
@@ -592,6 +947,18 @@ const Classes = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    // Update total classes count and calculate total pages
+    setTotalClasses(classes.length);
+    setTotalPages(Math.ceil(classes.length / ITEMS_PER_PAGE));
+  }, [classes]);
+
+  useEffect(() => {
+    // Reset to first page when search or filter changes
+    setCurrentPage(1);
+  }, [search, difficulty]);
+
+  // Calculate filtered classes
   const filteredClasses = classes.filter((c) => {
     const matchesSearch = c.class_name
       .toLowerCase()
@@ -601,6 +968,48 @@ const Classes = () => {
       : true;
     return matchesSearch && matchesDifficulty;
   });
+
+  // Calculate pagination values - using the totalPages from state
+  const totalFilteredClasses = filteredClasses.length;
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentPageClasses = filteredClasses.slice(startIndex, endIndex);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        pages.push(1);
+        pages.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pages.push(i);
+        }
+        pages.push("...");
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
 
   const handleCardClick = (classItem) => {
     setSelectedClass(classItem);
@@ -640,7 +1049,7 @@ const Classes = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const classesData = await classService.getClasses();
+      const classesData = await classService.getClasses(true); // Only active classes for main view
       setClasses(Array.isArray(classesData) ? classesData : []);
       const schedulesData = await classService.getSchedules();
       setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
@@ -692,64 +1101,294 @@ const Classes = () => {
     }
   };
 
-  // Analytics fetch logic
+  // Analytics fetch logic - Enhanced with real API data
   const fetchAnalytics = async () => {
     setAnalyticsLoading(true);
     try {
-      // Use already-fetched classes and schedules if possible
-      const allClasses = await classService.getClasses(false); // all
-      const activeClasses = await classService.getClasses(true); // only active
-      const bookings = await classService.getBookings();
-      const schedules = await classService.getSchedules();
-      // Participants: count unique member IDs in bookings
-      const participantIds = new Set(bookings.map((b) => b.member_id));
-      // Classes held last week/month: count schedules in date range
+      // Fetch all necessary data in parallel with error handling
+      const [allClasses, activeClasses, allBookings, allSchedules] =
+        await Promise.allSettled([
+          classService.getClasses(false, 1, 1000), // Get all classes
+          classService.getClasses(true, 1, 1000), // Get only active classes
+          classService.getBookings(null, null, 1, 1000), // Get all bookings
+          classService.getSchedules(undefined, 1, 1000), // Get all schedules without status filter
+        ]);
+
+      // Extract successful results or use empty arrays as fallback
+      const allClassesData =
+        allClasses.status === "fulfilled" ? allClasses.value : [];
+      const activeClassesData =
+        activeClasses.status === "fulfilled" ? activeClasses.value : [];
+      const allBookingsData =
+        allBookings.status === "fulfilled" ? allBookings.value : [];
+      const allSchedulesData =
+        allSchedules.status === "fulfilled" ? allSchedules.value : [];
+
+      // Log any failed requests
+      if (allClasses.status === "rejected")
+        console.warn("Failed to fetch all classes:", allClasses.reason);
+      if (activeClasses.status === "rejected")
+        console.warn("Failed to fetch active classes:", activeClasses.reason);
+      if (allBookings.status === "rejected")
+        console.warn("Failed to fetch bookings:", allBookings.reason);
+      if (allSchedules.status === "rejected")
+        console.warn("Failed to fetch schedules:", allSchedules.reason);
+
+      // Calculate unique participants from bookings
+      const uniqueParticipants = new Set(
+        allBookingsData
+          .filter((booking) => booking.member_id)
+          .map((booking) => booking.member_id)
+      ).size;
+
+      // Calculate time-based metrics
       const now = new Date();
-      const weekAgo = new Date(now);
-      weekAgo.setDate(now.getDate() - 7);
-      const monthAgo = new Date(now);
-      monthAgo.setMonth(now.getMonth() - 1);
-      const lastWeek = schedules.filter((s) => {
-        const d = new Date(s.created_at || s.start_time);
-        return d >= weekAgo && d <= now;
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+      // Filter schedules for last week and month
+      const schedulesLastWeek = allSchedulesData.filter((schedule) => {
+        const scheduleDate = new Date(
+          schedule.created_at || schedule.start_time
+        );
+        return scheduleDate >= oneWeekAgo && scheduleDate <= now;
       }).length;
-      const lastMonth = schedules.filter((s) => {
-        const d = new Date(s.created_at || s.start_time);
-        return d >= monthAgo && d <= now;
+
+      const schedulesLastMonth = allSchedulesData.filter((schedule) => {
+        const scheduleDate = new Date(
+          schedule.created_at || schedule.start_time
+        );
+        return scheduleDate >= oneMonthAgo && scheduleDate <= now;
       }).length;
-      // Trend: classes held per week for last 6 weeks
+
+      // Calculate 6-week trend data for heartbeat chart
       const trendData = [];
       for (let i = 5; i >= 0; i--) {
-        const start = new Date(now);
-        start.setDate(now.getDate() - i * 7);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        const count = schedules.filter((s) => {
-          const d = new Date(s.created_at || s.start_time);
-          return d >= start && d <= end;
+        const weekStart = new Date(
+          now.getTime() - (i + 1) * 7 * 24 * 60 * 60 * 1000
+        );
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+
+        const weeklyCount = allSchedulesData.filter((schedule) => {
+          const scheduleDate = new Date(
+            schedule.created_at || schedule.start_time
+          );
+          return scheduleDate >= weekStart && scheduleDate < weekEnd;
         }).length;
-        trendData.push(count);
+
+        trendData.push(weeklyCount);
       }
+
+      // Calculate additional metrics
+      const totalBookings = allBookingsData.length;
+      const attendedBookings = allBookingsData.filter(
+        (booking) => booking.attendance_status === "attended"
+      ).length;
+      const attendanceRate =
+        totalBookings > 0 ? (attendedBookings / totalBookings) * 100 : 0;
+
+      // Calculate average class capacity utilization
+      const classUtilization =
+        activeClassesData.length > 0
+          ? activeClassesData.reduce(
+              (acc, cls) => acc + (cls.capacity || 0),
+              0
+            ) / activeClassesData.length
+          : 0;
+
       setAnalyticsStats({
-        totalClasses: allClasses.length,
-        activeClasses: activeClasses.length,
-        totalParticipants: participantIds.size,
-        lastWeek,
-        lastMonth,
+        totalClasses: allClassesData.length,
+        activeClasses: activeClassesData.length,
+        totalParticipants: uniqueParticipants,
+        lastWeek: schedulesLastWeek,
+        lastMonth: schedulesLastMonth,
         trendData,
+        totalBookings,
+        attendanceRate: Math.round(attendanceRate),
+        averageCapacity: Math.round(classUtilization),
+        inactiveClasses: allClassesData.length - activeClassesData.length,
       });
-    } catch (e) {
+    } catch (error) {
+      console.error("Failed to fetch analytics data:", error);
+      // Set fallback data on error
       setAnalyticsStats({
         totalClasses: 0,
         activeClasses: 0,
         totalParticipants: 0,
         lastWeek: 0,
         lastMonth: 0,
-        trendData: [],
+        trendData: [0, 0, 0, 0, 0, 0],
+        totalBookings: 0,
+        attendanceRate: 0,
+        averageCapacity: 0,
+        inactiveClasses: 0,
       });
     } finally {
       setAnalyticsLoading(false);
     }
+  };
+
+  // Helper function to determine KPI card colors based on values
+  const getKPIColor = (value, type) => {
+    // Define thresholds based on KPI type
+    const thresholds = {
+      total: { low: 5, medium: 15, high: 25 },
+      active: { low: 3, medium: 10, high: 20 },
+      participants: { low: 5, medium: 15, high: 30 },
+      week: { low: 3, medium: 8, high: 15 },
+      month: { low: 10, medium: 25, high: 40 },
+    };
+
+    const threshold = thresholds[type] || thresholds.total;
+
+    if (value <= threshold.low) {
+      return "bg-gradient-to-br from-blue-500 to-blue-600"; // Cool blue for low values
+    } else if (value <= threshold.medium) {
+      return "bg-gradient-to-br from-green-500 to-green-600"; // Green for medium values
+    } else if (value <= threshold.high) {
+      return "bg-gradient-to-br from-orange-500 to-orange-600"; // Warm orange for high values
+    } else {
+      return "bg-gradient-to-br from-red-500 to-red-600"; // Red for very high values
+    }
+  };
+
+  // Animated Heartbeat Chart Component with dynamic data
+  const HeartbeatChart = ({ trendData = [] }) => {
+    // Generate heartbeat pattern based on real trend data
+    const generateHeartbeatPoints = (data) => {
+      if (!data.length) {
+        // Fallback static pattern if no data
+        return "0,30 20,30 25,10 30,50 35,30 40,30 60,30 65,15 70,45 75,30 80,30 100,30 105,20 110,40 115,30 120,30 140,30 145,12 150,48 155,30 160,30 180,30 185,18 190,42 195,30 200,30";
+      }
+
+      // Create dynamic heartbeat pattern based on trend data
+      const points = [];
+      const baseY = 30;
+      const width = 200;
+      const segmentWidth = width / data.length;
+
+      data.forEach((value, index) => {
+        const x = index * segmentWidth;
+        const nextX = x + segmentWidth;
+
+        // Normalize value to heartbeat intensity (higher values = bigger spikes)
+        const intensity = Math.min(value * 2, 20); // Cap at 20px spike
+
+        // Add baseline points
+        points.push(`${x},${baseY}`);
+
+        // Add heartbeat spike based on data value
+        if (value > 0) {
+          points.push(`${x + segmentWidth * 0.2},${baseY}`);
+          points.push(`${x + segmentWidth * 0.3},${baseY - intensity}`);
+          points.push(`${x + segmentWidth * 0.4},${baseY + intensity * 0.8}`);
+          points.push(`${x + segmentWidth * 0.5},${baseY}`);
+        }
+
+        // Connect to next segment
+        if (index < data.length - 1) {
+          points.push(`${nextX},${baseY}`);
+        }
+      });
+
+      return points.join(" ");
+    };
+
+    return (
+      <svg
+        width="200"
+        height="60"
+        viewBox="0 0 200 60"
+        className="heartbeat-chart"
+      >
+        <defs>
+          <linearGradient
+            id="heartbeatGradient"
+            x1="0%"
+            y1="0%"
+            x2="100%"
+            y2="0%"
+          >
+            <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.8" />
+            <stop offset="50%" stopColor="#10B981" stopOpacity="0.8" />
+            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0.8" />
+          </linearGradient>
+        </defs>
+
+        {/* Dynamic heartbeat line based on trend data */}
+        <polyline
+          fill="none"
+          stroke="url(#heartbeatGradient)"
+          strokeWidth="2"
+          points={generateHeartbeatPoints(trendData)}
+          className="heartbeat-line"
+        />
+
+        {/* Baseline */}
+        <line
+          x1="0"
+          y1="30"
+          x2="200"
+          y2="30"
+          stroke="#E5E7EB"
+          strokeWidth="1"
+          opacity="0.3"
+        />
+
+        {/* Data points indicators */}
+        {trendData.map((value, index) => {
+          const x =
+            (index * 200) / trendData.length + 200 / trendData.length / 2;
+          return (
+            <circle
+              key={index}
+              cx={x}
+              cy="30"
+              r="2"
+              fill="#3B82F6"
+              opacity="0.6"
+              className="data-point"
+            />
+          );
+        })}
+
+        <style jsx>{`
+          .heartbeat-line {
+            stroke-dasharray: 400;
+            stroke-dashoffset: 400;
+            animation: heartbeat 4s ease-in-out infinite;
+          }
+
+          .data-point {
+            animation: pulse 2s ease-in-out infinite;
+          }
+
+          @keyframes heartbeat {
+            0% {
+              stroke-dashoffset: 400;
+            }
+            100% {
+              stroke-dashoffset: 0;
+            }
+          }
+
+          @keyframes pulse {
+            0%,
+            100% {
+              opacity: 0.6;
+            }
+            50% {
+              opacity: 1;
+              transform: scale(1.2);
+            }
+          }
+
+          .heartbeat-chart {
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+          }
+        `}</style>
+      </svg>
+    );
   };
 
   if (loading && classes.length === 0) {
@@ -757,75 +1396,358 @@ const Classes = () => {
   }
 
   return (
-    <div className="space-y-6 relative">
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-        <h2 className="text-2xl font-bold">Class Schedule</h2>
-        <div className="flex gap-2 flex-wrap">
-          <Button
-            variant="secondary"
-            onClick={() => console.log("Toggle view")}
-          >
-            Weekly View
-          </Button>
-          <Button
-            variant="primary"
-            icon={<Calendar size={18} />}
-            onClick={() => console.log("Add new class")}
-          >
-            Add New Class
-          </Button>
+    <div className="space-y-8 relative">
+      {/* Modern Header Section */}
+      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
+            Class Schedule
+          </h2>
+          <p className="text-gray-600 text-sm">
+            Discover and book your perfect fitness classes
+          </p>
+        </div>
+
+        {/* Quick Stats Cards */}
+        <div className="flex gap-3">
+          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl px-4 py-2 shadow-sm">
+            <div className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">
+              Active Classes
+            </div>
+            <div className="text-lg font-bold text-blue-700">
+              {filteredClasses.length}
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl px-4 py-2 shadow-sm">
+            <div className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">
+              Total Capacity
+            </div>
+            <div className="text-lg font-bold text-green-700">
+              {filteredClasses.reduce((sum, c) => sum + (c.capacity || 0), 0)}
+            </div>
+          </div>
         </div>
       </div>
-      {/* Search and Filter Controls */}
-      <div className="flex flex-col md:flex-row gap-3 items-center mb-2">
-        <div className="relative w-full md:w-1/3">
-          <input
-            type="text"
-            className="w-full border rounded-lg pl-10 pr-3 py-2 focus:outline-none focus:ring"
-            placeholder="Search classes..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-400" size={18} />
+
+      {/* Enhanced Search and Filter Controls */}
+      <div className="bg-gradient-to-r from-white via-gray-50/30 to-white backdrop-blur-sm rounded-2xl border-2 border-gray-200/60 p-6 shadow-lg">
+        <div className="flex flex-col lg:flex-row gap-4 items-center">
+          {/* Search Input */}
+          <div className="relative flex-1 w-full lg:max-w-md">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <Search
+                className="text-gray-400 transition-colors duration-200"
+                size={20}
+              />
+            </div>
+            <input
+              type="text"
+              className="
+                w-full 
+                bg-white/80 
+                backdrop-blur-sm 
+                border-2 
+                border-gray-200 
+                rounded-xl 
+                pl-12 
+                pr-4 
+                py-3 
+                text-gray-900 
+                placeholder-gray-500
+                focus:outline-none 
+                focus:ring-4 
+                focus:ring-blue-200/50 
+                focus:border-blue-400
+                transition-all 
+                duration-200
+                shadow-sm
+                hover:shadow-md
+                hover:border-gray-300
+              "
+              placeholder="Search classes by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search && (
+              <button
+                onClick={() => setSearch("")}
+                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <XCircle size={18} />
+              </button>
+            )}
+          </div>
+
+          {/* Filter Dropdown */}
+          <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex items-center gap-2 text-gray-500">
+              <Filter size={18} className="text-gray-400" />
+              <span className="text-sm font-medium hidden sm:inline">
+                Filter by level:
+              </span>
+            </div>
+            <select
+              className="
+                bg-white/80 
+                backdrop-blur-sm 
+                border-2 
+                border-gray-200 
+                rounded-xl 
+                px-4 
+                py-3 
+                text-gray-900
+                focus:outline-none 
+                focus:ring-4 
+                focus:ring-blue-200/50 
+                focus:border-blue-400
+                transition-all 
+                duration-200
+                shadow-sm
+                hover:shadow-md
+                hover:border-gray-300
+                min-w-[140px]
+                cursor-pointer
+              "
+              value={difficulty}
+              onChange={(e) => setDifficulty(e.target.value)}
+            >
+              {difficultyOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="py-2">
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Active Filters Display */}
+          {(search || difficulty) && (
+            <div className="flex items-center gap-2 w-full lg:w-auto">
+              <span className="text-xs text-gray-500 hidden sm:inline">
+                Active filters:
+              </span>
+              <div className="flex gap-2 flex-wrap">
+                {search && (
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
+                    Search: "{search}"
+                  </span>
+                )}
+                {difficulty && (
+                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium border border-purple-200">
+                    Level: {difficulty}
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setDifficulty("");
+                  }}
+                  className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors"
+                >
+                  Clear all
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <Filter size={18} className="text-gray-400" />
-          <select
-            className="border rounded-lg py-2 px-3 focus:outline-none"
-            value={difficulty}
-            onChange={(e) => setDifficulty(e.target.value)}
-          >
-            {difficultyOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+      </div>
+
+      {/* Enhanced Class Cards Grid */}
+      <div className="space-y-6">
+        {/* Results Summary */}
+        {filteredClasses.length > 0 && (
+          <div className="flex items-center justify-between">
+            <p className="text-gray-600 text-sm">
+              Showing{" "}
+              <span className="font-semibold text-gray-900">
+                {Math.min(
+                  (currentPage - 1) * ITEMS_PER_PAGE + 1,
+                  filteredClasses.length
+                )}
+                -
+                {Math.min(currentPage * ITEMS_PER_PAGE, filteredClasses.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredClasses.length}
+              </span>{" "}
+              {filteredClasses.length === 1 ? "class" : "classes"}
+              {(search || difficulty) && " matching your criteria"}
+            </p>
+            {classes.length !== filteredClasses.length && (
+              <p className="text-xs text-gray-500">
+                {classes.length - filteredClasses.length} classes hidden by
+                filters
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* 4x2 Grid Layout (8 classes per page) */}
+        {filteredClasses.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {currentPageClasses.map((classItem, idx) => (
+              <div
+                key={classItem.class_id}
+                className="transform transition-all duration-200 hover:scale-105"
+              >
+                <ClassCard
+                  classItem={classItem}
+                  index={(currentPage - 1) * ITEMS_PER_PAGE + idx}
+                  onClick={handleCardClick}
+                />
+              </div>
             ))}
-          </select>
-        </div>
-      </div>
-      {/* Class Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-        {filteredClasses.map((classItem, idx) => (
-          <ClassCard
-            key={classItem.class_id}
-            classItem={classItem}
-            index={idx}
-            onClick={handleCardClick}
-          />
-        ))}
-        {filteredClasses.length === 0 && (
-          <div className="col-span-full text-center text-gray-500 py-8">
-            No classes found.
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-12">
+            <div className="text-gray-400 mb-4">
+              <svg
+                width="64"
+                height="64"
+                viewBox="0 0 64 64"
+                fill="currentColor"
+              >
+                <path d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8zm0 44c-11 0-20-9-20-20s9-20 20-20 20 9 20 20-9 20-20 20z" />
+                <path d="M26 24h12v4H26zM26 32h12v4H26zM26 40h8v4h-8z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No classes found
+            </h3>
+            <p className="text-gray-500 text-center max-w-md">
+              {search || difficulty
+                ? "Try adjusting your search criteria or filters to find more classes."
+                : "No classes are currently available. Please check back later or contact support."}
+            </p>
+            {(search || difficulty) && (
+              <button
+                onClick={() => {
+                  setSearch("");
+                  setDifficulty("");
+                }}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Modern Pagination Controls */}
+        {Math.ceil(filteredClasses.length / ITEMS_PER_PAGE) > 1 && (
+          <div className="flex justify-center items-center gap-2 py-6">
+            {/* Previous Button */}
+            <button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${
+                  currentPage === 1
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow-md"
+                }
+              `}
+              disabled={currentPage === 1}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"
+                />
+              </svg>
+              Previous
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {getPageNumbers().map((page, index) => {
+                if (page === "...") {
+                  return (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-3 py-2 text-gray-500 text-sm"
+                    >
+                      ...
+                    </span>
+                  );
+                }
+
+                const isCurrentPage = page === currentPage;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`
+                      px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200
+                      ${
+                        isCurrentPage
+                          ? "bg-blue-600 text-white shadow-md shadow-blue-200 transform scale-105"
+                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm"
+                      }
+                    `}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() =>
+                setCurrentPage((prev) =>
+                  Math.min(
+                    prev + 1,
+                    Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+                  )
+                )
+              }
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200
+                ${
+                  currentPage ===
+                  Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 shadow-sm hover:shadow-md"
+                }
+              `}
+              disabled={
+                currentPage ===
+                Math.ceil(filteredClasses.length / ITEMS_PER_PAGE)
+              }
+            >
+              Next
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 16 16"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"
+                />
+              </svg>
+            </button>
           </div>
         )}
       </div>
+
       {/* Class Details Modal */}
       {showModal && selectedClass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-          backgroundColor: 'rgba(0, 0, 0, 0.1)'
-        }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+          }}
+        >
           <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in">
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
@@ -869,9 +1791,7 @@ const Classes = () => {
           }}
           onToggleInactiveClasses={() => setShowInactivePanel((v) => !v)}
           onClassVisibilityClick={() => setShowClassVisibility((v) => !v)}
-          onViewAllTrainers={() => {
-            /* TODO: Go to trainers list */
-          }}
+          onViewAllTrainers={() => setShowAllTrainers(true)}
           analyticsBtnRef={analyticsBtnRef}
           inactiveBtnRef={inactiveBtnRef}
           classVisibilityBtnRef={classVisibilityBtnRef}
@@ -884,12 +1804,17 @@ const Classes = () => {
           onActivate={fetchData}
           classService={classService}
         />
-        {/* Class Visibility Floating Panel */}
+        {/* Class Visibility Modal */}
         <ClassVisibilityPanel
-          anchorRef={classVisibilityBtnRef}
           open={showClassVisibility}
           onClose={() => setShowClassVisibility(false)}
           classService={classService}
+        />
+        {/* View All Trainers Panel */}
+        <ViewAllTrainersPanel
+          open={showAllTrainers}
+          onClose={() => setShowAllTrainers(false)}
+          staffService={staffService}
         />
         {/* Enhanced Analytics Section */}
         <Card title="Class Analytics">
@@ -936,72 +1861,127 @@ const Classes = () => {
           error={editError}
         />
       </ConnectedPanel>
-      <ConnectedPanel
-        anchorRef={classVisibilityBtnRef}
-        open={showClassVisibility}
-        onClose={() => setShowClassVisibility(false)}
-        width={700}
-      >
-        {/* Class list with status switches here */}
-      </ConnectedPanel>
-      <ConnectedPanel
-        anchorRef={analyticsBtnRef}
-        open={analyticsOpen}
-        onClose={() => setAnalyticsOpen(false)}
-        width={700}
-      >
-        <div className="space-y-6">
-          <div className="flex justify-between items-center mb-2">
-            <h2 className="text-2xl font-bold">Class Analytics</h2>
+      {/* Analytics Modal - Dynamic API data with screenshot layout */}
+      {analyticsOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.3)",
+          }}
+        >
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[75vh] overflow-y-auto relative animate-fade-in mx-4">
+            <button
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl z-10"
+              onClick={() => setAnalyticsOpen(false)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+
+            {/* Dashboard Content */}
+            <div className="p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-8">
+                Class Analytics
+              </h2>
+
+              {analyticsLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader size="large" message="Loading analytics data..." />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Top Row - 3 Cards */}
+                  <div className="grid grid-cols-3 gap-4">
+                    {/* Total Classes Card */}
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
+                        Total Classes
+                      </div>
+                      <div className="text-4xl font-bold mb-1">
+                        {analyticsStats.totalClasses || 0}
+                      </div>
+                      <div className="text-white/70 text-xs">
+                        All time count
+                      </div>
+                    </div>
+
+                    {/* Active Classes Card */}
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
+                        Active Classes
+                      </div>
+                      <div className="text-4xl font-bold mb-1">
+                        {analyticsStats.activeClasses || 0}
+                      </div>
+                      <div className="text-white/70 text-xs">
+                        Currently running
+                      </div>
+                    </div>
+
+                    {/* Total Participants Card */}
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
+                        Total Participants
+                      </div>
+                      <div className="text-4xl font-bold mb-1">
+                        {analyticsStats.totalParticipants || 0}
+                      </div>
+                      <div className="text-white/70 text-xs">
+                        Unique members
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Row - 2 Cards */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {/* Classes Last Week Card */}
+                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
+                        Classes Last Week
+                      </div>
+                      <div className="text-4xl font-bold mb-1">
+                        {analyticsStats.lastWeek || 0}
+                      </div>
+                      <div className="text-white/70 text-xs">Past 7 days</div>
+                    </div>
+
+                    {/* Classes Last Month Card */}
+                    <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
+                        Classes Last Month
+                      </div>
+                      <div className="text-4xl font-bold mb-1">
+                        {analyticsStats.lastMonth || 0}
+                      </div>
+                      <div className="text-white/70 text-xs">Past 30 days</div>
+                    </div>
+                  </div>
+
+                  {/* Weekly Activity Trend - Heart Rate Chart */}
+                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                      <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                      Weekly Activity Trend
+                    </h3>
+                    <div className="flex items-center justify-center h-20 bg-white rounded-lg border border-gray-100 p-4">
+                      <HeartbeatChart
+                        trendData={
+                          analyticsStats.trendData || [1, 3, 2, 5, 4, 3]
+                        }
+                      />
+                    </div>
+                    <div className="text-center text-gray-500 text-sm mt-3">
+                      6-week activity pattern • Higher spikes = More activity
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-          {analyticsLoading ? (
-            <Loader size="medium" message="Loading analytics..." />
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-6 mb-6">
-                <div className="bg-gray-50 p-4 rounded-lg shadow">
-                  <div className="text-xs text-gray-500">Total Classes</div>
-                  <div className="font-bold text-2xl">
-                    {analyticsStats.totalClasses}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg shadow">
-                  <div className="text-xs text-gray-500">Active Classes</div>
-                  <div className="font-bold text-2xl">
-                    {analyticsStats.activeClasses}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg shadow">
-                  <div className="text-xs text-gray-500">
-                    Total Participants
-                  </div>
-                  <div className="font-bold text-2xl">
-                    {analyticsStats.totalParticipants}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg shadow">
-                  <div className="text-xs text-gray-500">Classes Last Week</div>
-                  <div className="font-bold text-2xl">
-                    {analyticsStats.lastWeek}
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-lg shadow">
-                  <div className="text-xs text-gray-500">
-                    Classes Last Month
-                  </div>
-                  <div className="font-bold text-2xl">
-                    {analyticsStats.lastMonth}
-                  </div>
-                </div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500 mb-1">Weekly Trend</div>
-                <MiniTrendLine data={analyticsStats.trendData} />
-              </div>
-            </>
-          )}
         </div>
-      </ConnectedPanel>
+      )}
     </div>
   );
 };

@@ -1,6 +1,13 @@
 import React, { useState } from "react";
-// If you have a Modal component, import it here. Otherwise, this is a minimal modal implementation.
-// import Modal from "@/components/common/Modal";
+import {
+  Plus,
+  X,
+  Clock,
+  Users,
+  Target,
+  FileText,
+  CheckCircle,
+} from "lucide-react";
 
 const difficulties = ["Beginner", "Intermediate", "Advanced"];
 
@@ -53,160 +60,318 @@ const AddClassModal = ({ open, onCancel, onSubmit, loading, error }) => {
     onSubmit(form);
   };
 
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case "Beginner":
+        return "bg-green-100 text-green-700 border-green-200";
+      case "Intermediate":
+        return "bg-yellow-100 text-yellow-700 border-yellow-200";
+      case "Advanced":
+        return "bg-red-100 text-red-700 border-red-200";
+      default:
+        return "bg-gray-100 text-gray-700 border-gray-200";
+    }
+  };
+
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{
-      backdropFilter: 'blur(4px)',
-      WebkitBackdropFilter: 'blur(4px)',
-      backgroundColor: 'rgba(0, 0, 0, 0.1)'
-    }}>
-      <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative animate-fade-in">
-        <button
-          className="absolute top-2 right-2 text-gray-400 hover:text-gray-700"
-          onClick={onCancel}
-          aria-label="Close"
-          disabled={loading}
-        >
-          ×
-        </button>
-        <h3 className="text-xl font-bold mb-4">Add New Class</h3>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Class Name *
-            </label>
-            <input
-              type="text"
-              name="class_name"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.class_name}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled={loading}
-            />
-            {touched.class_name && errors.class_name && (
-              <div className="text-red-500 text-xs mt-1">
-                {errors.class_name}
-              </div>
-            )}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{
+        backdropFilter: "blur(8px)",
+        WebkitBackdropFilter: "blur(8px)",
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+      }}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full relative overflow-hidden animate-fade-in transform transition-all duration-300 hover:shadow-3xl">
+        {/* Header with Gradient */}
+        <div className="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 px-8 py-6 relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20"></div>
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200 hover:scale-110"
+            onClick={onCancel}
+            aria-label="Close"
+            disabled={loading}
+          >
+            <X size={20} />
+          </button>
+          <div className="relative flex items-center gap-3">
+            <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-3">
+              <Plus className="text-white" size={24} />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-white">Add New Class</h3>
+              <p className="text-white/80 text-sm">
+                Create a new fitness class for your members
+              </p>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Description
-            </label>
-            <textarea
-              name="description"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.description}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled={loading}
-            />
-          </div>
-          <div className="flex gap-2">
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">
-                Duration (min) *
+        </div>
+
+        {/* Form Content */}
+        <div className="px-8 py-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Class Name */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FileText size={16} className="text-blue-500" />
+                Class Name *
               </label>
               <input
-                type="number"
-                name="duration"
-                className="w-full border rounded-lg px-3 py-2"
-                value={form.duration}
+                type="text"
+                name="class_name"
+                className={`
+                  w-full px-4 py-3 rounded-xl border-2 bg-gray-50/50 backdrop-blur-sm
+                  text-gray-900 placeholder-gray-500 font-medium
+                  transition-all duration-200 focus:outline-none focus:ring-4
+                  ${
+                    touched.class_name && errors.class_name
+                      ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                      : "border-gray-200 focus:border-blue-500 focus:ring-blue-200 hover:border-gray-300"
+                  }
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                `}
+                placeholder="Enter class name (e.g., Morning Yoga)"
+                value={form.class_name}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={loading}
-                min={1}
               />
-              {touched.duration && errors.duration && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.duration}
+              {touched.class_name && errors.class_name && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                  <X size={14} />
+                  {errors.class_name}
                 </div>
               )}
             </div>
-            <div className="flex-1">
-              <label className="block text-sm font-medium mb-1">
-                Capacity *
+
+            {/* Description */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <FileText size={16} className="text-purple-500" />
+                Description
               </label>
-              <input
-                type="number"
-                name="capacity"
-                className="w-full border rounded-lg px-3 py-2"
-                value={form.capacity}
+              <textarea
+                name="description"
+                rows={3}
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50/50 backdrop-blur-sm
+                         text-gray-900 placeholder-gray-500 font-medium resize-none
+                         transition-all duration-200 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-200
+                         hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                placeholder="Describe your class, its benefits, and what participants can expect..."
+                value={form.description}
                 onChange={handleChange}
                 onBlur={handleBlur}
                 disabled={loading}
-                min={1}
               />
-              {touched.capacity && errors.capacity && (
-                <div className="text-red-500 text-xs mt-1">
-                  {errors.capacity}
+            </div>
+
+            {/* Duration and Capacity Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Clock size={16} className="text-green-500" />
+                  Duration (minutes) *
+                </label>
+                <input
+                  type="number"
+                  name="duration"
+                  className={`
+                    w-full px-4 py-3 rounded-xl border-2 bg-gray-50/50 backdrop-blur-sm
+                    text-gray-900 placeholder-gray-500 font-medium
+                    transition-all duration-200 focus:outline-none focus:ring-4
+                    ${
+                      touched.duration && errors.duration
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                        : "border-gray-200 focus:border-blue-500 focus:ring-blue-200 hover:border-gray-300"
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                  `}
+                  placeholder="60"
+                  value={form.duration}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  min={1}
+                />
+                {touched.duration && errors.duration && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                    <X size={14} />
+                    {errors.duration}
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                  <Users size={16} className="text-orange-500" />
+                  Capacity *
+                </label>
+                <input
+                  type="number"
+                  name="capacity"
+                  className={`
+                    w-full px-4 py-3 rounded-xl border-2 bg-gray-50/50 backdrop-blur-sm
+                    text-gray-900 placeholder-gray-500 font-medium
+                    transition-all duration-200 focus:outline-none focus:ring-4
+                    ${
+                      touched.capacity && errors.capacity
+                        ? "border-red-300 focus:border-red-500 focus:ring-red-200"
+                        : "border-gray-200 focus:border-blue-500 focus:ring-blue-200 hover:border-gray-300"
+                    }
+                    disabled:opacity-50 disabled:cursor-not-allowed
+                  `}
+                  placeholder="20"
+                  value={form.capacity}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  disabled={loading}
+                  min={1}
+                />
+                {touched.capacity && errors.capacity && (
+                  <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                    <X size={14} />
+                    {errors.capacity}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Difficulty */}
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                <Target size={16} className="text-indigo-500" />
+                Difficulty Level *
+              </label>
+              <select
+                name="difficulty"
+                className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-gray-50/50 backdrop-blur-sm
+                         text-gray-900 font-medium cursor-pointer
+                         transition-all duration-200 focus:outline-none focus:ring-4 focus:border-blue-500 focus:ring-blue-200
+                         hover:border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                value={form.difficulty}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                disabled={loading}
+              >
+                {difficulties.map((d) => (
+                  <option key={d} value={d} className="font-medium">
+                    {d}
+                  </option>
+                ))}
+              </select>
+              {/* Difficulty Visual Indicator */}
+              <div
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${getDifficultyColor(
+                  form.difficulty
+                )}`}
+              >
+                <Target size={12} className="mr-1" />
+                {form.difficulty} Level
+              </div>
+              {touched.difficulty && errors.difficulty && (
+                <div className="flex items-center gap-2 text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">
+                  <X size={14} />
+                  {errors.difficulty}
                 </div>
               )}
             </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Difficulty *
-            </label>
-            <select
-              name="difficulty"
-              className="w-full border rounded-lg px-3 py-2"
-              value={form.difficulty}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              disabled={loading}
-            >
-              {difficulties.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
-            {touched.difficulty && errors.difficulty && (
-              <div className="text-red-500 text-xs mt-1">
-                {errors.difficulty}
+
+            {/* Active Toggle */}
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`p-2 rounded-lg ${
+                      form.is_active ? "bg-green-100" : "bg-gray-200"
+                    }`}
+                  >
+                    <CheckCircle
+                      size={20}
+                      className={
+                        form.is_active ? "text-green-600" : "text-gray-400"
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="is_active"
+                      className="text-sm font-semibold text-gray-700 cursor-pointer"
+                    >
+                      Active Class
+                    </label>
+                    <p className="text-xs text-gray-500">
+                      Class will be visible to members for booking
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    name="is_active"
+                    checked={form.is_active}
+                    onChange={handleChange}
+                    disabled={loading}
+                    id="is_active"
+                    className="sr-only peer"
+                  />
+                  <div
+                    className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer 
+                               peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] 
+                               after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all 
+                               peer-checked:bg-gradient-to-r peer-checked:from-green-500 peer-checked:to-green-600 shadow-lg"
+                  ></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Error Display */}
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 px-4 py-3 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <X size={16} className="text-red-500" />
+                  <span className="text-red-700 font-medium">{error}</span>
+                </div>
               </div>
             )}
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name="is_active"
-              checked={form.is_active}
-              onChange={handleChange}
-              disabled={loading}
-              id="is_active"
-            />
-            <label htmlFor="is_active" className="text-sm">
-              Active
-            </label>
-          </div>
-          {error && (
-            <div className="text-red-600 text-sm text-center">{error}</div>
-          )}
-          <div className="flex justify-end gap-2 mt-4">
-            <button
-              type="button"
-              className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700"
-              onClick={onCancel}
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 rounded bg-blue-600 hover:bg-blue-700 text-white font-semibold disabled:opacity-60"
-              disabled={loading || !isValid}
-            >
-              {loading ? (
-                <span className="animate-spin mr-2 inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>
-              ) : null}
-              Create
-            </button>
-          </div>
-        </form>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100">
+              <button
+                type="button"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl border-2 border-gray-200 
+                         text-gray-700 font-semibold bg-white hover:bg-gray-50 hover:border-gray-300
+                         transition-all duration-200 hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={onCancel}
+                disabled={loading}
+              >
+                <X size={18} />
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="flex items-center justify-center gap-2 px-6 py-3 rounded-xl 
+                         bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700
+                         text-white font-semibold shadow-lg hover:shadow-xl
+                         transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                disabled={loading || !isValid}
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full"></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} />
+                    Create Class
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

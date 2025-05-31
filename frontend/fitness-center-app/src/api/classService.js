@@ -1,23 +1,26 @@
-import apiClient from './apiClient';
-import { ENDPOINTS } from './endpoints';
+import apiClient from "./apiClient";
+import { ENDPOINTS } from "./endpoints";
 
 const classService = {
   // Class methods
   getClasses: async (active = true, page = 1, pageSize = 10) => {
     try {
       const params = new URLSearchParams();
-      if (active !== undefined) params.append('active', active);
-      params.append('page', page);
-      params.append('pageSize', pageSize);
-      
-      const response = await apiClient.get(`${ENDPOINTS.classes}?${params.toString()}`);
-      return response.data;
+      if (active !== undefined) params.append("active", active);
+      params.append("page", page);
+      params.append("pageSize", pageSize);
+
+      const response = await apiClient.get(
+        `${ENDPOINTS.classes}?${params.toString()}`
+      );
+      // Extract the data array from the paginated response
+      return response.data?.data || response.data || [];
     } catch (error) {
       console.error("Failed to fetch classes:", error);
-      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
+      return [];
     }
   },
-  
+
   getClass: async (id) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.classes}/${id}`);
@@ -37,17 +40,20 @@ const classService = {
       throw error;
     }
   },
-  
+
   updateClass: async (id, classData) => {
     try {
-      const response = await apiClient.put(`${ENDPOINTS.classes}/${id}`, classData);
+      const response = await apiClient.put(
+        `${ENDPOINTS.classes}/${id}`,
+        classData
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to update class ${id}:`, error);
       throw error;
     }
   },
-  
+
   deleteClass: async (id) => {
     try {
       const response = await apiClient.delete(`${ENDPOINTS.classes}/${id}`);
@@ -59,21 +65,24 @@ const classService = {
   },
 
   // Schedule methods
-  getSchedules: async (status = 'active', page = 1, pageSize = 10) => {
+  getSchedules: async (status = "active", page = 1, pageSize = 10) => {
     try {
       const params = new URLSearchParams();
-      if (status !== undefined) params.append('status', status);
-      params.append('page', page);
-      params.append('pageSize', pageSize);
-      
-      const response = await apiClient.get(`${ENDPOINTS.schedules}?${params.toString()}`);
-      return response.data;
+      if (status !== undefined) params.append("status", status);
+      params.append("page", page);
+      params.append("pageSize", pageSize);
+
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}?${params.toString()}`
+      );
+      // Extract the data array from the paginated response
+      return response.data?.data || response.data || [];
     } catch (error) {
       console.error("Failed to fetch schedules:", error);
-      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
+      return [];
     }
   },
-  
+
   getSchedule: async (id) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.schedules}/${id}`);
@@ -83,17 +92,19 @@ const classService = {
       return null;
     }
   },
-  
+
   getSchedulesForClass: async (classId) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.schedules}/class/${classId}`);
+      const response = await apiClient.get(
+        `${ENDPOINTS.schedules}/class/${classId}`
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to fetch schedules for class ${classId}:`, error);
       return [];
     }
   },
-  
+
   createSchedule: async (scheduleData) => {
     try {
       const response = await apiClient.post(ENDPOINTS.schedules, scheduleData);
@@ -103,17 +114,20 @@ const classService = {
       throw error;
     }
   },
-  
+
   updateSchedule: async (id, scheduleData) => {
     try {
-      const response = await apiClient.put(`${ENDPOINTS.schedules}/${id}`, scheduleData);
+      const response = await apiClient.put(
+        `${ENDPOINTS.schedules}/${id}`,
+        scheduleData
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to update schedule ${id}:`, error);
       throw error;
     }
   },
-  
+
   deleteSchedule: async (id) => {
     try {
       const response = await apiClient.delete(`${ENDPOINTS.schedules}/${id}`);
@@ -123,24 +137,27 @@ const classService = {
       throw error;
     }
   },
-  
+
   // Booking methods
   getBookings: async (status = null, date = null, page = 1, pageSize = 10) => {
     try {
       const params = new URLSearchParams();
-      if (status) params.append('status', status);
-      if (date) params.append('date', date);
-      params.append('page', page);
-      params.append('pageSize', pageSize);
-      
-      const response = await apiClient.get(`${ENDPOINTS.bookings}?${params.toString()}`);
-      return response.data;
+      if (status) params.append("status", status);
+      if (date) params.append("date", date);
+      params.append("page", page);
+      params.append("pageSize", pageSize);
+
+      const response = await apiClient.get(
+        `${ENDPOINTS.bookings}?${params.toString()}`
+      );
+      // Extract the data array from the paginated response
+      return response.data?.data || response.data || [];
     } catch (error) {
       console.error("Failed to fetch bookings:", error);
-      return { data: [], page: 1, pageSize: 10, totalItems: 0, totalPages: 0 };
+      return [];
     }
   },
-  
+
   getBooking: async (id) => {
     try {
       const response = await apiClient.get(`${ENDPOINTS.bookings}/${id}`);
@@ -150,17 +167,19 @@ const classService = {
       return null;
     }
   },
-  
+
   getMemberBookings: async (memberId) => {
     try {
-      const response = await apiClient.get(`${ENDPOINTS.bookings}/member/${memberId}`);
+      const response = await apiClient.get(
+        `${ENDPOINTS.bookings}/member/${memberId}`
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to fetch bookings for member ${memberId}:`, error);
       return [];
     }
   },
-  
+
   createBooking: async (bookingData) => {
     try {
       const response = await apiClient.post(ENDPOINTS.bookings, bookingData);
@@ -173,9 +192,12 @@ const classService = {
 
   updateBookingStatus: async (id, status) => {
     try {
-      const response = await apiClient.put(`${ENDPOINTS.bookings}/${id}/status`, {
-        attendance_status: status
-      });
+      const response = await apiClient.put(
+        `${ENDPOINTS.bookings}/${id}/status`,
+        {
+          attendance_status: status,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to update booking ${id} status:`, error);
@@ -185,10 +207,13 @@ const classService = {
 
   addBookingFeedback: async (id, rating, comment) => {
     try {
-      const response = await apiClient.post(`${ENDPOINTS.bookings}/${id}/feedback`, {
-        rating,
-        comment
-      });
+      const response = await apiClient.post(
+        `${ENDPOINTS.bookings}/${id}/feedback`,
+        {
+          rating,
+          comment,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error(`Failed to add feedback to booking ${id}:`, error);
@@ -204,7 +229,7 @@ const classService = {
       console.error(`Failed to cancel booking ${id}:`, error);
       throw error;
     }
-  }
+  },
 };
 
 export default classService;

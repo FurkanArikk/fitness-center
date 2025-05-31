@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Award, Calendar } from "lucide-react";
+import { Award, Calendar, Edit, Link } from "lucide-react";
 import Button from "@/components/common/Button";
 import Loader from "@/components/common/Loader";
 import Card from "@/components/common/Card";
@@ -10,7 +10,11 @@ import Pagination from "@/components/common/Pagination";
 import TrainerCard from "@/components/trainers/TrainerCard";
 import TrainerSchedule from "@/components/trainers/TrainerSchedule";
 import AddTrainerModal from "@/components/trainers/AddTrainerModal";
+import EditTrainersModal from "@/components/trainers/EditTrainersModal";
+import AssignClassModal from "@/components/trainers/AssignClassModal";
 import TrainerSearchBar from "@/components/trainers/TrainerSearchBar";
+import TrainerActivityHeatmap from "@/components/trainers/TrainerActivityHeatmap";
+import TopTrainersChart from "@/components/trainers/TopTrainersChart";
 import { staffService, classService } from "@/api";
 
 const Trainers = () => {
@@ -22,7 +26,9 @@ const Trainers = () => {
 
   // Modal states
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
 
   // Search state
   const [searchTerm, setSearchTerm] = useState("");
@@ -89,7 +95,7 @@ const Trainers = () => {
   const filterTrainersRealTime = () => {
     let filtered = [...allTrainers];
 
-    // Name filter (searches in both first_name and last_name from staff)
+    // Name filter (searches in both first_name and last_name from staff, trainer ID, and trainer number)
     if (searchTerm.trim()) {
       const searchTermLower = searchTerm.toLowerCase();
       filtered = filtered.filter((trainer) => {
@@ -98,11 +104,19 @@ const Trainers = () => {
         }`.toLowerCase();
         const specialization = (trainer.specialization || "").toLowerCase();
         const certification = (trainer.certification || "").toLowerCase();
+        const trainerId = String(
+          trainer.trainer_id || trainer.id || ""
+        ).toLowerCase();
+        const trainerNumber = String(trainer.trainer_id || trainer.id || "");
 
         return (
           fullName.includes(searchTermLower) ||
           specialization.includes(searchTermLower) ||
-          certification.includes(searchTermLower)
+          certification.includes(searchTermLower) ||
+          trainerId.includes(searchTermLower) ||
+          trainerNumber.includes(searchTerm.trim()) || // Exact number match for better ID search
+          `trainer #${trainerNumber}`.toLowerCase().includes(searchTermLower) ||
+          `trainer${trainerNumber}`.toLowerCase().includes(searchTermLower)
         );
       });
     }
@@ -149,6 +163,16 @@ const Trainers = () => {
     // The useEffect will automatically re-filter when allTrainers changes
   };
 
+  const handleClassAssigned = async () => {
+    // Refresh schedules data after class assignment
+    try {
+      const schedulesData = await classService.getSchedules("active");
+      setSchedules(Array.isArray(schedulesData) ? schedulesData : []);
+    } catch (err) {
+      console.error("Failed to refresh schedules:", err);
+    }
+  };
+
   // Calculate pagination values
   const totalTrainers = trainers.length;
   const totalPages = Math.ceil(totalTrainers / pageSize);
@@ -179,13 +203,20 @@ const Trainers = () => {
     <div className="space-y-6 p-4">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Trainer Management</h2>
+          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
+            Trainer Management
+          </h2>
           {hasActiveSearch && (
-            <div className="flex items-center mt-2 text-sm text-gray-600">
-              <span>Showing {totalTrainers} filtered results</span>
+            <div className="flex items-center mt-3 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <span className="font-medium">
+                  Showing {totalTrainers} filtered results
+                </span>
+              </div>
               <button
                 onClick={clearSearch}
-                className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                className="ml-3 px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 text-blue-700 hover:text-blue-800 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-md"
               >
                 Clear filters
               </button>
@@ -193,21 +224,25 @@ const Trainers = () => {
           )}
         </div>
 
-        <div className="flex space-x-2">
-          <Button
-            variant="primary"
-            icon={<Award size={18} />}
+        <div className="flex space-x-3">
+          <button
             onClick={() => setShowAddModal(true)}
+            className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
           >
+            <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+              <Award size={16} />
+            </div>
             Add New Trainer
-          </Button>
-          <Button
-            variant="secondary"
-            icon={<Calendar size={18} />}
+          </button>
+          <button
             onClick={() => setShowScheduleModal(true)}
+            className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
           >
+            <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+              <Calendar size={16} />
+            </div>
             Weekly Schedule
-          </Button>
+          </button>
         </div>
       </div>
 
@@ -304,6 +339,133 @@ const Trainers = () => {
               />
             </div>
           )}
+
+          {/* Two-column layout: Quick Actions and Top Trainers Chart */}
+          <div className="grid grid-cols-12 gap-6 mt-8">
+            {/* Left column - Quick Actions */}
+            <div className="col-span-4">
+              <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-100 h-96">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="p-1 bg-purple-100 rounded-lg">
+                    <div className="w-4 h-4 bg-purple-600 rounded-sm flex items-center justify-center">
+                      <span className="text-white text-xs">⚡</span>
+                    </div>
+                  </div>
+                  <h4 className="text-base font-semibold text-gray-700">
+                    Quick Actions
+                  </h4>
+                </div>
+
+                {/* Quick Action Buttons */}
+                <div className="flex flex-col gap-4 mb-4">
+                  {/* Edit Trainers Button */}
+                  <button
+                    onClick={() => setShowEditModal(true)}
+                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 w-full hover:scale-[1.02] hover:-translate-y-0.5"
+                  >
+                    <Edit className="w-5 h-5 text-white" />
+                    <span className="font-medium text-base">Edit Trainers</span>
+                  </button>
+
+                  {/* Assign Class Button */}
+                  <button
+                    onClick={() => setShowAssignModal(true)}
+                    className="flex items-center gap-4 p-4 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all duration-300 w-full hover:scale-[1.02] hover:-translate-y-0.5"
+                  >
+                    <Link className="w-5 h-5 text-white" />
+                    <span className="font-medium text-base">Assign Class</span>
+                  </button>
+                </div>
+
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-4"></div>
+
+                {/* Weekly Goal Widget - Now rectangular and larger */}
+                <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-6 border border-orange-100 shadow-sm h-40">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-orange-100 rounded-lg">
+                        <svg
+                          className="w-5 h-5 text-orange-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-800">
+                          Weekly Goal
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          classes this week
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-2xl font-bold text-orange-600">
+                        8
+                      </span>
+                      <span className="text-lg text-gray-500">/15</span>
+                      <div className="text-sm text-gray-500">53% Complete</div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="relative mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-orange-400 to-yellow-500 rounded-full shadow-sm transition-all duration-1000 ease-out"
+                        style={{ width: "53%" }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Progress Segments */}
+                  <div className="flex justify-between gap-1">
+                    {Array.from({ length: 15 }, (_, index) => (
+                      <div
+                        key={index}
+                        className={`flex-1 h-2 rounded-sm transition-all duration-200 ${
+                          index < 8
+                            ? "bg-gradient-to-br from-orange-400 to-yellow-500 shadow-sm"
+                            : "bg-gray-200"
+                        }`}
+                        style={{
+                          animationDelay: `${index * 50}ms`,
+                        }}
+                      />
+                    ))}
+                  </div>
+
+                  {/* Bottom stats */}
+                  <div className="flex justify-between text-sm text-gray-500 mt-3">
+                    <span>7 remaining</span>
+                    <span>Target: May 31</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right column - Top Trainers Chart takes less space */}
+            <div className="col-span-8">
+              <TopTrainersChart trainers={allTrainers} schedules={schedules} />
+            </div>
+          </div>
+
+          {/* Weekly Activity Heatmap - positioned below the two-column section */}
+          <div className="mt-8">
+            <TrainerActivityHeatmap
+              trainers={allTrainers}
+              schedules={schedules}
+            />
+          </div>
         </>
       )}
 
@@ -332,6 +494,20 @@ const Trainers = () => {
           )}
         </div>
       </Modal>
+
+      {/* Edit Trainers Modal - New modal for editing trainer details */}
+      <EditTrainersModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        // Additional props for editing can be added here
+      />
+
+      {/* Assign Class Modal - Integrated with the Assign Class button */}
+      <AssignClassModal
+        isOpen={showAssignModal}
+        onClose={() => setShowAssignModal(false)}
+        onClassAssigned={handleClassAssigned}
+      />
     </div>
   );
 };
