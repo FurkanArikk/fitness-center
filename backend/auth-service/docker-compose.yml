@@ -2,15 +2,17 @@ services:
   auth-service:
     build: .
     container_name: auth-service
+    env_file:
+      - .env
     ports:
-      - "8085:8085"
+      - "${SERVER_PORT:-8085}:8085"
     environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8085
-      - JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-      - JWT_EXPIRE_HOURS=24
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=admin
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - SERVER_PORT=${SERVER_PORT:-8085}
+      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-this-in-production}
+      - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS:-24}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
     labels:
       - "traefik.enable=true"
       # Auth endpoints (login and health check don't require auth)
