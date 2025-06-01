@@ -113,8 +113,20 @@ func (h *AuthHandler) CreateAdmin(c *gin.Context) {
 
 	err := h.authService.CreateInitialAdmin(req.Username, req.Password, req.Email)
 	if err != nil {
+		errorMsg := err.Error()
+
+		// Check if it's a duplicate key error (user-friendly message)
+		if errorMsg == "username already exists" || errorMsg == "email address already exists" ||
+			errorMsg == "this information already exists in the system" {
+			c.JSON(http.StatusConflict, dto.ErrorResponse{
+				Error: errorMsg,
+			})
+			return
+		}
+
+		// Other errors are internal server errors
 		c.JSON(http.StatusInternalServerError, dto.ErrorResponse{
-			Error: err.Error(),
+			Error: errorMsg,
 		})
 		return
 	}

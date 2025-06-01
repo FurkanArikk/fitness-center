@@ -46,9 +46,18 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      # Auth endpoints (login and health check don't require auth)
-      - "traefik.http.routers.auth-service.rule=PathPrefix(`/api/v1/login`) || PathPrefix(`/health`)"
-      - "traefik.http.routers.auth-service.entrypoints=web"
+      # Public auth endpoints (login and health check don't require auth)
+      - "traefik.http.routers.auth-public.rule=PathPrefix(`/api/v1/login`) || PathPrefix(`/health`)"
+      - "traefik.http.routers.auth-public.entrypoints=web"
+      - "traefik.http.routers.auth-public.service=auth-service"
+      
+      # Protected admin endpoints (require authentication)
+      - "traefik.http.routers.auth-admin.rule=PathPrefix(`/api/v1/admin`)"
+      - "traefik.http.routers.auth-admin.entrypoints=web"
+      - "traefik.http.routers.auth-admin.middlewares=auth-middleware"
+      - "traefik.http.routers.auth-admin.service=auth-service"
+      
+      # Service definition
       - "traefik.http.services.auth-service.loadbalancer.server.port=8085"
       
       # ForwardAuth middleware definition

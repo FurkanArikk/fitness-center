@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Dumbbell, Activity, Users, Calendar, Award, CreditCard, LogOut, X } from 'lucide-react';
+import { Dumbbell, Activity, Users, Calendar, Award, CreditCard, X } from 'lucide-react';
 
 const Sidebar = ({ isOpen, setIsOpen }) => {
   const pathname = usePathname();
@@ -34,7 +34,7 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
         </button>
       </div>
       
-      <div className="p-4 pb-20">
+      <div className="p-4 pb-6">
         <nav className="space-y-1">
           {navItems.map((item) => (
             <Link
@@ -49,13 +49,6 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
             </Link>
           ))}
         </nav>
-      </div>
-      
-      <div className="absolute bottom-0 w-full p-4 border-t">
-        <button className="w-full flex items-center space-x-3 px-3 py-2 text-red-600 hover:bg-red-50 rounded-md">
-          <LogOut size={20} />
-          <span>Logout</span>
-        </button>
       </div>
     </aside>
   );

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/model"
@@ -21,6 +22,26 @@ type AuthService struct {
 type Claims struct {
 	Username string `json:"username"`
 	jwt.RegisteredClaims
+}
+
+// handleDatabaseError converts database errors to user-friendly messages
+func handleDatabaseError(err error) error {
+	errorStr := strings.ToLower(err.Error())
+
+	if strings.Contains(errorStr, "duplicate key") && strings.Contains(errorStr, "idx_admins_username") {
+		return fmt.Errorf("username already exists")
+	}
+
+	if strings.Contains(errorStr, "duplicate key") && strings.Contains(errorStr, "idx_admins_email") {
+		return fmt.Errorf("email address already exists")
+	}
+
+	if strings.Contains(errorStr, "duplicate key") {
+		return fmt.Errorf("this information already exists in the system")
+	}
+
+	// Return original error if no specific handling is needed
+	return err
 }
 
 // NewAuthService creates a new auth service instance
@@ -105,13 +126,6 @@ func (s *AuthService) CheckPasswordHash(password, hash string) bool {
 
 // CreateInitialAdmin creates the initial admin user if it doesn't exist
 func (s *AuthService) CreateInitialAdmin(username, password, email string) error {
-	// Check if admin already exists
-	_, err := s.adminRepo.GetByUsername(username)
-	if err == nil {
-		// Admin already exists
-		return nil
-	}
-
 	// Hash password
 	hashedPassword, err := s.HashPassword(password)
 	if err != nil {
@@ -131,10 +145,11 @@ func (s *AuthService) CreateInitialAdmin(username, password, email string) error
 	// Create admin
 	err = s.adminRepo.Create(admin)
 	if err != nil {
-		return fmt.Errorf("error creating admin: %v", err)
+		// Handle database-specific errors with user-friendly messages
+		return handleDatabaseError(err)
 	}
 
-	fmt.Printf("Initial admin user created: %s\n", username)
+	fmt.Printf("Admin user created: %s\n", username)
 	return nil
 }
 

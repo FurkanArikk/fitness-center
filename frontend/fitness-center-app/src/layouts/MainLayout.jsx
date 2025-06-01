@@ -4,11 +4,13 @@ import React, { useState, useEffect } from "react";
 import Sidebar from "../components/common/Sidebar";
 import Navbar from "../components/common/Navbar";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
 
 const MainLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
   const pathname = usePathname();
+  const { loading } = useAuth();
 
   useEffect(() => {
     if (pathname) {
@@ -17,16 +19,30 @@ const MainLayout = ({ children }) => {
   }, [pathname]);
 
   const isWelcomePage = currentPath === "/welcome";
+  const isLoginPage = currentPath === "/login";
+  const isPublicPage = isWelcomePage || isLoginPage;
+
+  // Show loading spinner during auth check
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      {!isWelcomePage && (
+      {!isPublicPage && (
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
       )}
 
       {/* Overlay when sidebar is open on mobile */}
-      {!isWelcomePage && sidebarOpen && (
+      {!isPublicPage && sidebarOpen && (
         <div
           className="fixed inset-0 z-10 lg:hidden"
           style={{
@@ -41,12 +57,12 @@ const MainLayout = ({ children }) => {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto">
         {/* Top navigation */}
-        {!isWelcomePage && (
+        {!isPublicPage && (
           <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         )}
 
         {/* Page content */}
-        <div className="p-6">{children}</div>
+        <div className={isPublicPage ? "" : "p-6"}>{children}</div>
       </main>
     </div>
   );
