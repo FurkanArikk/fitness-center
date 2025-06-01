@@ -21,7 +21,7 @@ else
     echo -e "${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker-compose.yml\033[0m"
 fi
 
-services=("member-service" "staff-service" "payment-service" "facility-service" "class-service")
+services=("member-service" "staff-service" "payment-service" "facility-service" "class-service" "auth-service")
 
 for service in "${services[@]}"; do
     echo -e "${BLUE}===\033[0m ${CYAN}Stopping $service\033[0m ${BLUE}===\033[0m"
