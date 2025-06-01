@@ -46,6 +46,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.staff-service.rule=PathPrefix(`/api/v1/staff`) || PathPrefix(`/api/v1/trainers`) || PathPrefix(`/api/v1/qualifications`) || PathPrefix(`/api/v1/training-sessions`)"
       - "traefik.http.routers.staff-service.entrypoints=web"
+      - "traefik.http.routers.staff-service.middlewares=auth-middleware"
       - "traefik.http.services.staff-service.loadbalancer.server.port=8002"
       - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:

@@ -160,7 +160,7 @@ start_service() {
 # Function to start services in sequence
 start_services() {
     # Start main services with database dependencies
-    local services=("member-service" "staff-service" "payment-service" "facility-service" "class-service")
+    local services=("auth-service" "member-service" "staff-service" "payment-service" "facility-service" "class-service")
     
     # Collect any failures during service startup
     local failures=()
@@ -204,6 +204,12 @@ show_access_instructions() {
     echo
     echo -e "${CYAN}API Gateway (Traefik):${NC}"
     echo -e "  ${YELLOW}Traefik Dashboard: http://localhost:8080/dashboard/#/${NC}"
+    echo
+    echo -e "${CYAN}Authentication:${NC}"
+    echo -e "  ${YELLOW}Login: http://localhost/api/v1/login${NC}"
+    echo -e "  ${YELLOW}Admin credentials: username=admin, password=admin${NC}"
+    echo
+    echo -e "${CYAN}Protected APIs (requires JWT token):${NC}"
     echo -e "  ${YELLOW}Members API: http://localhost/api/v1/members${NC}"
     echo -e "  ${YELLOW}Staff API: http://localhost/api/v1/staff${NC}"
     echo -e "  ${YELLOW}Payment API: http://localhost/api/v1/payments${NC}"

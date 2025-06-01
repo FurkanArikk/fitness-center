@@ -7,7 +7,8 @@ export const SERVICE_PORTS = {
   staff: "8002",
   payment: "8003",
   facility: "8004",
-  class: "8005"
+  class: "8005",
+  auth: "8085"
 };
 
 // Service endpoints
@@ -39,5 +40,15 @@ export const ENDPOINTS = {
   payments: `${API_BASE_URL}/payments`,
   paymentStats: `${API_BASE_URL}/payments/statistics`,
   paymentTypes: `${API_BASE_URL}/payment-types`,
-  transactions: `${API_BASE_URL}/transactions`
+  transactions: `${API_BASE_URL}/transactions`,
+  
+  // Auth endpoints
+  auth: {
+    login: `/api/v1/login`,
+    updatePassword: `/api/v1/admin/password`,
+    listAdmins: `/api/v1/admin/list`,
+    createAdmin: `/api/v1/admin/create`,
+    deleteAdmin: `/api/v1/admin`,
+    health: `/health`
+  }
 };

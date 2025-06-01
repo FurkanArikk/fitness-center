@@ -42,6 +42,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`) || PathPrefix(`/api/v1/payment-types`) || PathPrefix(`/api/v1/transactions`) || PathPrefix(`/api/v1/admin/db-status`)"
       - "traefik.http.routers.payment-service.entrypoints=web"
+      - "traefik.http.routers.payment-service.middlewares=auth-middleware"
       - "traefik.http.services.payment-service.loadbalancer.server.port=8003"
       - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     networks:

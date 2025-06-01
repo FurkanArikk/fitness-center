@@ -6,6 +6,7 @@ import classService from './classService';
 import staffService from './staffService';
 import facilityService from './facilityService';
 import paymentService from './paymentService';
+import authService from './authService';
 
 export {
   apiClient,
@@ -17,5 +18,6 @@ export {
   classService,
   staffService,
   facilityService,
-  paymentService
+  paymentService,
+  authService
 };
