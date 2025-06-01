@@ -75,3 +75,4 @@ config.local.yaml
 /backend/staff-service/staff-service 
 /backend/payment-service/payment-service
 /backend/facility-service/facility-service
+/backend/auth-service/main

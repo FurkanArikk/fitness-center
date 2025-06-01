@@ -1,4 +1,26 @@
 services:
+  postgres-auth:
+    image: postgres:17
+    container_name: postgres-auth
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fitness_auth}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_auth_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_EXTERNAL_PORT:-5437}:5432"
+    networks:
+      - fitness-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-fitness_auth}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   auth-service:
     build: .
     container_name: auth-service
@@ -13,6 +35,15 @@ services:
       - JWT_EXPIRE_HOURS=${JWT_EXPIRE_HOURS:-24}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
+      - DB_HOST=${DB_HOST:-postgres-auth}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_NAME=${DB_NAME:-fitness_auth}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
+    depends_on:
+      postgres-auth:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       # Auth endpoints (login and health check don't require auth)
@@ -36,3 +67,6 @@ networks:
   fitness-network:
     name: ${DOCKER_NETWORK_NAME:-fitness-network}
     external: true
+
+volumes:
+  postgres_auth_data:

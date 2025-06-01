@@ -10,12 +10,21 @@ import (
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/config"
+	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/database"
 	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/handler"
+	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/middleware"
+	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/repository"
 	"github.com/FurkanArikk/fitness-center/backend/auth-service/internal/service"
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found, using environment variables")
+	}
+
 	// Logging settings
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting auth service...")
@@ -24,13 +33,35 @@ func main() {
 	cfg := config.LoadConfig()
 	log.Printf("Configuration loaded: server port=%d", cfg.Server.Port)
 
+	// Initialize database
+	db, err := database.Connect(&cfg.Database)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Run migrations
+	if err := database.Migrate(db); err != nil {
+		log.Fatalf("Failed to run migrations: %v", err)
+	}
+
+	// Initialize repositories
+	adminRepo := repository.NewAdminRepository(db)
+
 	// Initialize auth service
 	authService := service.NewAuthService(
 		cfg.JWT.Secret,
 		cfg.JWT.ExpireHours,
+		adminRepo,
+	)
+
+	// Create initial admin user from config
+	if err := authService.CreateInitialAdmin(
 		cfg.Auth.AdminUsername,
 		cfg.Auth.AdminPassword,
-	)
+		"admin@fitness-center.local",
+	); err != nil {
+		log.Printf("Warning: Failed to create initial admin: %v", err)
+	}
 
 	// Initialize handlers
 	authHandler := handler.NewAuthHandler(authService)
@@ -61,6 +92,16 @@ func main() {
 	{
 		v1.POST("/login", authHandler.Login)
 		v1.GET("/auth", authHandler.ForwardAuth) // Traefik ForwardAuth endpoint
+
+		// Protected admin management endpoints
+		admin := v1.Group("/admin")
+		admin.Use(middleware.AuthMiddleware(authService))
+		{
+			admin.POST("/create", authHandler.CreateAdmin)
+			admin.PUT("/password", authHandler.UpdateAdminPassword)
+			admin.GET("/list", authHandler.ListAdmins)
+			admin.DELETE("/:username", authHandler.DeleteAdmin)
+		}
 	}
 
 	// Start HTTP server

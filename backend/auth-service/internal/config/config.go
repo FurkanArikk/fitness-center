@@ -7,9 +7,10 @@ import (
 
 // Config holds all configuration for the application
 type Config struct {
-	Server ServerConfig
-	JWT    JWTConfig
-	Auth   AuthConfig
+	Server   ServerConfig
+	JWT      JWTConfig
+	Auth     AuthConfig
+	Database DatabaseConfig
 }
 
 // ServerConfig holds server configuration
@@ -30,6 +31,16 @@ type AuthConfig struct {
 	AdminPassword string
 }
 
+// DatabaseConfig holds database configuration
+type DatabaseConfig struct {
+	Host     string
+	Port     int
+	User     string
+	Password string
+	DBName   string
+	SSLMode  string
+}
+
 // LoadConfig loads configuration from environment variables with defaults
 func LoadConfig() *Config {
 	return &Config{
@@ -44,6 +55,14 @@ func LoadConfig() *Config {
 		Auth: AuthConfig{
 			AdminUsername: getEnv("ADMIN_USERNAME", "admin"),
 			AdminPassword: getEnv("ADMIN_PASSWORD", "admin"),
+		},
+		Database: DatabaseConfig{
+			Host:     getEnv("DB_HOST", "localhost"),
+			Port:     getEnvAsInt("DB_PORT", 5432),
+			User:     getEnv("DB_USER", "postgres"),
+			Password: getEnv("DB_PASSWORD", "postgres"),
+			DBName:   getEnv("DB_NAME", "fitness_auth"),
+			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 	}
 }
