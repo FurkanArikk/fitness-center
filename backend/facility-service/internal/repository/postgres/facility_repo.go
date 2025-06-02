@@ -3,175 +3,126 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
 	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
-	"github.com/jmoiron/sqlx"
+	"gorm.io/gorm"
 )
 
 type facilityRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
 // NewFacilityRepository creates a new facility repository
-func NewFacilityRepository(db *sqlx.DB) repository.FacilityRepository {
+func NewFacilityRepository(db *gorm.DB) repository.FacilityRepository {
 	return &facilityRepository{db: db}
 }
 
 // Create adds a new facility record
 func (r *facilityRepository) Create(ctx context.Context, facility *model.Facility) (*model.Facility, error) {
-	query := `
-		INSERT INTO facilities (
-			name, description, capacity, status, opening_hour, closing_hour
-		) VALUES (
-			$1, $2, $3, $4, $5, $6
-		) RETURNING facility_id, created_at, updated_at
-	`
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		facility.Name,
-		facility.Description,
-		facility.Capacity,
-		facility.Status,
-		facility.OpeningHour,
-		facility.ClosingHour,
-	).Scan(
-		&facility.FacilityID,
-		&facility.CreatedAt,
-		&facility.UpdatedAt,
-	)
-
-	if err != nil {
+	if err := r.db.WithContext(ctx).Create(facility).Error; err != nil {
 		return nil, fmt.Errorf("creating facility: %w", err)
 	}
-
 	return facility, nil
 }
 
 // GetByID retrieves facility by ID
 func (r *facilityRepository) GetByID(ctx context.Context, id int) (*model.Facility, error) {
-	facility := &model.Facility{}
-
-	query := `SELECT * FROM facilities WHERE facility_id = $1 AND is_deleted = FALSE`
-
-	if err := r.db.GetContext(ctx, facility, query, id); err != nil {
+	var facility model.Facility
+	if err := r.db.WithContext(ctx).Where("facility_id = ? AND is_deleted = ?", id, false).First(&facility).Error; err != nil {
 		return nil, fmt.Errorf("getting facility by ID: %w", err)
 	}
-
-	return facility, nil
+	return &facility, nil
 }
 
 // GetByName retrieves facility by name
 func (r *facilityRepository) GetByName(ctx context.Context, name string) (*model.Facility, error) {
-	facility := &model.Facility{}
-
-	query := `SELECT * FROM facilities WHERE name = $1 AND is_deleted = FALSE`
-
-	if err := r.db.GetContext(ctx, facility, query, name); err != nil {
+	var facility model.Facility
+	if err := r.db.WithContext(ctx).Where("name = ? AND is_deleted = ?", name, false).First(&facility).Error; err != nil {
 		return nil, fmt.Errorf("getting facility by name: %w", err)
 	}
-
-	return facility, nil
+	return &facility, nil
 }
 
 // Update updates a facility record
 func (r *facilityRepository) Update(ctx context.Context, facility *model.Facility) (*model.Facility, error) {
-	query := `
-		UPDATE facilities SET
-			name = $1,
-			description = $2,
-			capacity = $3,
-			status = $4,
-			opening_hour = $5,
-			closing_hour = $6,
-			updated_at = NOW()
-		WHERE facility_id = $7
-		RETURNING updated_at, created_at
-	`
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		facility.Name,
-		facility.Description,
-		facility.Capacity,
-		facility.Status,
-		facility.OpeningHour,
-		facility.ClosingHour,
-		facility.FacilityID,
-	).Scan(&facility.UpdatedAt, &facility.CreatedAt)
-
-	if err != nil {
-		return nil, fmt.Errorf("updating facility: %w", err)
+	// First check if the facility exists
+	var existingFacility model.Facility
+	if err := r.db.WithContext(ctx).Where("facility_id = ? AND is_deleted = ?", facility.FacilityID, false).First(&existingFacility).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("facility with ID %d not found", facility.FacilityID)
+		}
+		return nil, fmt.Errorf("checking facility existence: %w", err)
 	}
 
+	// Check if name already exists for a different facility
+	if facility.Name != existingFacility.Name {
+		var count int64
+		r.db.WithContext(ctx).Model(&model.Facility{}).Where("name = ? AND facility_id != ? AND is_deleted = ?", facility.Name, facility.FacilityID, false).Count(&count)
+		if count > 0 {
+			return nil, fmt.Errorf("facility with name '%s' already exists", facility.Name)
+		}
+	}
+
+	// Update only specific fields to avoid overwriting system fields
+	result := r.db.WithContext(ctx).Model(&existingFacility).Updates(map[string]interface{}{
+		"name":         facility.Name,
+		"description":  facility.Description,
+		"capacity":     facility.Capacity,
+		"status":       facility.Status,
+		"opening_hour": facility.OpeningHour,
+		"closing_hour": facility.ClosingHour,
+	})
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("updating facility: %w", result.Error)
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, fmt.Errorf("facility with ID %d not found", facility.FacilityID)
+	}
+
+	// Return the updated facility
+	facility.CreatedAt = existingFacility.CreatedAt
 	return facility, nil
 }
 
-// Delete removes a facility record
+// Delete removes a facility record (soft delete)
 func (r *facilityRepository) Delete(ctx context.Context, id int) error {
-	query := `UPDATE facilities SET is_deleted = TRUE, updated_at = NOW() WHERE facility_id = $1`
-
-	result, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("soft deleting facility: %w", err)
+	result := r.db.WithContext(ctx).Model(&model.Facility{}).Where("facility_id = ?", id).Update("is_deleted", true)
+	if result.Error != nil {
+		return fmt.Errorf("soft deleting facility: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("facility with ID %d not found", id)
 	}
-
 	return nil
 }
 
 // List retrieves facilities with filters
 func (r *facilityRepository) List(ctx context.Context, filter map[string]interface{}, page, pageSize int) ([]*model.Facility, int, error) {
-	where := []string{"is_deleted = FALSE"}
-	args := []interface{}{}
-	argID := 1
+	var facilities []*model.Facility
+	var total int64
 
+	db := r.db.WithContext(ctx).Where("is_deleted = ?", false)
+
+	// Apply filters
 	for key, value := range filter {
-		where = append(where, fmt.Sprintf("%s = $%d", key, argID))
-		args = append(args, value)
-		argID++
+		db = db.Where(fmt.Sprintf("%s = ?", key), value)
 	}
 
-	whereClause := ""
-	if len(where) > 0 {
-		whereClause = "WHERE " + strings.Join(where, " AND ")
-	}
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM facilities %s", whereClause)
-
-	var total int
-	if err := r.db.GetContext(ctx, &total, countQuery, args...); err != nil {
+	// Count total records
+	if err := db.Model(&model.Facility{}).Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("counting facilities: %w", err)
 	}
 
+	// Apply pagination
 	offset := (page - 1) * pageSize
-	args = append(args, pageSize, offset)
-
-	query := fmt.Sprintf(`
-		SELECT * FROM facilities 
-		%s
-		ORDER BY facility_id
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argID, argID+1)
-
-	var facilities []*model.Facility
-	if err := r.db.SelectContext(ctx, &facilities, query, args...); err != nil {
+	if err := db.Offset(offset).Limit(pageSize).Order("facility_id").Find(&facilities).Error; err != nil {
 		return nil, 0, fmt.Errorf("listing facilities: %w", err)
 	}
 
-	return facilities, total, nil
+	return facilities, int(total), nil
 }
 
 // ListByStatus retrieves facilities by status

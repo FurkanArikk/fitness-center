@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
@@ -88,6 +89,10 @@ func (h *Handler) DeleteEquipment(c *gin.Context) {
 	}
 
 	if err := h.repo.Equipment().Delete(c.Request.Context(), id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Equipment not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
