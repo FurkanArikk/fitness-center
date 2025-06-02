@@ -7,15 +7,23 @@ import (
 
 // Class represents a fitness class that can be scheduled
 type Class struct {
-	ClassID     int       `json:"class_id" db:"class_id"`
-	ClassName   string    `json:"class_name" db:"class_name"`
-	Description string    `json:"description" db:"description"`
-	Duration    int       `json:"duration" db:"duration"`
-	Capacity    int       `json:"capacity" db:"capacity"`
-	Difficulty  string    `json:"difficulty" db:"difficulty"`
-	IsActive    bool      `json:"is_active" db:"is_active"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ClassID     int       `json:"class_id" gorm:"column:class_id;primaryKey;autoIncrement"`
+	ClassName   string    `json:"class_name" gorm:"column:class_name;type:varchar(50);not null"`
+	Description string    `json:"description" gorm:"column:description;type:varchar(255)"`
+	Duration    int       `json:"duration" gorm:"column:duration;not null"`
+	Capacity    int       `json:"capacity" gorm:"column:capacity;not null"`
+	Difficulty  string    `json:"difficulty" gorm:"column:difficulty;type:varchar(20)"`
+	IsActive    bool      `json:"is_active" gorm:"column:is_active;default:true"`
+	CreatedAt   time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
+
+	// One-to-many relationship - a class can have many schedules
+	Schedules []Schedule `json:"schedules,omitempty" gorm:"foreignKey:ClassID"`
+}
+
+// TableName specifies the table name for GORM
+func (Class) TableName() string {
+	return "classes"
 }
 
 // ClassRequest is used for creating or updating a class

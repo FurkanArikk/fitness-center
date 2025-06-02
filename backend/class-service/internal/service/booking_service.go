@@ -28,11 +28,6 @@ func (s *BookingServiceImpl) GetBookingByID(ctx context.Context, id int) (model.
 	return s.repo.GetByID(ctx, id)
 }
 
-// GetBookingsByMemberID returns bookings for a specific member
-func (s *BookingServiceImpl) GetBookingsByMemberID(ctx context.Context, memberID int) ([]model.BookingResponse, error) {
-	return s.repo.GetByMemberID(ctx, memberID)
-}
-
 // GetBookingsPaginated returns paginated bookings
 func (s *BookingServiceImpl) GetBookingsPaginated(ctx context.Context, status string, date string, offset, limit int) ([]model.BookingResponse, int, error) {
 	return s.repo.GetAllPaginated(ctx, status, date, offset, limit)

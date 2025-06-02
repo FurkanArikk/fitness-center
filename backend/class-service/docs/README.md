@@ -7,7 +7,6 @@ The Class Service is responsible for managing fitness classes, schedules, and bo
 - [Overview](#overview)
 - [API Documentation](API.md)
 - [Database Schema](DATABASE.md)
-- [Deployment Guide](DEPLOYMENT.md)
 
 ## Overview
 
@@ -58,5 +57,3 @@ The Class Service can be run using the included `run.sh` script:
 # Run service locally (database still in Docker)
 ./run.sh -l
 ```
-
-For more details on deployment options, check the [Deployment Guide](DEPLOYMENT.md).

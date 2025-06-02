@@ -65,6 +65,18 @@ func (h *BookingHandler) CreateBooking(c *gin.Context) {
 
 	booking, err := h.service.CreateBooking(c.Request.Context(), modelReq)
 	if err != nil {
+		if err.Error() == "class is already at full capacity" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		} else if err.Error() == "invalid schedule ID" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		} else if err.Error() == "member already has a booking for this schedule" ||
+			err.Error() == "ERROR: duplicate key value violates unique constraint \"unique_booking\" (SQLSTATE 23505)" ||
+			err.Error() == "failed to create booking: ERROR: duplicate key value violates unique constraint \"unique_booking\" (SQLSTATE 23505)" {
+			c.JSON(http.StatusConflict, gin.H{"error": "Member already has a booking for this schedule"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -115,8 +127,19 @@ func (h *BookingHandler) DeleteBooking(c *gin.Context) {
 		return
 	}
 
+	// First check if booking exists
+	_, err = h.service.GetBookingByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Booking not found"})
+		return
+	}
+
 	_, err = h.service.CancelBooking(c.Request.Context(), id)
 	if err != nil {
+		if err.Error() == "only bookings with 'booked' status can be cancelled" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -134,6 +157,13 @@ func (h *BookingHandler) AddFeedback(c *gin.Context) {
 		return
 	}
 
+	// Check if booking exists
+	_, err = h.service.GetBookingByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Booking not found"})
+		return
+	}
+
 	var req dto.BookingFeedbackRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -145,6 +175,10 @@ func (h *BookingHandler) AddFeedback(c *gin.Context) {
 
 	booking, err := h.service.AddBookingFeedback(c.Request.Context(), id, modelReq)
 	if err != nil {
+		if err.Error() == "feedback can only be provided for attended classes" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

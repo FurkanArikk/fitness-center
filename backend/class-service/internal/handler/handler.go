@@ -14,8 +14,9 @@ type ClassHandler struct {
 
 // ScheduleHandler handles schedule-related requests
 type ScheduleHandler struct {
-	db      *db.PostgresDB
-	service model.ScheduleService
+	db           *db.PostgresDB
+	service      model.ScheduleService
+	classService model.ClassService
 }
 
 // BookingHandler handles booking-related requests
@@ -40,7 +41,7 @@ func NewHandlers(services *service.Service, db *db.PostgresDB) *Handler {
 
 	// Initialize sub-handlers with services
 	handler.ClassHandler = &ClassHandler{db: db, service: services.ClassService}
-	handler.ScheduleHandler = &ScheduleHandler{db: db, service: services.ScheduleService}
+	handler.ScheduleHandler = &ScheduleHandler{db: db, service: services.ScheduleService, classService: services.ClassService}
 	handler.BookingHandler = &BookingHandler{db: db, service: services.BookingService}
 
 	return handler

@@ -80,6 +80,13 @@ func (h *ScheduleHandler) CreateSchedule(c *gin.Context) {
 		return
 	}
 
+	// Verify that class exists
+	_, err := h.classService.GetClassByID(c.Request.Context(), req.ClassID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid class ID: class does not exist"})
+		return
+	}
+
 	// Convert DTO to model
 	modelReq := req.ToModel()
 
@@ -138,8 +145,19 @@ func (h *ScheduleHandler) DeleteSchedule(c *gin.Context) {
 		return
 	}
 
+	// First check if schedule exists
+	_, err = h.service.GetScheduleByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Schedule not found"})
+		return
+	}
+
 	err = h.service.DeleteSchedule(c.Request.Context(), id)
 	if err != nil {
+		if err.Error() == "cannot delete schedule with existing bookings" {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
