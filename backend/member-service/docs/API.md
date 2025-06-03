@@ -4,6 +4,67 @@ This document outlines all the API endpoints provided by the Member Service.
 
 Base URL: `/api/v1`
 
+## Overview
+
+The Member Service has been migrated from raw SQL to GORM ORM, providing enhanced type safety, automated migrations, and improved maintainability. The service manages fitness center members, memberships, benefits, and fitness assessments.
+
+### Key Features
+
+- **GORM ORM Integration**: Type-safe database operations with automatic schema management
+- **Repository Pattern**: Clean separation of data access logic with interface-based design
+- **Comprehensive API**: Full CRUD operations for all entities
+- **Relationship Management**: Automatic handling of foreign key relationships
+- **Input Validation**: Request validation with proper error responses
+
+### Technical Stack
+
+- **Language**: Go 1.20+
+- **Web Framework**: Gin
+- **ORM**: GORM v2
+- **Database**: PostgreSQL
+- **Container**: Docker with Docker Compose
+
+## Common Response Formats
+
+### Success Responses
+
+All successful API responses return appropriate HTTP status codes (200, 201, etc.) with JSON data.
+
+### Error Responses
+
+Error responses follow a consistent format:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+### Common HTTP Status Codes
+
+- `200 OK` - Successful GET, PUT operations
+- `201 Created` - Successful POST operations
+- `400 Bad Request` - Invalid request data or missing required fields
+- `404 Not Found` - Resource not found
+- `500 Internal Server Error` - Server-side errors
+
+## Health Check
+
+### Service Health Check
+
+Check if the service is running and database is accessible.
+
+**Endpoint:** `GET /health`
+
+**Response (200 OK):**
+```json
+{
+  "status": "healthy",
+  "database": "connected",
+  "timestamp": "2025-06-03T10:00:00Z"
+}
+```
+
 ## Members
 
 ### Get All Members
@@ -71,6 +132,13 @@ Returns a specific member by their ID.
 }
 ```
 
+**Response (404 Not Found):**
+```json
+{
+  "error": "Member not found"
+}
+```
+
 ### Create Member
 
 Creates a new member.
@@ -105,6 +173,20 @@ Creates a new member.
   "emergency_contact_phone": "555-765-4321",
   "created_at": "2023-07-15T10:00:00Z",
   "updated_at": "2023-07-15T10:00:00Z"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "error": "Email already exists"
+}
+```
+
+**Response (400 Bad Request - Validation Error):**
+```json
+{
+  "error": "First name is required"
 }
 ```
 
@@ -730,3 +812,22 @@ Deletes a member-membership relationship.
   "message": "Member-membership relationship deleted successfully"
 }
 ```
+
+## Migration Notes
+
+This API documentation reflects the current implementation using GORM ORM. The service was successfully migrated from raw SQL to GORM, providing:
+
+- **Enhanced Type Safety**: Compile-time validation of database operations
+- **Automatic Relationship Management**: GORM handles foreign key relationships automatically
+- **Improved Error Handling**: Better error messages and validation
+- **Cleaner Architecture**: Repository pattern with interface-based design
+
+### Testing
+
+All endpoints have been thoroughly tested with a comprehensive test suite (`test_endpoints.sh`) covering:
+- CRUD operations for all entities
+- Relationship validations
+- Error handling scenarios
+- Edge cases and data constraints
+
+For deployment and setup instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).

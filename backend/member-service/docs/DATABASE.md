@@ -1,6 +1,19 @@
 # Member Service Database Schema
 
-The Member Service uses PostgreSQL as its database. Below is the detailed schema for the tables used in this service.
+The Member Service uses PostgreSQL as its database with GORM as the Object-Relational Mapping (ORM) tool. Below is the detailed schema for the tables used in this service.
+
+## Architecture
+
+The service uses GORM for database operations with the following benefits:
+- **Type Safety**: Compile-time type checking for database operations
+- **Auto Migration**: Automatic schema migration support
+- **Relationship Management**: Built-in support for foreign key relationships
+- **Transaction Support**: Automatic transaction handling
+- **Query Building**: Intuitive query building with method chaining
+
+## GORM Model Definitions
+
+All database models are defined in the `internal/model` package with embedded repository interfaces following the class-service pattern.
 
 ## Tables
 
@@ -8,25 +21,34 @@ The Member Service uses PostgreSQL as its database. Below is the detailed schema
 
 This table stores information about fitness center members.
 
-| Column                  | Type                     | Description                                   |
-|-------------------------|--------------------------|-----------------------------------------------|
-| member_id               | SERIAL                   | Primary key                                   |
-| first_name              | VARCHAR(50)              | Member's first name                           |
-| last_name               | VARCHAR(50)              | Member's last name                            |
-| email                   | VARCHAR(100)             | Contact email address                         |
-| phone                   | VARCHAR(20)              | Contact phone number                          |
-| address                 | VARCHAR(255)             | Physical address                              |
-| date_of_birth           | TIMESTAMP WITH TIME ZONE | Member's birth date                           |
-| emergency_contact_name  | VARCHAR(100)             | Name of emergency contact                     |
-| emergency_contact_phone | VARCHAR(20)              | Phone number of emergency contact             |
-| created_at              | TIMESTAMP WITH TIME ZONE | Record creation timestamp                     |
-| updated_at              | TIMESTAMP WITH TIME ZONE | Record last update timestamp                  |
+**GORM Model:** `internal/model/member.go`
+
+| Column                  | Type                     | GORM Tag                                      | Description                                   |
+|-------------------------|--------------------------|-----------------------------------------------|-----------------------------------------------|
+| member_id               | SERIAL                   | `primaryKey`                                  | Primary key                                   |
+| first_name              | VARCHAR(100)             | `not null`                                    | Member's first name                           |
+| last_name               | VARCHAR(100)             | `not null`                                    | Member's last name                            |
+| email                   | VARCHAR(100)             | `uniqueIndex;not null`                        | Contact email address                         |
+| phone                   | VARCHAR(20)              | -                                             | Contact phone number                          |
+| address                 | TEXT                     | -                                             | Physical address                              |
+| date_of_birth           | DATE                     | -                                             | Member's birth date                           |
+| emergency_contact_name  | VARCHAR(100)             | -                                             | Name of emergency contact                     |
+| emergency_contact_phone | VARCHAR(20)              | -                                             | Phone number of emergency contact             |
+| join_date               | DATE                     | -                                             | Date when member joined                       |
+| status                  | VARCHAR(20)              | `default:'active'`                            | Member status (active, de_active, hold_on)   |
+| created_at              | TIMESTAMP WITH TIME ZONE | `autoCreateTime`                              | Record creation timestamp                     |
+| updated_at              | TIMESTAMP WITH TIME ZONE | `autoUpdateTime`                              | Record last update timestamp                  |
 
 **Indexes:**
 - PRIMARY KEY on `member_id`
-- UNIQUE on `email`
-- Index on `last_name, first_name`
-- Index on `date_of_birth`
+- UNIQUE INDEX on `email`
+- Index on `status`
+- Index on `join_date`
+
+**GORM Features:**
+- Automatic timestamping with `autoCreateTime` and `autoUpdateTime`
+- Email uniqueness enforced at database level
+- Custom validation for status field
 
 ### memberships
 

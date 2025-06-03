@@ -39,4 +39,22 @@ The Member Service interacts with:
 - **Language**: Go
 - **Framework**: Gin Web Framework
 - **Database**: PostgreSQL
+- **ORM**: GORM (Object Relational Mapping)
 - **Containerization**: Docker
+
+### Architecture
+
+The service follows a clean architecture pattern with:
+
+- **Model Layer**: Domain entities with embedded repository interfaces
+- **Repository Layer**: GORM-based data access implementations
+- **Service Layer**: Business logic and validation
+- **Handler Layer**: HTTP request/response handling
+
+### Recent Updates
+
+**GORM Integration (June 2025):**
+- Migrated from raw SQL to GORM ORM for improved type safety
+- Implemented repository pattern with interfaces defined in model packages
+- Enhanced error handling and database transaction management
+- Follows the same architectural pattern as class-service for consistency

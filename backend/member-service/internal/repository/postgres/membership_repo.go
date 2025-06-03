@@ -2,337 +2,137 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
+	"gorm.io/gorm"
 )
 
-var (
-	ErrMembershipNotFound = errors.New("membership not found")
-)
-
-// MembershipRepo implements repository.MembershipRepository
-type MembershipRepo struct {
-	db *sql.DB
+// MembershipRepository implements model.MembershipRepository interface
+type MembershipRepository struct {
+	db *gorm.DB
 }
 
-// NewMembershipRepository creates a new membership repository
-func NewMembershipRepository(db *sql.DB) repository.MembershipRepository {
-	return &MembershipRepo{
-		db: db,
+// NewMembershipRepository creates a new MembershipRepository
+func NewMembershipRepository(db *gorm.DB) model.MembershipRepository {
+	return &MembershipRepository{db: db}
+}
+
+// Create adds a new membership to the database
+func (r *MembershipRepository) Create(ctx context.Context, membership *model.Membership) error {
+	if err := r.db.WithContext(ctx).Create(membership).Error; err != nil {
+		return fmt.Errorf("creating membership: %w", err)
 	}
+	return nil
 }
 
-// Create inserts a new membership into the database
-func (r *MembershipRepo) Create(ctx context.Context, membership *model.Membership) error {
-	query := `
-		INSERT INTO memberships (membership_name, description, duration, price, is_active) 
-		VALUES ($1, $2, $3, $4, $5)
-		RETURNING membership_id, created_at, updated_at
-	`
-
-	return r.db.QueryRowContext(
-		ctx,
-		query,
-		membership.MembershipName,
-		membership.Description,
-		membership.Duration,
-		membership.Price,
-		membership.IsActive,
-	).Scan(
-		&membership.ID,
-		&membership.CreatedAt,
-		&membership.UpdatedAt,
-	)
-}
-
-// GetByID retrieves a membership by ID
-func (r *MembershipRepo) GetByID(ctx context.Context, id int64) (*model.Membership, error) {
-	query := `
-		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
-		FROM memberships
-		WHERE membership_id = $1
-	`
-
+// GetByID retrieves a membership by their ID
+func (r *MembershipRepository) GetByID(ctx context.Context, id int64) (*model.Membership, error) {
 	var membership model.Membership
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&membership.ID,
-		&membership.MembershipName,
-		&membership.Description,
-		&membership.Duration,
-		&membership.Price,
-		&membership.IsActive,
-		&membership.CreatedAt,
-		&membership.UpdatedAt,
-	)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, ErrMembershipNotFound
+	if err := r.db.WithContext(ctx).Where("membership_id = ?", id).First(&membership).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("membership not found")
 		}
-		return nil, fmt.Errorf("error getting membership: %w", err)
+		return nil, fmt.Errorf("getting membership by ID: %w", err)
 	}
-
 	return &membership, nil
 }
 
-// GetByName retrieves a membership by name
-func (r *MembershipRepo) GetByName(ctx context.Context, name string) (*model.Membership, error) {
-	query := `
-		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
-		FROM memberships
-		WHERE membership_name = $1
-	`
-
-	var membership model.Membership
-	err := r.db.QueryRowContext(ctx, query, name).Scan(
-		&membership.ID,
-		&membership.MembershipName,
-		&membership.Description,
-		&membership.Duration,
-		&membership.Price,
-		&membership.IsActive,
-		&membership.CreatedAt,
-		&membership.UpdatedAt,
-	)
-
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("error getting membership by name: %w", err)
+// Update updates membership information
+func (r *MembershipRepository) Update(ctx context.Context, membership *model.Membership) error {
+	result := r.db.WithContext(ctx).Model(membership).Where("membership_id = ?", membership.ID).Updates(membership)
+	if result.Error != nil {
+		return fmt.Errorf("updating membership: %w", result.Error)
 	}
-
-	return &membership, nil
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("membership not found")
+	}
+	return nil
 }
 
-// Update updates an existing membership
-func (r *MembershipRepo) Update(ctx context.Context, membership *model.Membership) error {
-	query := `
-		UPDATE memberships
-		SET membership_name = $1, description = $2, duration = $3, price = $4, is_active = $5, updated_at = $6
-		WHERE membership_id = $7
-		RETURNING updated_at
-	`
-
-	now := time.Now()
-	return r.db.QueryRowContext(
-		ctx,
-		query,
-		membership.MembershipName,
-		membership.Description,
-		membership.Duration,
-		membership.Price,
-		membership.IsActive,
-		now,
-		membership.ID,
-	).Scan(&membership.UpdatedAt)
-}
-
-// Delete removes a membership
-func (r *MembershipRepo) Delete(ctx context.Context, id int64) error {
-	query := "DELETE FROM memberships WHERE membership_id = $1"
-
-	result, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("error deleting membership: %w", err)
+// Delete removes a membership by their ID
+func (r *MembershipRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Where("membership_id = ?", id).Delete(&model.Membership{})
+	if result.Error != nil {
+		return fmt.Errorf("deleting membership: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("membership not found")
 	}
-
-	if rowsAffected == 0 {
-		return ErrMembershipNotFound
-	}
-
 	return nil
 }
 
 // List retrieves a paginated list of memberships
-func (r *MembershipRepo) List(ctx context.Context, offset, limit int) ([]*model.Membership, error) {
-
-	query := `
-		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
-		FROM memberships
-		ORDER BY membership_id
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, limit, offset)
-	if err != nil {
-		return nil, fmt.Errorf("error listing memberships: %w", err)
-	}
-	defer rows.Close()
-
+func (r *MembershipRepository) List(ctx context.Context, offset, limit int) ([]*model.Membership, error) {
 	var memberships []*model.Membership
-	for rows.Next() {
-		var m model.Membership
-		if err := rows.Scan(
-			&m.ID,
-			&m.MembershipName,
-			&m.Description,
-			&m.Duration,
-			&m.Price,
-			&m.IsActive,
-			&m.CreatedAt,
-			&m.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning membership row: %w", err)
-		}
-
-		memberships = append(memberships, &m)
+	if err := r.db.WithContext(ctx).Offset(offset).Limit(limit).Order("membership_id").Find(&memberships).Error; err != nil {
+		return nil, fmt.Errorf("listing memberships: %w", err)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating membership rows: %w", err)
-	}
-
 	return memberships, nil
 }
 
-// GetActive retrieves all active memberships
-func (r *MembershipRepo) GetActive(ctx context.Context) ([]*model.Membership, error) {
-	query := `
-		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
-		FROM memberships
-		WHERE is_active = true
-		ORDER BY price ASC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("error getting active memberships: %w", err)
+// Count returns the total number of memberships
+func (r *MembershipRepository) Count(ctx context.Context) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&model.Membership{}).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("counting memberships: %w", err)
 	}
-	defer rows.Close()
+	return int(count), nil
+}
 
+// GetActiveOnes retrieves all active memberships
+func (r *MembershipRepository) GetActiveOnes(ctx context.Context) ([]*model.Membership, error) {
 	var memberships []*model.Membership
-	for rows.Next() {
-		var m model.Membership
-		if err := rows.Scan(
-			&m.ID,
-			&m.MembershipName,
-			&m.Description,
-			&m.Duration,
-			&m.Price,
-			&m.IsActive,
-			&m.CreatedAt,
-			&m.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning active membership row: %w", err)
+	if err := r.db.WithContext(ctx).Where("is_active = ?", true).Find(&memberships).Error; err != nil {
+		return nil, fmt.Errorf("getting active memberships: %w", err)
+	}
+	return memberships, nil
+}
+
+// GetActive retrieves all active memberships (alias for GetActiveOnes)
+func (r *MembershipRepository) GetActive(ctx context.Context) ([]*model.Membership, error) {
+	return r.GetActiveOnes(ctx)
+}
+
+// GetByName retrieves a membership by name
+func (r *MembershipRepository) GetByName(ctx context.Context, name string) (*model.Membership, error) {
+	var membership model.Membership
+	if err := r.db.WithContext(ctx).Where("membership_name = ?", name).First(&membership).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("membership not found")
 		}
-
-		memberships = append(memberships, &m)
+		return nil, fmt.Errorf("getting membership by name: %w", err)
 	}
+	return &membership, nil
+}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating active membership rows: %w", err)
+// GetAll retrieves all memberships
+func (r *MembershipRepository) GetAll(ctx context.Context) ([]*model.Membership, error) {
+	var memberships []*model.Membership
+	if err := r.db.WithContext(ctx).Find(&memberships).Error; err != nil {
+		return nil, fmt.Errorf("getting all memberships: %w", err)
 	}
-
 	return memberships, nil
 }
 
 // UpdateStatus updates the active status of a membership
-func (r *MembershipRepo) UpdateStatus(ctx context.Context, id int64, isActive bool) error {
-	query := `
-		UPDATE memberships
-		SET is_active = $1, updated_at = $2
-		WHERE membership_id = $3
-	`
-
-	result, err := r.db.ExecContext(ctx, query, isActive, time.Now(), id)
-	if err != nil {
-		return fmt.Errorf("error updating membership status: %w", err)
+func (r *MembershipRepository) UpdateStatus(ctx context.Context, id int64, isActive bool) error {
+	result := r.db.WithContext(ctx).Model(&model.Membership{}).Where("membership_id = ?", id).Update("is_active", isActive)
+	if result.Error != nil {
+		return fmt.Errorf("updating membership status: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
+	if result.RowsAffected == 0 {
+		return fmt.Errorf("membership not found")
 	}
-
-	if rowsAffected == 0 {
-		return ErrMembershipNotFound
-	}
-
 	return nil
 }
 
-// GetAll retrieves all memberships
-func (r *MembershipRepo) GetAll(ctx context.Context) ([]*model.Membership, error) {
-	query := `
-		SELECT membership_id, membership_name, description, duration, price, is_active, created_at, updated_at
-		FROM memberships
-		ORDER BY membership_id
-	`
-
-	rows, err := r.db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("error getting all memberships: %w", err)
+// IsMembershipInUse checks if a membership is currently being used by any members
+func (r *MembershipRepository) IsMembershipInUse(ctx context.Context, id int64) (bool, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&model.MemberMembership{}).Where("membership_id = ?", id).Count(&count).Error; err != nil {
+		return false, fmt.Errorf("checking membership usage: %w", err)
 	}
-	defer rows.Close()
-
-	var memberships []*model.Membership
-	for rows.Next() {
-		var m model.Membership
-		if err := rows.Scan(
-			&m.ID,
-			&m.MembershipName,
-			&m.Description,
-			&m.Duration,
-			&m.Price,
-			&m.IsActive,
-			&m.CreatedAt,
-			&m.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning membership row: %w", err)
-		}
-
-		memberships = append(memberships, &m)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating membership rows: %w", err)
-	}
-
-	return memberships, nil
-}
-
-// IsMembershipInUse checks if a membership is used by any members
-func (r *MembershipRepo) IsMembershipInUse(ctx context.Context, id int64) (bool, error) {
-	query := `
-		SELECT EXISTS (
-			SELECT 1 FROM member_memberships
-			WHERE membership_id = $1
-		)
-	`
-
-	var inUse bool
-	if err := r.db.QueryRowContext(ctx, query, id).Scan(&inUse); err != nil {
-		return false, fmt.Errorf("error checking if membership is in use: %w", err)
-	}
-
-	return inUse, nil
-}
-
-// GetActiveOnes alias for GetActive to satisfy the interface
-func (r *MembershipRepo) GetActiveOnes(ctx context.Context) ([]*model.Membership, error) {
-	return r.GetActive(ctx)
-}
-
-// Count returns the total number of memberships
-func (r *MembershipRepo) Count(ctx context.Context) (int, error) {
-	query := `SELECT COUNT(*) FROM memberships`
-
-	var count int
-	err := r.db.QueryRowContext(ctx, query).Scan(&count)
-	if err != nil {
-		return 0, fmt.Errorf("failed to count memberships: %w", err)
-	}
-
-	return count, nil
+	return count > 0, nil
 }

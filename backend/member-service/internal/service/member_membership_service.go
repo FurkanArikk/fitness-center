@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
 var (
@@ -16,11 +15,11 @@ var (
 
 // MemberMembershipServiceImpl implements MemberMembershipService
 type MemberMembershipServiceImpl struct {
-	repo repository.MemberMembershipRepository
+	repo model.MemberMembershipRepository
 }
 
 // NewMemberMembershipService creates a new member membership service
-func NewMemberMembershipService(repo repository.MemberMembershipRepository) MemberMembershipService {
+func NewMemberMembershipService(repo model.MemberMembershipRepository) MemberMembershipService {
 	return &MemberMembershipServiceImpl{
 		repo: repo,
 	}
