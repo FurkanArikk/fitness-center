@@ -776,62 +776,80 @@ const Members = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
-            Member Management
-          </h2>
-          <p className="text-gray-600 mt-1">
-            Manage your fitness center members and memberships
-          </p>
-        </div>
-
-        {/* Enhanced Add New Member Button */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3"
-        >
-          {/* Background Animation */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-700 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-          {/* Sparkle Effect */}
-          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <div className="absolute top-2 left-3 w-1 h-1 bg-white rounded-full animate-ping"></div>
-            <div
-              className="absolute top-4 right-6 w-1 h-1 bg-white rounded-full animate-ping"
-              style={{ animationDelay: "0.2s" }}
-            ></div>
-            <div
-              className="absolute bottom-3 left-6 w-1 h-1 bg-white rounded-full animate-ping"
-              style={{ animationDelay: "0.4s" }}
-            ></div>
+      {/* Modern Header Section */}
+      <div className="bg-gradient-to-br from-white via-emerald-50 to-teal-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-100 to-teal-200 shadow-lg">
+              <UserPlus size={32} className="text-emerald-700" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                Member Management
+              </h1>
+              <p className="text-gray-600 mt-2 font-medium">
+                Manage your fitness center members and memberships
+              </p>
+              <div className="flex items-center space-x-4 mt-3">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Last updated: {new Date().toLocaleTimeString()}</span>
+                </div>
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                  <span>Live Updates</span>
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Icon with Animation */}
-          <div className="relative bg-white/20 rounded-full p-2 group-hover:bg-white/30 transition-all duration-300 group-hover:rotate-180">
-            <UserPlus className="w-5 h-5" />
-          </div>
-
-          {/* Text */}
-          <span className="relative text-lg">Add New Member</span>
-
-          {/* Arrow Icon */}
-          <div className="relative transform group-hover:translate-x-1 transition-transform duration-300">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex gap-3">
+            {/* Enhanced Add New Member Button */}
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M13 7l5 5m0 0l-5 5m5-5H6"
-              />
-            </svg>
+              {/* Background Animation */}
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-700 to-teal-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+              {/* Sparkle Effect */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                <div className="absolute top-2 left-3 w-1 h-1 bg-white rounded-full animate-ping"></div>
+                <div
+                  className="absolute top-4 right-6 w-1 h-1 bg-white rounded-full animate-ping"
+                  style={{ animationDelay: "0.2s" }}
+                ></div>
+                <div
+                  className="absolute bottom-3 left-6 w-1 h-1 bg-white rounded-full animate-ping"
+                  style={{ animationDelay: "0.4s" }}
+                ></div>
+              </div>
+
+              {/* Icon with Animation */}
+              <div className="relative bg-white/20 rounded-full p-2 group-hover:bg-white/30 transition-all duration-300 group-hover:rotate-180">
+                <UserPlus className="w-5 h-5" />
+              </div>
+
+              {/* Text */}
+              <span className="relative text-lg">Add New Member</span>
+
+              {/* Arrow Icon */}
+              <div className="relative transform group-hover:translate-x-1 transition-transform duration-300">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </div>
+            </button>
           </div>
-        </button>
+        </div>
       </div>
 
       {/* Added statistics cards */}

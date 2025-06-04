@@ -1398,156 +1398,40 @@ const Classes = () => {
   return (
     <div className="space-y-8 relative">
       {/* Modern Header Section */}
-      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-6">
-        <div className="space-y-2">
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-purple-800 bg-clip-text text-transparent">
-            Class Schedule
-          </h2>
-          <p className="text-gray-600 text-sm">
-            Discover and book your perfect fitness classes
-          </p>
-        </div>
-
-        {/* Quick Stats Cards */}
-        <div className="flex gap-3">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-xl px-4 py-2 shadow-sm">
-            <div className="text-xs text-blue-600 font-medium mb-2 uppercase tracking-wide">
-              Active Classes
+      <div className="bg-gradient-to-br from-white via-rose-50 to-orange-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-100 to-orange-200 shadow-lg">
+              <Calendar size={32} className="text-rose-700" />
             </div>
-            <div className="text-lg font-bold text-blue-700">
-              {filteredClasses.length}
-            </div>
-          </div>
-          <div className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-xl px-4 py-2 shadow-sm">
-            <div className="text-xs text-green-600 font-medium mb-2 uppercase tracking-wide">
-              Total Capacity
-            </div>
-            <div className="text-lg font-bold text-green-700">
-              {filteredClasses.reduce((sum, c) => sum + (c.capacity || 0), 0)}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Enhanced Search and Filter Controls */}
-      <div className="bg-gradient-to-r from-white via-gray-50/30 to-white backdrop-blur-sm rounded-2xl border-2 border-gray-200/60 p-6 shadow-lg">
-        <div className="flex flex-col lg:flex-row gap-4 items-center">
-          {/* Search Input */}
-          <div className="relative flex-1 w-full lg:max-w-md">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <Search
-                className="text-gray-400 transition-colors duration-200"
-                size={20}
-              />
-            </div>
-            <input
-              type="text"
-              className="
-                w-full 
-                bg-white/80 
-                backdrop-blur-sm 
-                border-2 
-                border-gray-200 
-                rounded-xl 
-                pl-12 
-                pr-4 
-                py-3 
-                text-gray-900 
-                placeholder-gray-500
-                focus:outline-none 
-                focus:ring-4 
-                focus:ring-blue-200/50 
-                focus:border-blue-400
-                transition-all 
-                duration-200
-                shadow-sm
-                hover:shadow-md
-                hover:border-gray-300
-              "
-              placeholder="Search classes by name..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            {search && (
-              <button
-                onClick={() => setSearch("")}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <XCircle size={18} />
-              </button>
-            )}
-          </div>
-
-          {/* Filter Dropdown */}
-          <div className="flex items-center gap-3 w-full lg:w-auto">
-            <div className="flex items-center gap-2 text-gray-500">
-              <Filter size={18} className="text-gray-400" />
-              <span className="text-sm font-medium hidden sm:inline">
-                Filter by level:
-              </span>
-            </div>
-            <select
-              className="
-                bg-white/80 
-                backdrop-blur-sm 
-                border-2 
-                border-gray-200 
-                rounded-xl 
-                px-4 
-                py-3 
-                text-gray-900
-                focus:outline-none 
-                focus:ring-4 
-                focus:ring-blue-200/50 
-                focus:border-blue-400
-                transition-all 
-                duration-200
-                shadow-sm
-                hover:shadow-md
-                hover:border-gray-300
-                min-w-[140px]
-                cursor-pointer
-              "
-              value={difficulty}
-              onChange={(e) => setDifficulty(e.target.value)}
-            >
-              {difficultyOptions.map((opt) => (
-                <option key={opt.value} value={opt.value} className="py-2">
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Active Filters Display */}
-          {(search || difficulty) && (
-            <div className="flex items-center gap-2 w-full lg:w-auto">
-              <span className="text-xs text-gray-500 hidden sm:inline">
-                Active filters:
-              </span>
-              <div className="flex gap-2 flex-wrap">
-                {search && (
-                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-medium border border-blue-200">
-                    Search: "{search}"
-                  </span>
-                )}
-                {difficulty && (
-                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full text-xs font-medium border border-purple-200">
-                    Level: {difficulty}
-                  </span>
-                )}
-                <button
-                  onClick={() => {
-                    setSearch("");
-                    setDifficulty("");
-                  }}
-                  className="text-xs text-gray-500 hover:text-gray-700 underline transition-colors"
-                >
-                  Clear all
-                </button>
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-rose-600 to-orange-600 bg-clip-text text-transparent">
+                Class Management
+              </h1>
+              <p className="text-gray-600 mt-2 font-medium">
+                Manage all fitness classes with style
+              </p>
+              <div className="flex items-center space-x-4 mt-3">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Last updated: {new Date().toLocaleTimeString()}</span>
+                </div>
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                  <span>Live Updates</span>
+                </div>
               </div>
             </div>
-          )}
+          </div>
+          <div className="flex gap-3">
+            <Button
+              variant="primary"
+              icon={<Plus size={20} />}
+              onClick={() => setAddModalOpen(true)}
+              className="bg-gradient-to-r from-rose-600 to-orange-600 hover:from-rose-700 hover:to-orange-700 text-white font-bold px-8 py-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+            >
+              Add New Class
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -1892,83 +1776,78 @@ const Classes = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Top Row - 3 Cards */}
-                  <div className="grid grid-cols-3 gap-4">
-                    {/* Total Classes Card */}
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                  {/* Panel - Top Metrics */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {/* Total Classes */}
+                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-6 text-white shadow-lg">
                       <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
                         Total Classes
                       </div>
-                      <div className="text-4xl font-bold mb-1">
-                        {analyticsStats.totalClasses || 0}
-                      </div>
-                      <div className="text-white/70 text-xs">
-                        All time count
+                      <div className="text-3xl font-bold">
+                        {analyticsStats.totalClasses}
                       </div>
                     </div>
 
-                    {/* Active Classes Card */}
-                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                    {/* Active Classes */}
+                    <div className="bg-gradient-to-br from-green-500 to-green-600 rounded-xl p-6 text-white shadow-lg">
                       <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
                         Active Classes
                       </div>
-                      <div className="text-4xl font-bold mb-1">
-                        {analyticsStats.activeClasses || 0}
-                      </div>
-                      <div className="text-white/70 text-xs">
-                        Currently running
+                      <div className="text-3xl font-bold">
+                        {analyticsStats.activeClasses}
                       </div>
                     </div>
 
-                    {/* Total Participants Card */}
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
+                    {/* Total Participants */}
+                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl p-6 text-white shadow-lg">
                       <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
                         Total Participants
                       </div>
-                      <div className="text-4xl font-bold mb-1">
-                        {analyticsStats.totalParticipants || 0}
-                      </div>
-                      <div className="text-white/70 text-xs">
-                        Unique members
+                      <div className="text-3xl font-bold">
+                        {analyticsStats.totalParticipants}
                       </div>
                     </div>
                   </div>
 
-                  {/* Bottom Row - 2 Cards */}
-                  <div className="grid grid-cols-2 gap-4">
-                    {/* Classes Last Week Card */}
-                    <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
-                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
-                        Classes Last Week
-                      </div>
-                      <div className="text-4xl font-bold mb-1">
-                        {analyticsStats.lastWeek || 0}
-                      </div>
-                      <div className="text-white/70 text-xs">Past 7 days</div>
-                    </div>
-
-                    {/* Classes Last Month Card */}
-                    <div className="bg-gradient-to-br from-red-500 to-red-600 rounded-xl p-6 text-white shadow-lg transform hover:scale-105 transition-transform duration-200">
-                      <div className="text-white/90 text-sm font-medium mb-2 uppercase tracking-wide">
-                        Classes Last Month
-                      </div>
-                      <div className="text-4xl font-bold mb-1">
-                        {analyticsStats.lastMonth || 0}
-                      </div>
-                      <div className="text-white/70 text-xs">Past 30 days</div>
-                    </div>
-                  </div>
-
-                  {/* Weekly Activity Trend - Heart Rate Chart */}
-                  <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
-                    <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                      <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
-                      Weekly Activity Trend
+                  {/* Panel - Recent Activity */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Recent Class Activity
                     </h3>
-                    <div className="flex items-center justify-center h-20 bg-white rounded-lg border border-gray-100 p-4">
+                    <div className="space-y-3">
+                      {/* Activity Item - Example */}
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                          <span>New class created: Yoga for Beginners</span>
+                        </div>
+                        <span className="whitespace-nowrap">10 mins ago</span>
+                      </div>
+
+                      {/* Activity Item - Example */}
+                      <div className="flex items-center justify-between text-sm text-gray-600">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                          <span>Class cancelled: Advanced Pilates</span>
+                        </div>
+                        <span className="whitespace-nowrap">1 hour ago</span>
+                      </div>
+
+                      {/* Add more activity items as needed */}
+                    </div>
+                  </div>
+
+                  {/* Panel - Weekly Trend */}
+                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                      Weekly Class Trend
+                    </h3>
+                    <div className="flex items-center justify-center h-32">
                       <HeartbeatChart
                         trendData={
-                          analyticsStats.trendData || [1, 3, 2, 5, 4, 3]
+                          analyticsStats.trendData.length > 0
+                            ? analyticsStats.trendData
+                            : [0, 0, 0, 0, 0, 0]
                         }
                       />
                     </div>

@@ -201,48 +201,51 @@ const Trainers = () => {
 
   return (
     <div className="space-y-6 p-4">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-            Trainer Management
-          </h2>
-          {hasActiveSearch && (
-            <div className="flex items-center mt-3 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                <span className="font-medium">
-                  Showing {totalTrainers} filtered results
-                </span>
+      {/* Modern Header Section */}
+      <div className="bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8">
+          <div className="flex items-center space-x-4">
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-100 to-purple-200 shadow-lg">
+              <Award size={32} className="text-blue-700" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Trainer Management
+              </h1>
+              <p className="text-gray-600 mt-2 font-medium">
+                Manage trainers and their schedules efficiently
+              </p>
+              <div className="flex items-center space-x-4 mt-3">
+                <div className="flex items-center space-x-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Last updated: {new Date().toLocaleTimeString()}</span>
+                </div>
+                <div className="flex items-center space-x-1 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                  <span>Live Updates</span>
+                </div>
               </div>
-              <button
-                onClick={clearSearch}
-                className="ml-3 px-3 py-1 bg-gradient-to-r from-blue-100 to-blue-200 hover:from-blue-200 hover:to-blue-300 text-blue-700 hover:text-blue-800 rounded-full text-xs font-semibold transition-all duration-200 hover:shadow-md"
-              >
-                Clear filters
-              </button>
             </div>
-          )}
-        </div>
-
-        <div className="flex space-x-3">
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
-          >
-            <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-              <Award size={16} />
-            </div>
-            Add New Trainer
-          </button>
-          <button
-            onClick={() => setShowScheduleModal(true)}
-            className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
-          >
-            <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
-              <Calendar size={16} />
-            </div>
-            Weekly Schedule
-          </button>
+          </div>
+          <div className="flex space-x-3">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
+            >
+              <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                <Award size={16} />
+              </div>
+              Add New Trainer
+            </button>
+            <button
+              onClick={() => setShowScheduleModal(true)}
+              className="group flex items-center gap-2 px-5 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] hover:-translate-y-0.5"
+            >
+              <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors">
+                <Calendar size={16} />
+              </div>
+              Weekly Schedule
+            </button>
+          </div>
         </div>
       </div>
 
