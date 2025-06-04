@@ -1,32 +1,74 @@
-import React, { useState, useMemo } from 'react';
-import { 
-  Edit2, 
-  Trash2, 
-  Search, 
-  Filter, 
+import React, { useState, useMemo, useEffect } from "react";
+import {
+  Edit,
+  Trash2,
+  Search,
+  Filter,
   RefreshCw,
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
   Tag,
-  Calendar
-} from 'lucide-react';
-import { formatCurrency, formatDate } from '../../utils/formatters';
-import StatusBadge from '../common/StatusBadge';
-import Button from '../common/Button';
+  Calendar,
+  Plus,
+  CheckCircle,
+  XCircle,
+  Hash,
+  FileText,
+  Clock,
+  Zap,
+} from "lucide-react";
+import { formatDate } from "../../utils/formatters";
+import Button from "../common/Button";
+import paymentService from "../../api/paymentService";
 
-const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, isLoading, onRefresh }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortField, setSortField] = useState('type_name');
-  const [sortDirection, setSortDirection] = useState('asc');
+const PaymentTypeList = ({ onEdit, onDelete, onRefresh }) => {
+  const [paymentTypes, setPaymentTypes] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [sortField, setSortField] = useState("type_name");
+  const [sortDirection, setSortDirection] = useState("asc");
+  const [error, setError] = useState(null);
+
+  // Fetch payment types from API
+  const fetchPaymentTypes = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      const response = await paymentService.getAllPaymentTypes();
+      setPaymentTypes(response.data || []);
+    } catch (error) {
+      console.error("Failed to fetch payment types:", error);
+      setError("Failed to load payment types");
+      setPaymentTypes([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    fetchPaymentTypes();
+  }, []);
+
+  // Auto-refresh every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(fetchPaymentTypes, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleRefresh = () => {
+    fetchPaymentTypes();
+    if (onRefresh) onRefresh();
+  };
 
   const handleSort = (field) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('asc');
+      setSortDirection("asc");
     }
   };
 
@@ -34,21 +76,52 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, isLoading, onRef
     if (sortField !== field) {
       return <ArrowUpDown size={14} className="text-gray-400" />;
     }
-    return sortDirection === 'asc' 
-      ? <ArrowUp size={14} className="text-blue-500" />
-      : <ArrowDown size={14} className="text-blue-500" />;
+    return sortDirection === "asc" ? (
+      <ArrowUp size={14} className="text-blue-500" />
+    ) : (
+      <ArrowDown size={14} className="text-blue-500" />
+    );
   };
+
+  const getStatusIcon = (isActive) => {
+    return isActive ? (
+      <CheckCircle size={14} className="text-white" />
+    ) : (
+      <XCircle size={14} className="text-white" />
+    );
+  };
+
+  const getStatusBadgeStyle = (isActive) => {
+    return isActive
+      ? "bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg shadow-green-200"
+      : "bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-200";
+  };
+
+  const getStatusText = (isActive) => {
+    return isActive ? "Active" : "Inactive";
+  };
+
+  // Clear filters
+  const handleClearFilters = () => {
+    setSearchTerm("");
+    setStatusFilter("all");
+  };
+
+  const activeFiltersCount =
+    (searchTerm ? 1 : 0) + (statusFilter !== "all" ? 1 : 0);
 
   // Filter and sort payment types
   const filteredAndSortedTypes = useMemo(() => {
-    let filtered = paymentTypes.filter(type => {
-      const matchesSearch = !searchTerm || 
+    let filtered = paymentTypes.filter((type) => {
+      const matchesSearch =
+        !searchTerm ||
         type.type_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         type.description?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesStatus = statusFilter === 'all' || 
-        (statusFilter === 'active' && type.is_active) ||
-        (statusFilter === 'inactive' && !type.is_active);
+
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && type.is_active) ||
+        (statusFilter === "inactive" && !type.is_active);
 
       return matchesSearch && matchesStatus;
     });
@@ -57,19 +130,19 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, isLoading, onRef
     filtered.sort((a, b) => {
       let aValue = a[sortField];
       let bValue = b[sortField];
-      
-      if (sortField === 'created_at' || sortField === 'updated_at') {
+
+      if (sortField === "created_at" || sortField === "updated_at") {
         aValue = new Date(aValue || 0);
         bValue = new Date(bValue || 0);
       }
-      
-      if (typeof aValue === 'string') {
+
+      if (typeof aValue === "string") {
         aValue = aValue.toLowerCase();
-        bValue = bValue?.toLowerCase() || '';
+        bValue = bValue?.toLowerCase() || "";
       }
-      
-      if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
-      if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+
+      if (aValue < bValue) return sortDirection === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortDirection === "asc" ? 1 : -1;
       return 0;
     });
 
@@ -78,241 +151,364 @@ const PaymentTypeList = ({ paymentTypes = [], onEdit, onDelete, isLoading, onRef
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-        <div className="flex justify-center items-center py-16">
-          <div className="flex items-center space-x-3 text-gray-500">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-            <span className="text-sm font-medium">Loading payment types...</span>
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="p-8">
+          <div className="animate-pulse space-y-6">
+            {/* Header skeleton */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="h-12 bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl flex-1"></div>
+              <div className="flex gap-3">
+                <div className="h-12 w-36 bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl"></div>
+                <div className="h-12 w-28 bg-gradient-to-r from-gray-200 to-gray-300 rounded-xl"></div>
+              </div>
+            </div>
+
+            {/* Table skeleton */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="bg-gradient-to-r from-gray-50 to-purple-50 p-4">
+                <div className="grid grid-cols-6 gap-4">
+                  {Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-4 bg-gradient-to-r from-gray-300 to-gray-400 rounded"
+                    ></div>
+                  ))}
+                </div>
+              </div>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="p-4 border-b border-gray-100">
+                  <div className="grid grid-cols-6 gap-4">
+                    {Array.from({ length: 6 }).map((_, j) => (
+                      <div
+                        key={j}
+                        className="h-4 bg-gradient-to-r from-gray-200 to-gray-300 rounded"
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-gradient-to-br from-red-50 via-white to-red-50 rounded-2xl shadow-xl border border-red-200 p-16 text-center">
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-red-100 to-red-200 flex items-center justify-center shadow-lg">
+          <XCircle size={32} className="text-red-600" />
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-4">
+          Error Loading Payment Types
+        </h3>
+        <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+          {error}
+        </p>
+        <Button
+          onClick={handleRefresh}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+        >
+          <RefreshCw size={18} className="mr-2" />
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-white rounded-lg border border-gray-200 shadow-sm">
-      {/* Header with search and filters */}
-      <div className="px-6 py-5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Tag className="h-5 w-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Payment Types</h3>
-              <p className="text-sm text-gray-500">
-                Manage payment types and their details
-              </p>
-            </div>
+    <div className="space-y-8">
+      {/* Header and Filters */}
+      <div className="bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-2xl shadow-xl border border-gray-200 p-8">
+        <div className="flex flex-col lg:flex-row gap-6 mb-6">
+          {/* Search */}
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search payment types (name, description...)"
+              className="w-full border-2 border-gray-200 rounded-xl py-3 px-4 pl-12 focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-500 transition-all duration-300 bg-white shadow-sm hover:shadow-md font-medium placeholder-gray-400"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search
+              size={20}
+              className="absolute left-4 top-3.5 text-gray-400"
+            />
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="secondary"
-              icon={<RefreshCw size={16} />}
-              onClick={onRefresh}
-              className="px-4 py-2 text-sm font-medium border-gray-300 hover:bg-gray-50 transition-colors"
+
+          {/* Filters */}
+          <div className="flex gap-3 flex-wrap">
+            <select
+              className="border-2 border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-500 min-w-[160px] bg-white shadow-sm hover:shadow-md transition-all duration-300 font-medium"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+
+            {/* Clear button */}
+            {activeFiltersCount > 0 && (
+              <Button
+                variant="outline"
+                onClick={handleClearFilters}
+                size="md"
+                className="flex items-center gap-2 bg-white shadow-md hover:shadow-lg transition-all duration-300 border-2 border-orange-200 text-orange-600 hover:bg-orange-50 hover:border-orange-300"
+              >
+                <Filter size={16} />
+                Clear ({activeFiltersCount})
+              </Button>
+            )}
+
+            {/* Refresh button */}
+            <Button
+              variant="outline"
+              onClick={handleRefresh}
+              size="md"
+              disabled={isLoading}
+              className="flex items-center gap-2 bg-white shadow-md hover:shadow-lg transition-all duration-300 border-2 border-green-200 text-green-600 hover:bg-green-50 hover:border-green-300"
+            >
+              <RefreshCw
+                size={16}
+                className={isLoading ? "animate-spin" : ""}
+              />
               Refresh
             </Button>
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="mt-6 flex flex-col sm:flex-row gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Search by name or description..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-              />
+        {/* Result count */}
+        {filteredAndSortedTypes.length !== paymentTypes.length && (
+          <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 mb-4">
+            <div className="text-sm font-semibold text-purple-800">
+              Showing {filteredAndSortedTypes.length} of {paymentTypes.length}{" "}
+              payment types
+              {activeFiltersCount > 0 &&
+                ` (${activeFiltersCount} filter${
+                  activeFiltersCount > 1 ? "s" : ""
+                } applied)`}
             </div>
           </div>
-          
-          <div className="flex items-center space-x-3">
-            <div className="relative min-w-0 flex-shrink-0">
-              <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={16} />
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="pl-9 pr-8 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none bg-white text-sm font-medium transition-colors"
-              >
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
-          <div className="flex items-center space-x-6">
-            <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span>Total: <span className="font-medium text-gray-900">{paymentTypes.length}</span></span>
-            </span>
-            <span className="flex items-center space-x-1">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span>Showing: <span className="font-medium text-gray-900">{filteredAndSortedTypes.length}</span></span>
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* Table */}
-      {!paymentTypes || paymentTypes.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="p-4 bg-gray-100 rounded-full">
-              <Tag className="h-8 w-8 text-gray-400" />
+      {/* Modern Table */}
+      <div className="bg-white rounded-3xl shadow-2xl border border-gray-100 overflow-hidden">
+        {!paymentTypes || paymentTypes.length === 0 ? (
+          <div className="bg-gradient-to-br from-white via-gray-50 to-purple-50 rounded-2xl shadow-xl border border-gray-200 p-16 text-center">
+            <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-purple-100 to-indigo-200 flex items-center justify-center shadow-lg">
+              <Tag size={32} className="text-purple-600" />
             </div>
-            <div>
-              <div className="text-lg font-medium text-gray-900 mb-1">No payment types found</div>
-              <div className="text-sm text-gray-500">Get started by creating your first payment type</div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              No payment types found
+            </h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
+              Get started by creating your first payment type to manage
+              different categories of payments.
+            </p>
+            <div className="flex items-center justify-center space-x-4">
+              <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce"></div>
+              <div
+                className="w-2 h-2 bg-indigo-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.1s" }}
+              ></div>
+              <div
+                className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"
+                style={{ animationDelay: "0.2s" }}
+              ></div>
             </div>
           </div>
-        </div>
-      ) : filteredAndSortedTypes.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="p-4 bg-gray-100 rounded-full">
-              <Search className="h-8 w-8 text-gray-400" />
-            </div>
-            <div>
-              <div className="text-lg font-medium text-gray-900 mb-1">No results found</div>
-              <div className="text-sm text-gray-500">Try adjusting your search or filter criteria</div>
+        ) : filteredAndSortedTypes.length === 0 ? (
+          <div className="p-16 text-center">
+            <div className="flex flex-col items-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-purple-100 rounded-full flex items-center justify-center mb-6 shadow-lg">
+                <Search size={28} className="text-gray-400" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-3">
+                No payment types found
+              </h3>
+              <p className="text-gray-500 text-lg">
+                No payment types match your search criteria.
+              </p>
             </div>
           </div>
-        </div>
-      ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
-                  <button
-                    onClick={() => handleSort('payment_type_id')}
-                    className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full">
+              <thead className="bg-gradient-to-r from-slate-50 via-purple-50 to-indigo-50 border-b border-gray-200">
+                <tr>
+                  <th
+                    className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-purple-100/50 transition-all duration-300 rounded-tl-3xl"
+                    onClick={() => handleSort("payment_type_id")}
                   >
-                    <span>ID</span>
-                    {getSortIcon('payment_type_id')}
-                  </button>
-                </th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
-                  <button
-                    onClick={() => handleSort('type_name')}
-                    className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
+                    <div className="flex items-center gap-2">
+                      ID
+                      {getSortIcon("payment_type_id")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-purple-100/50 transition-all duration-300"
+                    onClick={() => handleSort("type_name")}
                   >
-                    <span>Name</span>
-                    {getSortIcon('type_name')}
-                  </button>
-                </th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">Description</th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
-                  <button
-                    onClick={() => handleSort('created_at')}
-                    className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
+                    <div className="flex items-center gap-2">
+                      Name
+                      {getSortIcon("type_name")}
+                    </div>
+                  </th>
+                  <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th
+                    className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-purple-100/50 transition-all duration-300"
+                    onClick={() => handleSort("created_at")}
                   >
-                    <span>Created At</span>
-                    {getSortIcon('created_at')}
-                  </button>
-                </th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">
-                  <button
-                    onClick={() => handleSort('updated_at')}
-                    className="flex items-center space-x-1 hover:text-gray-900 transition-colors"
+                    <div className="flex items-center gap-2">
+                      Created At
+                      {getSortIcon("created_at")}
+                    </div>
+                  </th>
+                  <th
+                    className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider cursor-pointer hover:bg-purple-100/50 transition-all duration-300"
+                    onClick={() => handleSort("updated_at")}
                   >
-                    <span>Updated At</span>
-                    {getSortIcon('updated_at')}
-                  </button>
-                </th>
-                <th className="text-left px-6 py-4 font-semibold text-gray-700 text-sm">Status</th>
-                <th className="text-right px-6 py-4 font-semibold text-gray-700 text-sm">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredAndSortedTypes.map((paymentType, index) => (
-                <tr 
-                  key={`payment-type-${paymentType.payment_type_id || index}`} 
-                  className={`hover:bg-gray-50 transition-colors ${index % 2 === 0 ? 'bg-white' : 'bg-gray-50/30'}`}
-                >
-                  <td className="px-6 py-4">
-                    <span className="text-sm font-mono text-gray-600 bg-gray-100 px-2 py-1 rounded">
-                      #{paymentType.payment_type_id}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <Tag className="h-4 w-4 text-blue-600" />
-                      </div>
-                      <div>
-                        <div className="font-semibold text-gray-900 text-sm">
-                          {paymentType.type_name}
+                    <div className="flex items-center gap-2">
+                      Updated At
+                      {getSortIcon("updated_at")}
+                    </div>
+                  </th>
+                  <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider">
+                    Status
+                  </th>
+                  <th className="px-8 py-6 text-left text-xs font-bold text-gray-700 uppercase tracking-wider rounded-tr-3xl">
+                    Actions
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white">
+                {filteredAndSortedTypes.map((paymentType, index) => (
+                  <tr
+                    key={`payment-type-${paymentType.payment_type_id || index}`}
+                    className="border-b border-gray-50 hover:bg-gradient-to-r hover:from-purple-50/30 hover:to-indigo-50/30 transition-all duration-300 group hover:shadow-md hover:scale-[1.01] hover:rounded-xl"
+                  >
+                    {/* ID - Modern rounded badge with tag icon */}
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="relative">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-400 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                            <Hash size={18} className="text-white font-bold" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-lg font-bold text-gray-900">
+                            #
+                            {paymentType.payment_type_id ||
+                              `PT-${1000 + index}`}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-600 max-w-xs">
-                      {paymentType.description ? (
-                        <span className="line-clamp-2">{paymentType.description}</span>
-                      ) : (
-                        <span className="text-gray-400 italic">No description</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        {paymentType.created_at ? formatDate(paymentType.created_at) : 'N/A'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-600">
-                        {paymentType.updated_at ? formatDate(paymentType.updated_at) : 'N/A'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <StatusBadge 
-                      status={paymentType.is_active ? 'active' : 'inactive'} 
-                      type="status"
-                    />
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => onEdit(paymentType)}
-                        className="p-2 text-amber-600 hover:bg-amber-50 rounded-lg transition-colors group"
-                        title="Edit Payment Type"
+                    </td>
+
+                    {/* Name - Bold font with tag icon */}
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="relative">
+                          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-200 group-hover:shadow-xl group-hover:scale-110 transition-all duration-300">
+                            <Tag size={18} className="text-white font-bold" />
+                          </div>
+                        </div>
+                        <div className="ml-4">
+                          <div className="text-lg font-bold text-gray-900">
+                            {paymentType.type_name || "Unnamed Type"}
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Description - Concise, light gray text */}
+                    <td className="px-8 py-6">
+                      <div className="max-w-xs">
+                        {paymentType.description ? (
+                          <div className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                            {paymentType.description}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-gray-400 italic">
+                            No description provided
+                          </div>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Created At - Calendar icon with pill badge */}
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="inline-flex items-center px-3 py-2 rounded-full bg-gray-100 text-gray-700 font-medium shadow-sm group-hover:shadow-md transition-all duration-300">
+                        <Calendar size={14} className="text-gray-500 mr-2" />
+                        <span className="text-sm">
+                          {paymentType.created_at
+                            ? formatDate(paymentType.created_at)
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Updated At - Calendar icon with pill badge */}
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div className="inline-flex items-center px-3 py-2 rounded-full bg-gray-100 text-gray-700 font-medium shadow-sm group-hover:shadow-md transition-all duration-300">
+                        <Clock size={14} className="text-gray-500 mr-2" />
+                        <span className="text-sm">
+                          {paymentType.updated_at
+                            ? formatDate(paymentType.updated_at)
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </td>
+
+                    {/* Status - Colored badge with icon */}
+                    <td className="px-8 py-6 whitespace-nowrap">
+                      <div
+                        className={`inline-flex items-center px-4 py-2 rounded-xl font-bold text-sm ${getStatusBadgeStyle(
+                          paymentType.is_active
+                        )} group-hover:scale-105 transition-all duration-300`}
                       >
-                        <Edit2 size={16} className="group-hover:scale-110 transition-transform" />
-                      </button>
-                      <button
-                        onClick={() => onDelete(paymentType)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors group"
-                        title="Delete Payment Type"
-                      >
-                        <Trash2 size={16} className="group-hover:scale-110 transition-transform" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        <span className="mr-2">
+                          {getStatusIcon(paymentType.is_active)}
+                        </span>
+                        {getStatusText(paymentType.is_active)}
+                      </div>
+                    </td>
+
+                    {/* Actions - Modern flat icons */}
+                    <td className="px-8 py-6 whitespace-nowrap text-sm font-medium">
+                      <div className="flex items-center space-x-2">
+                        {onEdit && (
+                          <button
+                            onClick={() => onEdit(paymentType)}
+                            className="p-3 text-orange-600 hover:text-orange-800 hover:bg-orange-50 rounded-xl transition-all duration-300 hover:shadow-lg group-hover:scale-110 hover:rotate-12"
+                            title="Edit Payment Type"
+                          >
+                            <Edit size={18} />
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => onDelete(paymentType)}
+                            className="p-3 text-red-600 hover:text-red-800 hover:bg-red-50 rounded-xl transition-all duration-300 hover:shadow-lg group-hover:scale-110 hover:rotate-12"
+                            title="Delete Payment Type"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
