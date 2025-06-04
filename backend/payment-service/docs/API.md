@@ -391,24 +391,27 @@ Creates a new payment transaction.
 ```json
 {
   "payment_id": 11,
-  "transaction_date": "2023-07-15T14:35:00Z",
   "transaction_status": "success",
   "transaction_reference": "TXN987654321",
   "gateway_response": "{\"processor\":\"Stripe\",\"status\":\"succeeded\",\"auth_code\":\"AUTH999\"}"
 }
 ```
 
+**Notes:**
+- `transaction_date` is optional. If not provided, it will be automatically set to the current time
+- `payment_id` and `transaction_status` are required fields
+
 **Response (201 Created):**
 ```json
 {
   "transaction_id": 11,
   "payment_id": 11,
-  "transaction_date": "2023-07-15T14:35:00Z",
+  "transaction_date": "2025-06-04T15:48:42Z",
   "transaction_status": "success",
   "transaction_reference": "TXN987654321",
   "gateway_response": "{\"processor\":\"Stripe\",\"status\":\"succeeded\",\"auth_code\":\"AUTH999\"}",
-  "created_at": "2023-07-15T14:35:00Z",
-  "updated_at": "2023-07-15T14:35:00Z"
+  "created_at": "2025-06-04T15:48:42Z",
+  "updated_at": "2025-06-04T15:48:42Z"
 }
 ```
 
@@ -434,32 +437,36 @@ Returns a specific transaction by its ID.
 
 ### Update Transaction
 
-Updates an existing transaction.
+Updates an existing transaction. This endpoint supports partial updates - you only need to provide the fields you want to change.
 
 **Endpoint:** `PUT /transactions/{id}`
 
-**Request Body:**
+**Request Body (Partial Update Supported):**
 ```json
 {
   "payment_id": 1,
-  "transaction_date": "2023-07-01T10:01:15Z",
   "transaction_status": "success",
   "transaction_reference": "TXN123456789-A",
   "gateway_response": "{\"processor\":\"Stripe\",\"status\":\"succeeded\",\"auth_code\":\"AUTH123-A\"}"
 }
 ```
 
+**Notes:**
+- `transaction_date` is optional. If not provided, it will be automatically set to the current time
+- All other fields are optional and will only update if provided
+- The `payment_id` field is required to maintain referential integrity
+
 **Response (200 OK):**
 ```json
 {
   "transaction_id": 1,
   "payment_id": 1,
-  "transaction_date": "2023-07-01T10:01:15Z",
+  "transaction_date": "2025-06-04T15:48:42Z",
   "transaction_status": "success",
   "transaction_reference": "TXN123456789-A",
   "gateway_response": "{\"processor\":\"Stripe\",\"status\":\"succeeded\",\"auth_code\":\"AUTH123-A\"}",
   "created_at": "2023-07-01T10:01:15Z",
-  "updated_at": "2023-07-15T16:00:00Z"
+  "updated_at": "2025-06-04T15:48:42Z"
 }
 ```
 

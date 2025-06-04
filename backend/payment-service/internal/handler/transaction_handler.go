@@ -5,24 +5,27 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
 // CreateTransaction handles transaction creation
 func (h *Handler) CreateTransaction(c *gin.Context) {
-	var transaction model.Transaction
-	if err := c.ShouldBindJSON(&transaction); err != nil {
+	var transactionReq dto.TransactionRequest
+	if err := c.ShouldBindJSON(&transactionReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Set transaction date if not provided
-	if transaction.TransactionDate.IsZero() {
-		transaction.TransactionDate = time.Now()
+	if transactionReq.TransactionDate.IsZero() {
+		transactionReq.TransactionDate = time.Now()
 	}
 
-	createdTransaction, err := h.svc.Transaction().Create(c.Request.Context(), &transaction)
+	// Convert DTO to model
+	transaction := dto.ConvertToTransactionModel(&transactionReq)
+
+	createdTransaction, err := h.svc.Transaction().Create(c.Request.Context(), transaction)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -56,14 +59,22 @@ func (h *Handler) UpdateTransaction(c *gin.Context) {
 		return
 	}
 
-	var transaction model.Transaction
-	if err := c.ShouldBindJSON(&transaction); err != nil {
+	var transactionReq dto.TransactionRequest
+	if err := c.ShouldBindJSON(&transactionReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Set transaction date to now if not provided
+	if transactionReq.TransactionDate.IsZero() {
+		transactionReq.TransactionDate = time.Now()
+	}
+
+	// Convert DTO to model
+	transaction := dto.ConvertToTransactionModel(&transactionReq)
 	transaction.TransactionID = id
-	updatedTransaction, err := h.svc.Transaction().Update(c.Request.Context(), &transaction)
+
+	updatedTransaction, err := h.svc.Transaction().Update(c.Request.Context(), transaction)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

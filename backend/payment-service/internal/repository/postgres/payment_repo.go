@@ -266,6 +266,40 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 	}
 
 	// Query for payment method statistics
+	// Build the query with proper parameter numbering for multiple WHERE clause usages
+	numParams := len(args)
+
+	// Rebuild WHERE clauses with proper parameter numbering
+	whereClause1 := whereClause
+	whereClause2 := ""
+	whereClause3 := ""
+
+	if len(where) > 0 {
+		// Create second WHERE clause with adjusted parameter numbers
+		where2 := make([]string, len(where))
+		for i, condition := range where {
+			// Replace parameter numbers for second usage
+			adjustedCondition := condition
+			for j := 1; j <= numParams; j++ {
+				adjustedCondition = strings.Replace(adjustedCondition, fmt.Sprintf("$%d", j), fmt.Sprintf("$%d", j+numParams), 1)
+			}
+			where2[i] = adjustedCondition
+		}
+		whereClause2 = "WHERE " + strings.Join(where2, " AND ")
+
+		// Create third WHERE clause with adjusted parameter numbers
+		where3 := make([]string, len(where))
+		for i, condition := range where {
+			// Replace parameter numbers for third usage
+			adjustedCondition := condition
+			for j := 1; j <= numParams; j++ {
+				adjustedCondition = strings.Replace(adjustedCondition, fmt.Sprintf("$%d", j), fmt.Sprintf("$%d", j+2*numParams), 1)
+			}
+			where3[i] = adjustedCondition
+		}
+		whereClause3 = "WHERE " + strings.Join(where3, " AND ")
+	}
+
 	methodQuery := fmt.Sprintf(`
 		SELECT 
 			payment_method,
@@ -278,10 +312,11 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 		%s
 		GROUP BY payment_method
 		ORDER BY count DESC
-	`, whereClause, whereClause, whereClause)
+	`, whereClause1, whereClause2, whereClause3)
 
-	// Execute the payment method statistics query
-	rows, err := r.db.QueryContext(ctx, methodQuery, append(args, args...)...)
+	// Execute the payment method statistics query - need 3 copies of args for 3 whereClause usages
+	allArgs := append(append(args, args...), args...)
+	rows, err := r.db.QueryContext(ctx, methodQuery, allArgs...)
 	if err != nil {
 		return nil, fmt.Errorf("getting payment method statistics: %w", err)
 	}

@@ -108,6 +108,11 @@ type PaginatedResponse struct {
 
 // Convert model objects to DTOs
 func ConvertToPaymentResponse(payment *model.Payment) *PaymentResponse {
+	var paymentTypeName *string
+	if payment.PaymentType != nil {
+		paymentTypeName = &payment.PaymentType.TypeName
+	}
+
 	return &PaymentResponse{
 		PaymentID:       payment.PaymentID,
 		MemberID:        payment.MemberID,
@@ -118,7 +123,7 @@ func ConvertToPaymentResponse(payment *model.Payment) *PaymentResponse {
 		InvoiceNumber:   payment.InvoiceNumber,
 		Description:     payment.Description,
 		PaymentTypeID:   payment.PaymentTypeID,
-		PaymentTypeName: payment.PaymentTypeName,
+		PaymentTypeName: paymentTypeName,
 		CreatedAt:       payment.CreatedAt,
 		UpdatedAt:       payment.UpdatedAt,
 	}
