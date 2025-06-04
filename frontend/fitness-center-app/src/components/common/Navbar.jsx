@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Menu, User, Settings, LogOut, ChevronDown } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
-import ChangePasswordModal from '@/components/auth/ChangePasswordModal';
+import React, { useState, useRef, useEffect } from "react";
+import { Menu, User, Settings, LogOut, ChevronDown } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import ChangePasswordModal from "@/components/auth/ChangePasswordModal";
 
 const Navbar = ({ toggleSidebar }) => {
   const [showDropdown, setShowDropdown] = useState(false);
@@ -17,9 +17,9 @@ const Navbar = ({ toggleSidebar }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -35,14 +35,14 @@ const Navbar = ({ toggleSidebar }) => {
 
   return (
     <>
-      <header className="bg-white shadow-sm px-6 py-3 flex justify-between items-center">
-        <button 
-          onClick={toggleSidebar} 
+      <header className="bg-gradient-to-br from-slate-50 to-blue-50 px-6 py-3 flex justify-between items-center">
+        <button
+          onClick={toggleSidebar}
           className="lg:hidden text-gray-500 focus:outline-none"
         >
           <Menu size={24} />
         </button>
-        
+
         {/* Admin Dropdown - Moved to the right */}
         <div className="flex items-center ml-auto">
           <div className="relative" ref={dropdownRef}>
@@ -54,10 +54,17 @@ const Navbar = ({ toggleSidebar }) => {
                 <User size={18} className="text-white" />
               </div>
               <div className="text-left hidden sm:block">
-                <div className="font-semibold text-sm">{username || 'Admin'}</div>
+                <div className="font-semibold text-sm">
+                  {username || "Admin"}
+                </div>
                 <div className="text-xs text-gray-500">Administrator</div>
               </div>
-              <ChevronDown size={16} className={`transition-transform duration-200 ${showDropdown ? 'rotate-180' : ''}`} />
+              <ChevronDown
+                size={16}
+                className={`transition-transform duration-200 ${
+                  showDropdown ? "rotate-180" : ""
+                }`}
+              />
             </button>
 
             {/* Dropdown Menu */}
@@ -69,24 +76,34 @@ const Navbar = ({ toggleSidebar }) => {
                     className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 transition-colors duration-150 flex items-center space-x-3 group"
                   >
                     <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors duration-150">
-                      <Settings size={16} className="text-gray-600 group-hover:text-blue-600" />
+                      <Settings
+                        size={16}
+                        className="text-gray-600 group-hover:text-blue-600"
+                      />
                     </div>
                     <div>
                       <div className="font-medium">Change Password</div>
-                      <div className="text-xs text-gray-500">Update your password</div>
+                      <div className="text-xs text-gray-500">
+                        Update your password
+                      </div>
                     </div>
                   </button>
-                  
+
                   <button
                     onClick={handleLogout}
                     className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-red-50 hover:text-red-700 transition-colors duration-150 flex items-center space-x-3 group"
                   >
                     <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-red-100 flex items-center justify-center transition-colors duration-150">
-                      <LogOut size={16} className="text-gray-600 group-hover:text-red-600" />
+                      <LogOut
+                        size={16}
+                        className="text-gray-600 group-hover:text-red-600"
+                      />
                     </div>
                     <div>
                       <div className="font-medium">Sign Out</div>
-                      <div className="text-xs text-gray-500">Sign out of your account</div>
+                      <div className="text-xs text-gray-500">
+                        Sign out of your account
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -97,7 +114,7 @@ const Navbar = ({ toggleSidebar }) => {
       </header>
 
       {/* Change Password Modal */}
-      <ChangePasswordModal 
+      <ChangePasswordModal
         isOpen={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
       />
