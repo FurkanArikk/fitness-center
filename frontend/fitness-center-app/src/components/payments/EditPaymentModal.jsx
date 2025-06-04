@@ -1,25 +1,25 @@
-import React, { useState, useEffect } from 'react';
-import Modal from '../common/Modal';
-import { paymentService, memberService } from '../../api';
+import React, { useState, useEffect } from "react";
+import Modal from "../common/Modal";
+import { paymentService, memberService } from "../../api";
 
 const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
   const [formData, setFormData] = useState({
-    memberId: '',
-    amount: '',
-    paymentDate: '',
-    paymentMethod: '',
-    paymentStatus: '',
-    description: '',
-    paymentTypeId: ''
+    memberId: "",
+    amount: "",
+    paymentDate: "",
+    paymentMethod: "",
+    paymentStatus: "",
+    description: "",
+    paymentTypeId: "",
   });
-  
+
   const [members, setMembers] = useState([]);
   const [paymentTypes, setPaymentTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [memberLoading, setMemberLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
-  const [memberError, setMemberError] = useState('');
+  const [error, setError] = useState("");
+  const [memberError, setMemberError] = useState("");
 
   // Load payment types and members when modal opens
   useEffect(() => {
@@ -32,16 +32,17 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
   useEffect(() => {
     if (payment) {
       setFormData({
-        memberId: payment.memberId || payment.member_id || '',
-        amount: payment.amount || '',
-        paymentDate: payment.paymentDate ? 
-          new Date(payment.paymentDate).toISOString().slice(0, 16) : 
-          payment.payment_date ? 
-            new Date(payment.payment_date).toISOString().slice(0, 16) : '',
-        paymentMethod: payment.paymentMethod || payment.payment_method || '',
-        paymentStatus: payment.paymentStatus || payment.payment_status || '',
-        description: payment.description || '',
-        paymentTypeId: payment.paymentTypeId || payment.payment_type_id || ''
+        memberId: payment.memberId || payment.member_id || "",
+        amount: payment.amount || "",
+        paymentDate: payment.paymentDate
+          ? new Date(payment.paymentDate).toISOString().slice(0, 16)
+          : payment.payment_date
+          ? new Date(payment.payment_date).toISOString().slice(0, 16)
+          : "",
+        paymentMethod: payment.paymentMethod || payment.payment_method || "",
+        paymentStatus: payment.paymentStatus || payment.payment_status || "",
+        description: payment.description || "",
+        paymentTypeId: payment.paymentTypeId || payment.payment_type_id || "",
       });
     }
   }, [payment]);
@@ -49,31 +50,33 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
   const loadInitialData = async () => {
     setLoading(true);
     setMemberLoading(true);
-    setError('');
-    setMemberError('');
+    setError("");
+    setMemberError("");
 
     try {
       // Load payment types and members concurrently
       const [paymentTypesResult, membersResult] = await Promise.allSettled([
         loadPaymentTypes(),
-        loadMembers()
+        loadMembers(),
       ]);
 
       // Handle payment types result
-      if (paymentTypesResult.status === 'rejected') {
-        console.error('Failed to load payment types:', paymentTypesResult.reason);
-        setError('Failed to load payment types. Please try again.');
+      if (paymentTypesResult.status === "rejected") {
+        console.error(
+          "Failed to load payment types:",
+          paymentTypesResult.reason
+        );
+        setError("Failed to load payment types. Please try again.");
       }
 
       // Handle members result
-      if (membersResult.status === 'rejected') {
-        console.error('Failed to load members:', membersResult.reason);
-        setMemberError('Failed to load member information. Please try again.');
+      if (membersResult.status === "rejected") {
+        console.error("Failed to load members:", membersResult.reason);
+        setMemberError("Failed to load member information. Please try again.");
       }
-
     } catch (error) {
-      console.error('Error loading initial data:', error);
-      setError('Failed to load required data. Please try again.');
+      console.error("Error loading initial data:", error);
+      setError("Failed to load required data. Please try again.");
     } finally {
       setLoading(false);
       setMemberLoading(false);
@@ -85,9 +88,9 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
       const response = await paymentService.getAllPaymentTypes();
       const types = response.data || response || [];
       setPaymentTypes(types);
-      console.log('Payment types loaded:', types.length);
+      console.log("Payment types loaded:", types.length);
     } catch (error) {
-      console.error('Error loading payment types:', error);
+      console.error("Error loading payment types:", error);
       throw error;
     }
   };
@@ -96,34 +99,33 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
     try {
       // Try multiple approaches to load members
       let members = [];
-      
+
       // First try to get all members
       try {
         const response = await memberService.getAllMembers();
         members = response.data || response || [];
-        console.log('All members loaded:', members.length);
+        console.log("All members loaded:", members.length);
       } catch (error) {
-        console.warn('getAllMembers failed, trying paginated approach:', error);
-        
+        console.warn("getAllMembers failed, trying paginated approach:", error);
+
         // Fallback to paginated members
         const response = await memberService.getMembers(1, 100); // Get first 100 members
         members = response.data || response.members || [];
-        console.log('Paginated members loaded:', members.length);
+        console.log("Paginated members loaded:", members.length);
       }
 
       // Ensure we have valid member data
       if (!Array.isArray(members)) {
-        throw new Error('Invalid member data format received');
+        throw new Error("Invalid member data format received");
       }
 
       setMembers(members);
-      
-      if (members.length === 0) {
-        setMemberError('No members found in the system.');
-      }
 
+      if (members.length === 0) {
+        setMemberError("No members found in the system.");
+      }
     } catch (error) {
-      console.error('Error loading members:', error);
+      console.error("Error loading members:", error);
       setMemberError(`Failed to load members: ${error.message}`);
       throw error;
     }
@@ -131,21 +133,21 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setError('');
+    setError("");
 
     try {
       // Validate required fields
       if (!formData.memberId || !formData.amount || !formData.paymentDate) {
-        throw new Error('Please fill in all required fields');
+        throw new Error("Please fill in all required fields");
       }
 
       // Prepare data for API (convert to snake_case format expected by backend)
@@ -156,31 +158,36 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
         payment_method: formData.paymentMethod,
         payment_status: formData.paymentStatus,
         description: formData.description,
-        payment_type_id: formData.paymentTypeId ? parseInt(formData.paymentTypeId) : null
+        payment_type_id: formData.paymentTypeId
+          ? parseInt(formData.paymentTypeId)
+          : null,
       };
 
-      console.log('Updating payment with data:', paymentData);
+      console.log("Updating payment with data:", paymentData);
 
       const paymentId = payment.paymentId || payment.payment_id || payment.id;
-      const updatedPayment = await paymentService.updatePayment(paymentId, paymentData);
-      
-      console.log('Payment updated successfully:', updatedPayment);
-      
+      const updatedPayment = await paymentService.updatePayment(
+        paymentId,
+        paymentData
+      );
+
+      console.log("Payment updated successfully:", updatedPayment);
+
       if (onPaymentUpdated) {
         onPaymentUpdated(updatedPayment);
       }
-      
+
       onClose();
     } catch (error) {
-      console.error('Error updating payment:', error);
-      setError(error.message || 'Failed to update payment. Please try again.');
+      console.error("Error updating payment:", error);
+      setError(error.message || "Failed to update payment. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleRetryMembers = () => {
-    setMemberError('');
+    setMemberError("");
     setMemberLoading(true);
     loadMembers().finally(() => setMemberLoading(false));
   };
@@ -188,19 +195,19 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
   if (!isOpen) return null;
 
   const paymentMethods = [
-    'cash',
-    'credit_card',
-    'debit_card',
-    'bank_transfer',
-    'check'
+    "cash",
+    "credit_card",
+    "debit_card",
+    "bank_transfer",
+    "check",
   ];
 
   const paymentStatuses = [
-    'pending',
-    'completed',
-    'failed',
-    'cancelled',
-    'refunded'
+    "pending",
+    "completed",
+    "failed",
+    "cancelled",
+    "refunded",
   ];
 
   return (
@@ -248,11 +255,12 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
             >
               <option value="">Select a member</option>
               {members.map((member) => {
-                const memberId = member.memberId || member.member_id || member.id;
-                const firstName = member.firstName || member.first_name || '';
-                const lastName = member.lastName || member.last_name || '';
-                const email = member.email || '';
-                
+                const memberId =
+                  member.memberId || member.member_id || member.id;
+                const firstName = member.firstName || member.first_name || "";
+                const lastName = member.lastName || member.last_name || "";
+                const email = member.email || "";
+
                 return (
                   <option key={memberId} value={memberId}>
                     {firstName} {lastName} {email && `(${email})`}
@@ -309,7 +317,7 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
             <option value="">Select payment method</option>
             {paymentMethods.map((method) => (
               <option key={method} value={method}>
-                {method.replace('_', ' ').toUpperCase()}
+                {method.replace("_", " ").toUpperCase()}
               </option>
             ))}
           </select>
@@ -343,7 +351,9 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
           {loading ? (
             <div className="flex items-center space-x-2">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-              <span className="text-sm text-gray-500">Loading payment types...</span>
+              <span className="text-sm text-gray-500">
+                Loading payment types...
+              </span>
             </div>
           ) : (
             <select
@@ -354,9 +364,11 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
             >
               <option value="">Select payment type</option>
               {paymentTypes.map((type) => {
-                const typeId = type.paymentTypeId || type.payment_type_id || type.id;
-                const typeName = type.typeName || type.type_name || type.name || 'Unknown';
-                
+                const typeId =
+                  type.paymentTypeId || type.payment_type_id || type.id;
+                const typeName =
+                  type.typeName || type.type_name || type.name || "Unknown";
+
                 return (
                   <option key={typeId} value={typeId}>
                     {typeName}
@@ -410,7 +422,7 @@ const EditPaymentModal = ({ isOpen, onClose, payment, onPaymentUpdated }) => {
                 <span>Updating...</span>
               </div>
             ) : (
-              'Update Payment'
+              "Update Payment"
             )}
           </button>
         </div>
