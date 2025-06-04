@@ -1,9 +1,20 @@
 "use client";
 
-import React from 'react';
-import { TrendingUp, DollarSign, Users, Calendar, CreditCard } from 'lucide-react';
-import Card from '@/components/common/Card';
-import { formatCurrency } from '@/utils/formatters';
+import React from "react";
+import {
+  TrendingUp,
+  DollarSign,
+  Users,
+  Calendar,
+  CreditCard,
+} from "lucide-react";
+import Card from "@/components/common/Card";
+
+// Temporary formatCurrency function to resolve import issue
+const formatCurrency = (amount) => {
+  if (amount === undefined || amount === null) return "$0.00";
+  return `$${parseFloat(amount).toFixed(2)}`;
+};
 
 const PaymentAnalytics = ({ stats }) => {
   if (!stats) {
@@ -27,54 +38,61 @@ const PaymentAnalytics = ({ stats }) => {
 
   const analytics = [
     {
-      title: 'Total Revenue',
+      title: "Total Revenue",
       value: formatCurrency(stats.total_amount || 0),
       icon: DollarSign,
-      iconBg: 'bg-green-100',
-      iconColor: 'text-green-600',
-      subtitle: 'This month'
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600",
+      subtitle: "This month",
     },
     {
-      title: 'Total Payments',
+      title: "Total Payments",
       value: stats.total_payments || 0,
       icon: CreditCard,
-      iconBg: 'bg-blue-100',
-      iconColor: 'text-blue-600',
-      subtitle: `${stats.pending_payments || 0} pending`
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600",
+      subtitle: `${stats.pending_payments || 0} pending`,
     },
     {
-      title: 'Average Payment',
+      title: "Average Payment",
       value: formatCurrency(stats.average_amount || 0),
       icon: TrendingUp,
-      iconBg: 'bg-yellow-100',
-      iconColor: 'text-yellow-600',
-      subtitle: 'Per transaction'
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600",
+      subtitle: "Per transaction",
     },
     {
-      title: 'Active Members',
+      title: "Active Members",
       value: stats.active_members || 0,
       icon: Users,
-      iconBg: 'bg-purple-100',
-      iconColor: 'text-purple-600',
-      subtitle: 'Paying members'
-    }
+      iconBg: "bg-purple-100",
+      iconColor: "text-purple-600",
+      subtitle: "Paying members",
+    },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {analytics.map((item, index) => {
         const Icon = item.icon;
-        
+
         return (
-          <Card key={index} className="p-6 hover:shadow-lg transition-shadow duration-200">
+          <Card
+            key={index}
+            className="p-6 hover:shadow-lg transition-shadow duration-200"
+          >
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600 mb-1">{item.title}</p>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{item.value}</p>
-                
+                <p className="text-sm font-medium text-gray-600 mb-1">
+                  {item.title}
+                </p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">
+                  {item.value}
+                </p>
+
                 <p className="text-xs text-gray-500">{item.subtitle}</p>
               </div>
-              
+
               <div className={`p-3 rounded-full ${item.iconBg} ml-4`}>
                 <Icon className={`w-6 h-6 ${item.iconColor}`} />
               </div>

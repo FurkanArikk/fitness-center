@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 const MainLayout = ({ children }) => {
+  // All hooks MUST be called at the top level, before any early returns
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [currentPath, setCurrentPath] = useState("");
   const pathname = usePathname();
@@ -18,11 +19,12 @@ const MainLayout = ({ children }) => {
     }
   }, [pathname]);
 
+  // Calculate these values after all hooks are called
   const isWelcomePage = currentPath === "/welcome";
   const isLoginPage = currentPath === "/login";
   const isPublicPage = isWelcomePage || isLoginPage;
 
-  // Show loading spinner during auth check
+  // Now we can do conditional rendering after all hooks are called
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -46,9 +48,9 @@ const MainLayout = ({ children }) => {
         <div
           className="fixed inset-0 z-10 lg:hidden"
           style={{
-            backgroundColor: 'rgba(0, 0, 0, 0.1)',
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)'
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            backdropFilter: "blur(4px)",
+            WebkitBackdropFilter: "blur(4px)",
           }}
           onClick={() => setSidebarOpen(false)}
         ></div>
