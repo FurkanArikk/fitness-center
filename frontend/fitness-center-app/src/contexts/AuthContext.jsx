@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { authService } from '@/api';
 
@@ -18,11 +18,14 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
+  const [initialized, setInitialized] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
 
+  // Initialize auth only once
   useEffect(() => {
-    // Initialize auth on app start
+    if (initialized) return;
+    
     const initAuth = () => {
       try {
         authService.initializeAuth();
@@ -31,61 +34,70 @@ export const AuthProvider = ({ children }) => {
         
         setIsAuthenticated(authenticated);
         setUsername(storedUsername || '');
-
-        // Redirect to login if not authenticated and not already on login page
-        if (!authenticated && pathname !== '/login' && pathname !== '/welcome') {
-          router.push('/login');
-        }
-        // Redirect to dashboard if authenticated and on login page
-        else if (authenticated && pathname === '/login') {
-          router.push('/dashboard');
-        }
       } catch (error) {
         console.error('Auth initialization error:', error);
-        logout();
+        setIsAuthenticated(false);
+        setUsername('');
       } finally {
         setLoading(false);
+        setInitialized(true);
       }
     };
 
     initAuth();
-  }, [pathname, router]);
+  }, [initialized]);
 
-  const login = async (usernameInput, password) => {
+  // Handle routing based on auth state
+  useEffect(() => {
+    if (loading || !initialized) return;
+
+    const publicPaths = ['/login', '/welcome'];
+    const isPublicPath = publicPaths.includes(pathname);
+
+    // Avoid routing loops by checking current state
+    if (!isAuthenticated && !isPublicPath && pathname !== '/login') {
+      router.replace('/login');
+    } else if (isAuthenticated && pathname === '/login') {
+      router.replace('/dashboard');
+    }
+  }, [isAuthenticated, loading, initialized, pathname, router]);
+
+  const login = useCallback(async (usernameInput, password) => {
     try {
       const response = await authService.login(usernameInput, password);
       setIsAuthenticated(true);
       setUsername(usernameInput);
+      // Routing will be handled by the useEffect above
       return response;
     } catch (error) {
       throw error;
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     authService.logout();
     setIsAuthenticated(false);
     setUsername('');
-    router.push('/login');
-  };
+    router.replace('/login');
+  }, [router]);
 
-  const updatePassword = async (currentPassword, newPassword) => {
+  const updatePassword = useCallback(async (currentPassword, newPassword) => {
     try {
       const response = await authService.updatePassword(username, currentPassword, newPassword);
       return response;
     } catch (error) {
       throw error;
     }
-  };
+  }, [username]);
 
-  const value = {
+  const value = useMemo(() => ({
     isAuthenticated,
     username,
     loading,
     login,
     logout,
     updatePassword
-  };
+  }), [isAuthenticated, username, loading, login, logout, updatePassword]);
 
   return (
     <AuthContext.Provider value={value}>

@@ -1,26 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Sidebar from "../components/common/Sidebar";
 import Navbar from "../components/common/Navbar";
+import ProtectedRoute from "../components/common/ProtectedRoute";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
 const MainLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentPath, setCurrentPath] = useState("");
   const pathname = usePathname();
   const { loading } = useAuth();
 
-  useEffect(() => {
-    if (pathname) {
-      setCurrentPath(pathname);
-    }
+  const isPublicPage = useMemo(() => {
+    const publicPaths = ["/welcome", "/login"];
+    return publicPaths.includes(pathname);
   }, [pathname]);
-
-  const isWelcomePage = currentPath === "/welcome";
-  const isLoginPage = currentPath === "/login";
-  const isPublicPage = isWelcomePage || isLoginPage;
 
   // Show loading spinner during auth check
   if (loading) {
@@ -62,7 +57,15 @@ const MainLayout = ({ children }) => {
         )}
 
         {/* Page content */}
-        <div className={isPublicPage ? "" : "p-6"}>{children}</div>
+        <div className={isPublicPage ? "" : "p-6"}>
+          {isPublicPage ? (
+            children
+          ) : (
+            <ProtectedRoute>
+              {children}
+            </ProtectedRoute>
+          )}
+        </div>
       </main>
     </div>
   );

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, User, Lock, AlertCircle } from 'lucide-react';
-import { authService } from '@/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
@@ -13,14 +13,15 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login: authLogin, isAuthenticated } = useAuth();
   const router = useRouter();
 
   // Check if user is already authenticated
   useEffect(() => {
-    if (authService.isAuthenticated()) {
-      router.push('/dashboard');
+    if (isAuthenticated) {
+      router.replace('/dashboard');
     }
-  }, [router]);
+  }, [isAuthenticated, router]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -39,8 +40,8 @@ const LoginPage = () => {
     setError('');
 
     try {
-      await authService.login(formData.username, formData.password);
-      router.push('/dashboard');
+      await authLogin(formData.username, formData.password);
+      // AuthContext will handle the redirect automatically
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Invalid username or password';
       setError(errorMessage);
