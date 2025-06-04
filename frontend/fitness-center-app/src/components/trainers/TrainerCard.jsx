@@ -438,12 +438,12 @@ const TrainerCard = ({
       <div
         className={`overflow-hidden transition-all duration-700 ease-out bg-white/95 backdrop-blur-xl border-t-2 border-white/80 shadow-inner
           ${
-            isProfileExpanded ? "max-h-[500px] py-8 px-8" : "max-h-0 py-0 px-8"
+            isProfileExpanded ? "max-h-[500px] py-6 px-8" : "max-h-0 py-0 px-8"
           }`}
       >
         {isProfileExpanded && (
-          <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <div className="space-y-6 pr-2">
+          <div className="h-full max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500 pr-2">
+            <div className="space-y-6">
               <div className="flex items-center gap-4 mb-6">
                 <div
                   className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-2xl flex items-center justify-center shadow-lg`}

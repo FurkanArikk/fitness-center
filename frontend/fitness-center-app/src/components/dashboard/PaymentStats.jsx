@@ -2,10 +2,16 @@ import React, { useState, useEffect } from "react";
 import {
   DollarSign,
   TrendingUp,
+  TrendingDown,
   CreditCard,
   Calendar,
   PieChart,
   BarChart3,
+  CheckCircle,
+  Clock,
+  XCircle,
+  Zap,
+  Target,
 } from "lucide-react";
 
 const PaymentStats = ({ stats }) => {
@@ -41,6 +47,16 @@ const PaymentStats = ({ stats }) => {
           (mockStats.pending_payments / mockStats.total_payments) *
           100
         ).toFixed(1),
+        failed_rate: (
+          (mockStats.failed_payments / mockStats.total_payments) *
+          100
+        ).toFixed(1),
+        // Additional insights
+        monthly_processed: mockStats.total_payments,
+        last_failed_amount: 45.99,
+        last_failed_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+        success_trend: 2.1, // positive trend
+        processing_trend: 8.5, // positive trend in processing volume
       };
 
       setTimeout(() => {
@@ -126,6 +142,183 @@ const PaymentStats = ({ stats }) => {
       trend: "up",
     },
   ];
+
+  // Helper function to render payment methods section
+  const renderPaymentMethods = () => {
+    if (
+      !paymentData.payment_methods ||
+      Object.keys(paymentData.payment_methods).length === 0
+    ) {
+      return null;
+    }
+
+    return (
+      <div className="space-y-3">
+        {Object.entries(paymentData.payment_methods).map(
+          ([method, percentage]) => {
+            const methodConfig =
+              paymentMethodColors[method] || paymentMethodColors.credit_card;
+            const methodName = method
+              .replace("_", " ")
+              .replace(/\b\w/g, (l) => l.toUpperCase());
+
+            return (
+              <div
+                key={method}
+                className={`bg-gradient-to-r ${methodConfig.bg} rounded-xl p-4`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center space-x-2">
+                    <CreditCard size={16} className="text-gray-600" />
+                    <span className="text-sm font-medium text-gray-800">
+                      {methodName}
+                    </span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-800">
+                    {percentage}%
+                  </span>
+                </div>
+                <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full bg-gradient-to-r ${methodConfig.gradient} transition-all duration-1000 ease-out`}
+                    style={{ width: `${percentage}%` }}
+                  ></div>
+                </div>
+              </div>
+            );
+          }
+        )}
+      </div>
+    );
+  };
+
+  // Helper function to render payment insights (fallback when no payment methods)
+  const renderPaymentInsights = () => {
+    return (
+      <div className="space-y-4">
+        {/* Success Rate Trend */}
+        <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl p-6 border border-emerald-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-emerald-100 rounded-xl">
+                <Target size={20} className="text-emerald-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-emerald-800">
+                  Success Rate Trend
+                </h4>
+                <p className="text-xs text-emerald-600">Last 30 days</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-black text-emerald-800">
+                {paymentData.success_rate}%
+              </div>
+              <div className="flex items-center text-xs text-emerald-600">
+                <TrendingUp size={12} className="mr-1" />+
+                {paymentData.success_trend}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Monthly Processing Volume */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-blue-100 rounded-xl">
+                <Zap size={20} className="text-blue-600" />
+              </div>
+              <div>
+                <h4 className="font-bold text-blue-800">
+                  Processed This Month
+                </h4>
+                <p className="text-xs text-blue-600">Total transactions</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <div className="text-2xl font-black text-blue-800">
+                {paymentData.monthly_processed}
+              </div>
+              <div className="flex items-center text-xs text-blue-600">
+                <TrendingUp size={12} className="mr-1" />+
+                {paymentData.processing_trend}%
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Last Failed Payment */}
+        {paymentData.failed_payments > 0 && (
+          <div className="bg-gradient-to-r from-red-50 to-rose-50 rounded-2xl p-6 border border-red-100">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <XCircle size={20} className="text-red-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-red-800">
+                    Last Failed Payment
+                  </h4>
+                  <p className="text-xs text-red-600">
+                    {paymentData.last_failed_date.toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xl font-black text-red-800">
+                  ${paymentData.last_failed_amount}
+                </div>
+                <div className="text-xs text-red-600">
+                  {paymentData.failed_payments} total failed
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Quick Status Summary */}
+        <div className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-2xl p-6 border border-gray-100">
+          <h4 className="font-bold text-gray-800 mb-4">
+            Quick Status Overview
+          </h4>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <div className="flex items-center justify-center w-10 h-10 bg-emerald-100 rounded-full mx-auto mb-2">
+                <CheckCircle size={16} className="text-emerald-600" />
+              </div>
+              <div className="text-lg font-bold text-gray-800">
+                {paymentData.completed_payments}
+              </div>
+              <div className="text-xs text-gray-600">Completed</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center w-10 h-10 bg-amber-100 rounded-full mx-auto mb-2">
+                <Clock size={16} className="text-amber-600" />
+              </div>
+              <div className="text-lg font-bold text-gray-800">
+                {paymentData.pending_payments}
+              </div>
+              <div className="text-xs text-gray-600">Pending</div>
+            </div>
+            <div className="text-center">
+              <div className="flex items-center justify-center w-10 h-10 bg-red-100 rounded-full mx-auto mb-2">
+                <XCircle size={16} className="text-red-600" />
+              </div>
+              <div className="text-lg font-bold text-gray-800">
+                {paymentData.failed_payments}
+              </div>
+              <div className="text-xs text-gray-600">Failed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const hasPaymentMethods =
+    paymentData.payment_methods &&
+    Object.keys(paymentData.payment_methods).length > 0;
 
   return (
     <div className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100">
@@ -243,11 +436,7 @@ const PaymentStats = ({ stats }) => {
                 <div
                   className="h-full bg-gradient-to-r from-red-400 to-red-600 transition-all duration-1000 ease-out"
                   style={{
-                    width: `${
-                      (paymentData.failed_payments /
-                        paymentData.total_payments) *
-                      100
-                    }%`,
+                    width: `${paymentData.failed_rate}%`,
                   }}
                 ></div>
               </div>
@@ -255,61 +444,13 @@ const PaymentStats = ({ stats }) => {
           </div>
         </div>
 
-        {/* Payment Methods */}
+        {/* Dynamic Right Section: Payment Methods or Payment Insights */}
         <div className="space-y-4">
           <h3 className="font-bold text-gray-800 text-lg mb-4">
-            Payment Methods
+            {hasPaymentMethods ? "Payment Methods" : "Payment Insights"}
           </h3>
 
-          <div className="space-y-3">
-            {paymentData.payment_methods &&
-              Object.entries(paymentData.payment_methods).map(
-                ([method, percentage]) => {
-                  const methodConfig =
-                    paymentMethodColors[method] ||
-                    paymentMethodColors.credit_card;
-                  const methodName = method
-                    .replace("_", " ")
-                    .replace(/\b\w/g, (l) => l.toUpperCase());
-
-                  return (
-                    <div
-                      key={method}
-                      className={`bg-gradient-to-r ${methodConfig.bg} rounded-xl p-4`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <CreditCard size={16} className="text-gray-600" />
-                          <span className="text-sm font-medium text-gray-800">
-                            {methodName}
-                          </span>
-                        </div>
-                        <span className="text-sm font-bold text-gray-800">
-                          {percentage}%
-                        </span>
-                      </div>
-                      <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full bg-gradient-to-r ${methodConfig.gradient} transition-all duration-1000 ease-out`}
-                          style={{ width: `${percentage}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-
-            {/* Fallback when no payment methods data */}
-            {(!paymentData.payment_methods ||
-              Object.keys(paymentData.payment_methods).length === 0) && (
-              <div className="text-center py-8">
-                <CreditCard size={32} className="text-gray-300 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">
-                  No payment method data available
-                </p>
-              </div>
-            )}
-          </div>
+          {hasPaymentMethods ? renderPaymentMethods() : renderPaymentInsights()}
         </div>
       </div>
     </div>
