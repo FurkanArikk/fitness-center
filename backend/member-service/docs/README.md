@@ -1,13 +1,16 @@
 # Member Service Documentation
 
-The Member Service is responsible for managing members, memberships, membership benefits, and fitness assessments within the Fitness Center application. This service provides APIs for managing member data, tracking memberships, and recording fitness assessments.
+The Member Service is responsible for managing members, memberships, membership benefits, and fitness assessments within the Fitness Center application. This service provides RESTful APIs for managing member data, tracking memberships, and recording fitness assessments.
 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Features](#features)
+- [Service Configuration](#service-configuration)
+- [Technical Stack](#technical-stack)
 - [API Documentation](API.md)
 - [Database Schema](DATABASE.md)
-- [Deployment Guide](DEPLOYMENT.md)
+- [Getting Started](#getting-started)
 
 ## Overview
 
@@ -18,37 +21,137 @@ The Member Service handles four main entities:
 3. **Benefits** - Specific features included in each membership type
 4. **Assessments** - Physical fitness evaluations of members
 
-### Key Features
+## Features
 
-- Register new members and manage member information
-- Create and manage membership plans
-- Track member-membership relationships and payment status
-- Record fitness assessments and track progress
-- Manage membership benefits
+### Member Management
+- Register new members and manage comprehensive member profiles
+- Track member personal details, contact information, and emergency contacts
+- Support member status management (active, inactive, suspended)
+- Handle member registration and profile updates
 
-### Service Dependencies
+### Membership Management
+- Create and manage various membership plans and pricing structures
+- Track member-membership relationships and subscription status
+- Monitor membership expiration dates and renewal processes
+- Support different membership types (monthly, yearly, premium, basic)
 
-The Member Service interacts with:
+### Benefits Administration
+- Define and manage membership benefits and features
+- Associate specific benefits with different membership types
+- Track benefit usage and member entitlements
+- Flexible benefit configuration system
 
-- **Staff Service** - To verify trainer information for assessments
-- **Class Service** - For class booking information
-- **Notification Service** - To send membership renewal notifications
+### Fitness Assessment Tracking
+- Record comprehensive physical fitness evaluations of members
+- Track member progress over time with historical assessments
+- Support various assessment types (body composition, strength, cardio)
+- Generate fitness progress reports and recommendations
 
-### Technical Stack
+## Service Configuration
 
-- **Language**: Go
-- **Framework**: Gin Web Framework
-- **Database**: PostgreSQL
-- **ORM**: GORM (Object Relational Mapping)
-- **Containerization**: Docker
+- **Default Port**: 8004 (configurable via `MEMBER_SERVICE_PORT`)
+- **Database Port**: 5436 (configurable via `MEMBER_SERVICE_DB_PORT`)
+- **Database**: `fitness_member_db` (configurable via `MEMBER_SERVICE_DB_NAME`)
+- **Base URL**: `http://localhost:8004/api/v1`
+- **Health Check**: `http://localhost:8004/health`
 
-### Architecture
+### Environment Variables
 
-The service follows a clean architecture pattern with:
+```bash
+MEMBER_SERVICE_PORT=8004
+MEMBER_SERVICE_DB_PORT=5436
+MEMBER_SERVICE_DB_NAME=fitness_member_db
+DB_HOST=localhost
+DB_USER=fitness_user
+DB_PASSWORD=admin
+DB_SSLMODE=disable
+```
 
-- **Model Layer**: Domain entities with embedded repository interfaces
-- **Repository Layer**: GORM-based data access implementations
-- **Service Layer**: Business logic and validation
+## Technical Stack
+
+- **Language**: Go (v1.20+)
+- **Framework**: Gin Web Framework v1.9+
+- **Database**: PostgreSQL 14+
+- **ORM**: GORM v1.25+ (Object Relational Mapping)
+- **Configuration**: Environment-based with `.env` support
+- **Logging**: Structured logging with request/response middleware
+- **CORS**: Cross-origin resource sharing enabled
+- **Containerization**: Docker and Docker Compose
+
+## Architecture
+
+The service follows a clean architecture pattern:
+
+```
+cmd/main.go                 # Application entry point
+├── internal/
+│   ├── config/            # Configuration management
+│   ├── handler/           # HTTP handlers (controllers)
+│   ├── model/             # Data models and interfaces
+│   ├── repository/        # Data access layer
+│   ├── server/            # HTTP server and routing
+│   └── service/           # Business logic layer
+├── migrations/            # Database migration files
+└── pkg/dto/               # Data transfer objects
+```
+
+## Getting Started
+
+1. **Prerequisites**
+   - Go 1.20 or higher
+   - PostgreSQL 14 or higher
+   - Docker (optional)
+   - Git
+
+2. **Environment Setup**
+   ```bash
+   # Clone the repository (if needed)
+   cd backend/member-service
+   
+   # Copy environment file
+   cp .env.example .env
+   
+   # Update database configuration in .env
+   ```
+
+3. **Database Setup**
+   ```bash
+   # Create database
+   createdb fitness_member_db
+   
+   # The service will auto-migrate tables on startup
+   ```
+
+4. **Run the Service**
+   ```bash
+   # Using the run script (recommended)
+   ./run.sh
+   
+   # Or manually
+   go run cmd/main.go
+   
+   # Or build and run
+   go build -o member-service cmd/main.go
+   ./member-service
+   ```
+
+5. **Verify Installation**
+   ```bash
+   # Check health endpoint
+   curl http://localhost:8004/health
+   
+   # Check API endpoints
+   curl http://localhost:8004/api/v1/members
+   ```
+
+6. **Test Endpoints**
+   ```bash
+   # Run comprehensive endpoint tests
+   ./test_endpoints.sh
+   ```
+
+For detailed API documentation, see [API.md](API.md).  
+For database schema details, see [DATABASE.md](DATABASE.md).
 - **Handler Layer**: HTTP request/response handling
 
 ### Recent Updates

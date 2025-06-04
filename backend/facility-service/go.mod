@@ -1,4 +1,4 @@
-module github.com/furkan/fitness-center/backend/facility-service
+module github.com/FurkanArikk/fitness-center/backend/facility-service
 
 go 1.23
 

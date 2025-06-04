@@ -6,63 +6,138 @@ The Staff Service is responsible for managing staff members, trainers, qualifica
 
 - [Overview](#overview)
 - [Features](#features)
-- [Service Dependencies](#service-dependencies)
+- [Service Configuration](#service-configuration)
 - [Technical Stack](#technical-stack)
 - [API Documentation](API.md)
 - [Database Schema](DATABASE.md)
-- [Deployment Guide](DEPLOYMENT.md)
-- [Endpoints Reference](endpoints.txt)
+- [Getting Started](#getting-started)
 
 ## Overview
 
 The Staff Service handles four main entities:
 
-1. **Staff** - Employees of the fitness center (personal details, position, salary)
-2. **Trainers** - Staff members who are certified trainers (specializations, certifications)
-3. **Qualifications** - Certifications and qualifications held by staff members
-4. **Personal Training** - Sessions scheduled between trainers and members
+1. **Staff** - Employees of the fitness center (personal details, position, salary, employment status)
+2. **Trainers** - Staff members who are certified trainers (specializations, certifications, ratings)
+3. **Qualifications** - Certifications and qualifications held by staff members (with expiry tracking)
+4. **Personal Training Sessions** - Scheduled training sessions between trainers and members
 
 ## Features
 
-- **Staff Management**
-  - Create, update, and manage staff records
-  - Track employment status, position, and compensation
-  - Manage reporting structure and departmental organization
+### Staff Management
+- Create, update, and manage staff records with full employee details
+- Track employment status, position, hire dates, and compensation
+- Support pagination and filtering by position and status
+- Unique email validation and comprehensive staff profiles
 
-- **Trainer Profiles**
-  - Maintain trainer certifications and specializations
-  - Track trainer experience and client ratings
-  - Manage trainer availability for sessions
+### Trainer Profiles
+- Maintain trainer certifications and specializations
+- Track trainer experience levels and average ratings
+- Link trainers to staff records for comprehensive profiles
+- Filter trainers by specialization and retrieve top-rated trainers
 
-- **Qualification Tracking**
-  - Record and update staff qualifications and certifications
-  - Track qualification expiration dates
-  - Ensure compliance with certification requirements
+### Qualification Tracking
+- Record and update staff qualifications and certifications
+- Track qualification issue dates and expiration dates
+- Associate qualifications with issuing authorities
+- Monitor expiring qualifications for compliance management
 
-- **Personal Training Management**
-  - Schedule and modify personal training sessions
-  - Process training session completion and feedback
-  - Generate reports on trainer utilization and performance
+### Personal Training Management
+- Schedule and modify personal training sessions with detailed timing
+- Track session status (Scheduled, Completed, Cancelled)
+- Store session notes and pricing information
+- Link sessions to specific trainers and members
 
-## Service Dependencies
+## Service Configuration
 
-The Staff Service interacts with:
+- **Default Port**: 8002 (configurable via `STAFF_SERVICE_PORT`)
+- **Database Port**: 5433 (configurable via `STAFF_SERVICE_DB_PORT`)
+- **Database**: `fitness_staff_db` (configurable via `STAFF_SERVICE_DB_NAME`)
+- **Base URL**: `http://localhost:8002/api/v1`
+- **Health Check**: `http://localhost:8002/health`
 
-- **Member Service** - To verify member information for personal training sessions
-- **Class Service** - To check trainer availability against class schedules
-- **Payment Service** - To process payments for personal training sessions
-- **Notification Service** - To send session reminders to trainers and members
+### Environment Variables
+
+```bash
+STAFF_SERVICE_PORT=8002
+STAFF_SERVICE_DB_PORT=5433
+STAFF_SERVICE_DB_NAME=fitness_staff_db
+DB_HOST=localhost
+DB_USER=fitness_user
+DB_PASSWORD=admin
+DB_SSLMODE=disable
+```
 
 ## Technical Stack
 
 - **Language**: Go (v1.20+)
-- **Framework**: Gin Web Framework
-- **Database**: PostgreSQL
-- **ORM**: GORM
-- **Authentication**: JWT
-- **Containerization**: Docker
-- **API Documentation**: Swagger/OpenAPI
+- **Framework**: Gin Web Framework v1.9+
+- **Database**: PostgreSQL 14+
+- **ORM**: GORM v1.25+
+- **Configuration**: Environment-based with `.env` support
+- **Logging**: Structured logging with request/response middleware
+- **CORS**: Cross-origin resource sharing enabled
+
+## Architecture
+
+The service follows a clean architecture pattern:
+
+```
+cmd/main.go                 # Application entry point
+├── internal/
+│   ├── config/            # Configuration management
+│   ├── db/                # Database connection
+│   ├── handler/           # HTTP handlers (controllers)
+│   ├── model/             # Data models and interfaces
+│   ├── repository/        # Data access layer
+│   ├── server/            # HTTP server and routing
+│   └── service/           # Business logic layer
+└── pkg/dto/               # Data transfer objects
+```
 
 ## Getting Started
 
-Refer to the [Deployment Guide](DEPLOYMENT.md) for instructions on setting up and running the Staff Service.
+1. **Prerequisites**
+   - Go 1.20 or higher
+   - PostgreSQL 14 or higher
+   - Git
+
+2. **Environment Setup**
+   ```bash
+   # Clone the repository (if needed)
+   cd backend/staff-service
+   
+   # Copy environment file
+   cp .env.example .env
+   
+   # Update database configuration in .env
+   ```
+
+3. **Database Setup**
+   ```bash
+   # Create database
+   createdb fitness_staff_db
+   
+   # The service will auto-migrate tables on startup
+   ```
+
+4. **Run the Service**
+   ```bash
+   # From the staff-service directory
+   go run cmd/main.go
+   
+   # Or build and run
+   go build -o staff-service cmd/main.go
+   ./staff-service
+   ```
+
+5. **Verify Installation**
+   ```bash
+   # Check health endpoint
+   curl http://localhost:8002/health
+   
+   # Check API endpoints
+   curl http://localhost:8002/api/v1/staff
+   ```
+
+For detailed API documentation, see [API.md](API.md).  
+For database schema details, see [DATABASE.md](DATABASE.md).

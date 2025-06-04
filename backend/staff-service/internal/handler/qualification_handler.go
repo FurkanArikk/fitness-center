@@ -16,7 +16,7 @@ func (h *QualificationHandler) GetAll(c *gin.Context) {
 
 	if params.IsPagined {
 		// Paginated response
-		qualifications, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		qualifications, totalCount, err := h.service.GetAllPaginated(c.Request.Context(), params.Offset, params.PageSize)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -31,7 +31,7 @@ func (h *QualificationHandler) GetAll(c *gin.Context) {
 	}
 
 	// Non-paginated response (backward compatibility)
-	qualifications, err := h.service.GetAll()
+	qualifications, err := h.service.GetAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,7 +50,7 @@ func (h *QualificationHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	qualification, err := h.service.GetByID(id)
+	qualification, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -74,7 +74,7 @@ func (h *QualificationHandler) GetByStaffID(c *gin.Context) {
 
 	if params.IsPagined {
 		// Paginated response
-		qualifications, totalCount, err := h.service.GetByStaffIDPaginated(staffID, params.Offset, params.PageSize)
+		qualifications, totalCount, err := h.service.GetByStaffIDPaginated(c.Request.Context(), staffID, params.Offset, params.PageSize)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -89,7 +89,7 @@ func (h *QualificationHandler) GetByStaffID(c *gin.Context) {
 	}
 
 	// Non-paginated response (backward compatibility)
-	qualifications, err := h.service.GetByStaffID(staffID)
+	qualifications, err := h.service.GetByStaffID(c.Request.Context(), staffID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -115,7 +115,7 @@ func (h *QualificationHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Create(qualification)
+	result, err := h.service.Create(c.Request.Context(), qualification)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -135,7 +135,7 @@ func (h *QualificationHandler) Update(c *gin.Context) {
 	}
 
 	// First get the existing qualification
-	existingQualification, err := h.service.GetByID(id)
+	existingQualification, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Qualification not found"})
 		return
@@ -156,7 +156,7 @@ func (h *QualificationHandler) Update(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Update(qualification)
+	result, err := h.service.Update(c.Request.Context(), qualification)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -175,7 +175,7 @@ func (h *QualificationHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

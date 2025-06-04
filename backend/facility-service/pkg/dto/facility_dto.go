@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // FacilityResponse represents the response for facility data

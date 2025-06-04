@@ -17,7 +17,7 @@ func (h *StaffHandler) GetAll(c *gin.Context) {
 
 	if params.IsPagined {
 		// Paginated response
-		staff, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		staff, totalCount, err := h.service.GetAllPaginated(c.Request.Context(), params.Offset, params.PageSize)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -32,7 +32,7 @@ func (h *StaffHandler) GetAll(c *gin.Context) {
 	}
 
 	// Non-paginated response (backward compatibility)
-	staff, err := h.service.GetAll()
+	staff, err := h.service.GetAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -51,7 +51,7 @@ func (h *StaffHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	staff, err := h.service.GetByID(id)
+	staff, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -79,7 +79,7 @@ func (h *StaffHandler) Create(c *gin.Context) {
 	}
 
 	// Call service to create staff
-	newStaff, err := h.service.Create(staffModel)
+	newStaff, err := h.service.Create(c.Request.Context(), staffModel)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -116,7 +116,7 @@ func (h *StaffHandler) Update(c *gin.Context) {
 	staffModel.StaffID = id
 
 	// Now pass the model object to the service
-	updatedStaff, err := h.service.Update(staffModel)
+	updatedStaff, err := h.service.Update(c.Request.Context(), staffModel)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -135,7 +135,7 @@ func (h *StaffHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

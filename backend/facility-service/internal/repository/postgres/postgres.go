@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 

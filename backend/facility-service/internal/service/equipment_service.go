@@ -3,8 +3,8 @@ package service
 import (
 	"context"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
 )
 
 // EquipmentService defines business operations for equipment

@@ -21,7 +21,7 @@ func (h *TrainerHandler) GetAll(c *gin.Context) {
 		// If specialization is provided, use the specialized method
 		// Note: We would need to implement pagination for specialized search too,
 		// but for now we'll keep specialization without pagination
-		trainers, err := h.service.GetBySpecialization(specialization)
+		trainers, err := h.service.GetBySpecialization(c.Request.Context(), specialization)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -39,7 +39,7 @@ func (h *TrainerHandler) GetAll(c *gin.Context) {
 	// Check if pagination is requested
 	if params.IsPagined {
 		// Paginated response
-		trainers, totalCount, err := h.service.GetAllPaginated(params.Offset, params.PageSize)
+		trainers, totalCount, err := h.service.GetAllPaginated(c.Request.Context(), params.Offset, params.PageSize)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -57,7 +57,7 @@ func (h *TrainerHandler) GetAll(c *gin.Context) {
 	}
 
 	// Non-paginated response (backward compatibility)
-	trainers, err := h.service.GetAll()
+	trainers, err := h.service.GetAll(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -79,7 +79,7 @@ func (h *TrainerHandler) GetByID(c *gin.Context) {
 		return
 	}
 
-	trainer, err := h.service.GetByID(id)
+	trainer, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -96,7 +96,7 @@ func (h *TrainerHandler) Create(c *gin.Context) {
 		return
 	}
 
-	result, err := h.service.Create(&trainer)
+	result, err := h.service.Create(c.Request.Context(), &trainer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -121,7 +121,7 @@ func (h *TrainerHandler) Update(c *gin.Context) {
 
 	trainer.TrainerID = id
 
-	result, err := h.service.Update(&trainer)
+	result, err := h.service.Update(c.Request.Context(), &trainer)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -138,7 +138,7 @@ func (h *TrainerHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -154,7 +154,7 @@ func (h *TrainerHandler) GetBySpecialization(c *gin.Context) {
 		return
 	}
 
-	trainers, err := h.service.GetBySpecialization(specialization)
+	trainers, err := h.service.GetBySpecialization(c.Request.Context(), specialization)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -172,7 +172,7 @@ func (h *TrainerHandler) GetBySpecialization(c *gin.Context) {
 func (h *TrainerHandler) GetTopRated(c *gin.Context) {
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "5"))
 
-	trainers, err := h.service.GetTopRated(limit)
+	trainers, err := h.service.GetTopRated(c.Request.Context(), limit)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

@@ -1,105 +1,42 @@
 # Facility Service API Documentation
 
-This document provides comprehensive documentation for all 24 API endpoints provided by the Facility Service. The service manages facilities, equipment, and attendance tracking for the fitness center.
+The Facility Service manages fitness center facilities, equipment, and attendance tracking within the Fitness Center application. This service provides RESTful APIs for facility management, equipment inventory, and member check-in/check-out functionality.
 
-**Base URL:** `http://localhost:8004`  
-**API Base:** `http://localhost:8004/api/v1`  
-**Version:** v1  
-**Content-Type:** `application/json`
+## Base URL
+
+```
+http://localhost:8004/api/v1
+```
 
 ## Table of Contents
 
-1. [Authentication](#authentication)
-2. [Response Format](#response-format)
-3. [Health Check](#health-check) (1 endpoint)
-4. [Facilities](#facilities) (8 endpoints)
-5. [Equipment](#equipment) (8 endpoints)
-6. [Attendance](#attendance) (7 endpoints)
-7. [Error Responses](#error-responses)
-8. [Pagination](#pagination)
-9. [Testing](#testing)
+- [Facility Endpoints](#facility-endpoints)
+- [Equipment Endpoints](#equipment-endpoints)
+- [Attendance Endpoints](#attendance-endpoints)
+- [Health Check Endpoint](#health-check-endpoint)
 
-**Total Endpoints: 24**
+## Facility Endpoints
 
-## Authentication
+### Get All Facilities
 
-Currently, the API does not require authentication. All endpoints are publicly accessible.
+Returns a list of all facilities with optional filtering and pagination support.
 
-## Response Format
+**Endpoint:** `GET /facilities`
 
-All responses follow a consistent JSON format:
+**Query Parameters:**
+- `status` (optional): Filter by status (active/maintenance/closed)
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
 
-**Success Response:**
-```json
-{
-  "data": {}, // or []
-  "message": "Success message",
-  "status": "success"
-}
+**Example Request:**
 ```
-
-**Error Response:**
-```json
-{
-  "error": "Error description",
-  "message": "Human readable error message", 
-  "status": "error"
-}
+GET /api/v1/facilities?status=active&page=1&pageSize=20
 ```
-
----
-
-## Health Check
-
-### Check Service Health
-
-Check if the service is running and healthy.
-
-**Endpoint:** `GET /health`
 
 **Response (200 OK):**
 ```json
-{
-  "status": "OK",
-  "service": "facility-service",
-  "timestamp": "2025-06-02T10:00:00Z"
-}
-```
-
----
-
-## Facilities (8 Endpoints)
-
-### 1. Create Facility
-
-Create a new facility in the system.
-
-**Endpoint:** `POST /api/v1/facilities`
-
-**Request Body:**
-```json
-{
-  "name": "Main Gym",
-  "description": "Primary workout area with cardio and strength equipment",
-  "capacity": 100,
-  "status": "active",
-  "opening_hour": "06:00:00",
-  "closing_hour": "22:00:00"
-}
-```
-
-**Field Descriptions:**
-- `name`: Unique facility name (required, max 50 chars)
-- `description`: Facility description (optional, max 255 chars)
-- `capacity`: Maximum capacity (required, positive integer)
-- `status`: Facility status (required: "active", "maintenance", "closed")
-- `opening_hour`: Opening time in HH:MM:SS format (required)
-- `closing_hour`: Closing time in HH:MM:SS format (required)
-
-**Response (201 Created):**
-```json
-{
-  "data": {
+[
+  {
     "facility_id": 1,
     "name": "Main Gym",
     "description": "Primary workout area with cardio and strength equipment",
@@ -109,46 +46,198 @@ Create a new facility in the system.
     "closing_hour": "22:00:00",
     "created_at": "2025-06-02T10:00:00Z",
     "updated_at": "2025-06-02T10:00:00Z"
+  },
+  {
+    "facility_id": 2,
+    "name": "Swimming Pool",
+    "description": "25-meter indoor swimming pool with lane dividers",
+    "capacity": 30,
+    "status": "active",
+    "opening_hour": "05:00:00",
+    "closing_hour": "23:00:00",
+    "created_at": "2025-06-02T11:00:00Z",
+    "updated_at": "2025-06-02T11:00:00Z"
   }
-}
+]
 ```
 
-### 2. Get All Facilities
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+  ```json
+  {
+    "error": "Invalid status value"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Database connection error"
+  }
+  ```
 
-Retrieve a list of all facilities with optional pagination.
+### Get Facility by ID
 
-**Endpoint:** `GET /api/v1/facilities`
+Returns a specific facility by its ID.
 
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
+**Endpoint:** `GET /facilities/{id}`
+
+**Path Parameters:**
+- `id`: Facility ID (integer)
 
 **Response (200 OK):**
 ```json
 {
-  "data": [
-    {
-      "facility_id": 1,
-      "name": "Main Gym",
-      "description": "Primary workout area with cardio and strength equipment",
-      "capacity": 100,
-      "status": "active",
-      "opening_hour": "06:00:00",
-      "closing_hour": "22:00:00",
-      "created_at": "2025-06-02T10:00:00Z",
-      "updated_at": "2025-06-02T10:00:00Z"
-    }
-  ],
-  "page": 1,
-  "pageSize": 10,
-  "totalItems": 1,
-  "totalPages": 1
+  "facility_id": 1,
+  "name": "Main Gym",
+  "description": "Primary workout area with cardio and strength equipment",
+  "capacity": 100,
+  "status": "active",
+  "opening_hour": "06:00:00",
+  "closing_hour": "22:00:00",
+  "created_at": "2025-06-02T10:00:00Z",
+  "updated_at": "2025-06-02T10:00:00Z"
 }
 ```
 
-### 3. Get Facility by ID
+**Error Responses:**
+- `400 Bad Request`: Invalid facility ID
+  ```json
+  {
+    "error": "Invalid facility ID"
+  }
+  ```
+- `404 Not Found`: Facility not found
+  ```json
+  {
+    "error": "Facility not found"
+  }
+  ```
 
-Returns a specific facility by its ID.
+### Create Facility
+
+Creates a new facility.
+
+**Endpoint:** `POST /facilities`
+
+**Request Body:**
+```json
+{
+  "name": "Yoga Studio",
+  "description": "Peaceful space for yoga and meditation classes",
+  "capacity": 25,
+  "status": "active",
+  "opening_hour": "06:00:00",
+  "closing_hour": "21:00:00"
+}
+```
+
+**Field Validation:**
+- `name`: Required, string (1-100 characters, must be unique)
+- `description`: Optional, string (max 500 characters)
+- `capacity`: Required, integer (1-1000)
+- `status`: Required, one of: "active", "maintenance", "closed"
+- `opening_hour`: Required, time format (HH:MM:SS)
+- `closing_hour`: Required, time format (HH:MM:SS, must be after opening_hour)
+
+**Response (201 Created):**
+```json
+{
+  "facility_id": 3,
+  "name": "Yoga Studio",
+  "description": "Peaceful space for yoga and meditation classes",
+  "capacity": 25,
+  "status": "active",
+  "opening_hour": "06:00:00",
+  "closing_hour": "21:00:00",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Facility name already exists"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Failed to create facility"
+  }
+  ```
+
+### Update Facility
+
+Updates an existing facility.
+
+**Endpoint:** `PUT /facilities/{id}`
+
+**Path Parameters:**
+- `id`: Facility ID (integer)
+
+**Request Body:**
+```json
+{
+  "name": "Updated Yoga Studio",
+  "description": "Enhanced peaceful space for yoga and meditation classes",
+  "capacity": 30,
+  "status": "active",
+  "opening_hour": "05:30:00",
+  "closing_hour": "21:30:00"
+}
+```
+
+**Field Validation:**
+- All fields are optional for updates
+- Same validation rules as Create Facility apply to provided fields
+
+**Response (200 OK):**
+```json
+{
+  "facility_id": 3,
+  "name": "Updated Yoga Studio",
+  "description": "Enhanced peaceful space for yoga and meditation classes",
+  "capacity": 30,
+  "status": "active",
+  "opening_hour": "05:30:00",
+  "closing_hour": "21:30:00",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T14:30:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid facility ID or request data
+- `404 Not Found`: Facility not found
+- `500 Internal Server Error`: Server-side error
+
+### Delete Facility
+
+Deletes a facility.
+
+**Endpoint:** `DELETE /facilities/{id}`
+
+**Path Parameters:**
+- `id`: Facility ID (integer)
+
+**Response (200 OK):**
+```json
+{
+  "message": "Facility deleted successfully"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid facility ID
+- `404 Not Found`: Facility not found
+- `409 Conflict`: Facility has equipment or active sessions
+  ```json
+  {
+    "error": "Cannot delete facility with existing equipment"
+  }
+  ```
 
 **Endpoint:** `GET /api/v1/facilities/{id}`
 
@@ -256,180 +345,196 @@ Returns facilities filtered by status.
 
 ---
 
-## Equipment (8 Endpoints)
+## Equipment Endpoints
 
-### 1. Create Equipment
+### Get All Equipment
 
-Creates new equipment in the system.
+Returns a list of all equipment with optional filtering and pagination support.
 
-**Endpoint:** `POST /api/v1/equipment`
+**Endpoint:** `GET /equipment`
+
+**Query Parameters:**
+- `facility_id` (optional): Filter by facility ID
+- `status` (optional): Filter by status (available/maintenance/out_of_order)
+- `type` (optional): Filter by equipment type
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+
+**Example Request:**
+```
+GET /api/v1/equipment?facility_id=1&status=available
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "equipment_id": 1,
+    "facility_id": 1,
+    "name": "Treadmill #1",
+    "type": "Cardio",
+    "brand": "NordicTrack",
+    "model": "Commercial 1750",
+    "serial_number": "NT1750-001",
+    "purchase_date": "2023-01-15",
+    "warranty_expiry": "2026-01-15",
+    "status": "available",
+    "last_maintenance": "2024-12-01T10:00:00Z",
+    "next_maintenance": "2025-06-01T10:00:00Z",
+    "created_at": "2023-01-16T10:00:00Z",
+    "updated_at": "2024-12-01T11:00:00Z"
+  }
+]
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+- `500 Internal Server Error`: Server-side error
+
+### Get Equipment by ID
+
+Returns a specific equipment item by its ID.
+
+**Endpoint:** `GET /equipment/{id}`
+
+**Path Parameters:**
+- `id`: Equipment ID (integer)
+
+**Response (200 OK):**
+```json
+{
+  "equipment_id": 1,
+  "facility_id": 1,
+  "name": "Treadmill #1",
+  "type": "Cardio",
+  "brand": "NordicTrack",
+  "model": "Commercial 1750",
+  "serial_number": "NT1750-001",
+  "purchase_date": "2023-01-15",
+  "warranty_expiry": "2026-01-15",
+  "status": "available",
+  "last_maintenance": "2024-12-01T10:00:00Z",
+  "next_maintenance": "2025-06-01T10:00:00Z",
+  "created_at": "2023-01-16T10:00:00Z",
+  "updated_at": "2024-12-01T11:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid equipment ID
+- `404 Not Found`: Equipment not found
+
+### Create Equipment
+
+Creates a new equipment item.
+
+**Endpoint:** `POST /equipment`
 
 **Request Body:**
 ```json
 {
-  "name": "Treadmill",
-  "description": "Commercial grade treadmill",
-  "category": "cardio",
-  "purchase_date": "2025-01-01",
-  "purchase_price": 2999.99,
-  "manufacturer": "LifeFitness",
-  "model_number": "LF-TR1000",
-  "status": "active",
-  "last_maintenance_date": "2025-01-01",
-  "next_maintenance_date": "2025-04-01"
+  "facility_id": 1,
+  "name": "Exercise Bike #5",
+  "type": "Cardio",
+  "brand": "Peloton",
+  "model": "Bike+",
+  "serial_number": "PB001-005",
+  "purchase_date": "2025-06-01",
+  "warranty_expiry": "2028-06-01",
+  "status": "available"
 }
 ```
 
-**Field Descriptions:**
-- `name`: Equipment name (required, max 100 chars)
-- `description`: Equipment description (optional, max 255 chars)
-- `category`: Equipment category (required: "cardio", "strength", "free-weights", "functional", "other")
-- `purchase_date`: Purchase date in YYYY-MM-DD format (optional)
-- `purchase_price`: Purchase price (optional, decimal)
-- `manufacturer`: Manufacturer name (optional, max 100 chars)
-- `model_number`: Model number (optional, max 50 chars)
-- `status`: Equipment status (required: "active", "maintenance", "out-of-order")
-- `last_maintenance_date`: Last maintenance date (optional)
-- `next_maintenance_date`: Next maintenance date (optional)
+**Field Validation:**
+- `facility_id`: Required, integer (must exist)
+- `name`: Required, string (1-100 characters)
+- `type`: Required, string (max 50 characters)
+- `brand`: Required, string (max 50 characters)
+- `model`: Optional, string (max 50 characters)
+- `serial_number`: Optional, string (max 100 characters, must be unique if provided)
+- `purchase_date`: Optional, date format (YYYY-MM-DD)
+- `warranty_expiry`: Optional, date format (YYYY-MM-DD)
+- `status`: Required, one of: "available", "maintenance", "out_of_order"
 
 **Response (201 Created):**
 ```json
 {
-  "data": {
-    "equipment_id": 1,
-    "name": "Treadmill",
-    "description": "Commercial grade treadmill",
-    "category": "cardio",
-    "purchase_date": "2025-01-01",
-    "purchase_price": 2999.99,
-    "manufacturer": "LifeFitness",
-    "model_number": "LF-TR1000",
-    "status": "active",
-    "last_maintenance_date": "2025-01-01",
-    "next_maintenance_date": "2025-04-01",
-    "created_at": "2025-06-02T10:00:00Z",
-    "updated_at": "2025-06-02T10:00:00Z"
-  }
+  "equipment_id": 25,
+  "facility_id": 1,
+  "name": "Exercise Bike #5",
+  "type": "Cardio",
+  "brand": "Peloton",
+  "model": "Bike+",
+  "serial_number": "PB001-005",
+  "purchase_date": "2025-06-01",
+  "warranty_expiry": "2028-06-01",
+  "status": "available",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
 }
 ```
 
-### 2. Get All Equipment
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+- `404 Not Found`: Facility not found
+- `500 Internal Server Error`: Server-side error
 
-Returns a list of all equipment with optional pagination.
+### Update Equipment
 
-**Endpoint:** `GET /api/v1/equipment`
+Updates an existing equipment item.
 
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "equipment_id": 1,
-      "name": "Treadmill",
-      "description": "Commercial grade treadmill",
-      "category": "cardio",
-      "purchase_date": "2025-01-01",
-      "purchase_price": 2999.99,
-      "manufacturer": "LifeFitness",
-      "model_number": "LF-TR1000",
-      "status": "active",
-      "last_maintenance_date": "2025-01-01",
-      "next_maintenance_date": "2025-04-01",
-      "created_at": "2025-06-02T10:00:00Z",
-      "updated_at": "2025-06-02T10:00:00Z"
-    }
-  ]
-}
-```
-
-### 3. Get Equipment by ID
-
-Returns specific equipment by its ID.
-
-**Endpoint:** `GET /api/v1/equipment/{id}`
+**Endpoint:** `PUT /equipment/{id}`
 
 **Path Parameters:**
-- `id`: Equipment ID (integer, required)
-
-**Response (200 OK):**
-```json
-{
-  "data": {
-    "equipment_id": 1,
-    "name": "Treadmill",
-    "description": "Commercial grade treadmill",
-    "category": "cardio",
-    "purchase_date": "2025-01-01",
-    "purchase_price": 2999.99,
-    "manufacturer": "LifeFitness",
-    "model_number": "LF-TR1000",
-    "status": "active",
-    "last_maintenance_date": "2025-01-01",
-    "next_maintenance_date": "2025-04-01",
-    "created_at": "2025-06-02T10:00:00Z",
-    "updated_at": "2025-06-02T10:00:00Z"
-  }
-}
-```
-
-### 4. Update Equipment
-
-Updates existing equipment.
-
-**Endpoint:** `PUT /api/v1/equipment/{id}`
-
-**Path Parameters:**
-- `id`: Equipment ID (integer, required)
+- `id`: Equipment ID (integer)
 
 **Request Body:**
 ```json
 {
-  "name": "Updated Treadmill",
-  "description": "Updated description",
-  "category": "cardio",
-  "purchase_date": "2025-01-01",
-  "purchase_price": 3299.99,
-  "manufacturer": "LifeFitness",
-  "model_number": "LF-TR2000",
+  "name": "Exercise Bike #5 - Updated",
   "status": "maintenance",
-  "last_maintenance_date": "2025-06-01",
-  "next_maintenance_date": "2025-09-01"
+  "last_maintenance": "2025-06-04T10:00:00Z",
+  "next_maintenance": "2025-12-04T10:00:00Z"
 }
 ```
+
+**Field Validation:**
+- All fields are optional for updates
+- Same validation rules as Create Equipment apply to provided fields
 
 **Response (200 OK):**
 ```json
 {
-  "data": {
-    "equipment_id": 1,
-    "name": "Updated Treadmill",
-    "description": "Updated description",
-    "category": "cardio",
-    "purchase_date": "2025-01-01",
-    "purchase_price": 3299.99,
-    "manufacturer": "LifeFitness",
-    "model_number": "LF-TR2000",
-    "status": "maintenance",
-    "last_maintenance_date": "2025-06-01",
-    "next_maintenance_date": "2025-09-01",
-    "created_at": "2025-06-02T10:00:00Z",
-    "updated_at": "2025-06-02T12:00:00Z"
-  }
+  "equipment_id": 25,
+  "facility_id": 1,
+  "name": "Exercise Bike #5 - Updated",
+  "type": "Cardio",
+  "brand": "Peloton",
+  "model": "Bike+",
+  "serial_number": "PB001-005",
+  "purchase_date": "2025-06-01",
+  "warranty_expiry": "2028-06-01",
+  "status": "maintenance",
+  "last_maintenance": "2025-06-04T10:00:00Z",
+  "next_maintenance": "2025-12-04T10:00:00Z",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T14:30:00Z"
 }
 ```
 
-### 5. Delete Equipment
+**Error Responses:**
+- `400 Bad Request`: Invalid equipment ID or request data
+- `404 Not Found`: Equipment not found
+- `500 Internal Server Error`: Server-side error
 
-Deletes equipment.
+### Delete Equipment
 
-**Endpoint:** `DELETE /api/v1/equipment/{id}`
+Deletes an equipment item.
+
+**Endpoint:** `DELETE /equipment/{id}`
 
 **Path Parameters:**
-- `id`: Equipment ID (integer, required)
+- `id`: Equipment ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -438,356 +543,273 @@ Deletes equipment.
 }
 ```
 
-### 6. List Equipment by Category
-
-Returns equipment filtered by category.
-
-**Endpoint:** `GET /api/v1/equipment/category/{category}`
-
-**Path Parameters:**
-- `category`: Equipment category (required: "cardio", "strength", "free-weights", "functional", "other")
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "equipment_id": 1,
-      "name": "Treadmill",
-      "description": "Commercial grade treadmill",
-      "category": "cardio",
-      "purchase_date": "2025-01-01",
-      "purchase_price": 2999.99,
-      "manufacturer": "LifeFitness",
-      "model_number": "LF-TR1000",
-      "status": "active",
-      "last_maintenance_date": "2025-01-01",
-      "next_maintenance_date": "2025-04-01",
-      "created_at": "2025-06-02T10:00:00Z",
-      "updated_at": "2025-06-02T10:00:00Z"
-    }
-  ]
-}
-```
-
-### 7. List Equipment by Status
-
-Returns equipment filtered by status.
-
-**Endpoint:** `GET /api/v1/equipment/status/{status}`
-
-**Path Parameters:**
-- `status`: Equipment status (required: "active", "maintenance", "out-of-order")
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "equipment_id": 1,
-      "name": "Treadmill",
-      "description": "Commercial grade treadmill",
-      "category": "cardio",
-      "purchase_date": "2025-01-01",
-      "purchase_price": 2999.99,
-      "manufacturer": "LifeFitness",
-      "model_number": "LF-TR1000",
-      "status": "active",
-      "last_maintenance_date": "2025-01-01",
-      "next_maintenance_date": "2025-04-01",
-      "created_at": "2025-06-02T10:00:00Z",
-      "updated_at": "2025-06-02T10:00:00Z"
-    }
-  ]
-}
-```
-
-### 8. List Equipment Due for Maintenance
-
-Returns equipment that needs maintenance based on next_maintenance_date.
-
-**Endpoint:** `GET /api/v1/equipment/maintenance`
-
-**Query Parameters:**
-- `date` (optional): Reference date for maintenance check (defaults to current date, format: YYYY-MM-DD)
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "equipment_id": 1,
-      "name": "Treadmill",
-      "description": "Commercial grade treadmill",
-      "category": "cardio",
-      "purchase_date": "2025-01-01",
-      "purchase_price": 2999.99,
-      "manufacturer": "LifeFitness",
-      "model_number": "LF-TR1000",
-      "status": "active",
-      "last_maintenance_date": "2025-01-01",
-      "next_maintenance_date": "2025-04-01",
-      "created_at": "2025-06-02T10:00:00Z",
-      "updated_at": "2025-06-02T10:00:00Z"
-    }
-  ]
-}
-```
+**Error Responses:**
+- `400 Bad Request`: Invalid equipment ID
+- `404 Not Found`: Equipment not found
+- `409 Conflict`: Equipment is currently in use
+  ```json
+  {
+    "error": "Cannot delete equipment that is currently in use"
+  }
+  ```
 
 ---
 
-## Attendance (7 Endpoints)
+## Attendance Endpoints
 
-### 1. Create Attendance Record
+### Get All Attendance Records
 
-Creates a new attendance record (member check-in).
+Returns a list of all attendance records with optional filtering and pagination support.
 
-**Endpoint:** `POST /api/v1/attendance`
+**Endpoint:** `GET /attendance`
+
+**Query Parameters:**
+- `facility_id` (optional): Filter by facility ID
+- `member_id` (optional): Filter by member ID
+- `date` (optional): Filter by specific date (YYYY-MM-DD)
+- `status` (optional): Filter by status (checked_in/checked_out)
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+
+**Example Request:**
+```
+GET /api/v1/attendance?facility_id=1&date=2025-06-04
+```
+
+**Response (200 OK):**
+```json
+[
+  {
+    "attendance_id": 1,
+    "facility_id": 1,
+    "member_id": 123,
+    "check_in_time": "2025-06-04T08:30:00Z",
+    "check_out_time": "2025-06-04T10:15:00Z",
+    "duration_minutes": 105,
+    "status": "checked_out",
+    "created_at": "2025-06-04T08:30:00Z",
+    "updated_at": "2025-06-04T10:15:00Z"
+  }
+]
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+- `500 Internal Server Error`: Server-side error
+
+### Get Attendance by ID
+
+Returns a specific attendance record by its ID.
+
+**Endpoint:** `GET /attendance/{id}`
+
+**Path Parameters:**
+- `id`: Attendance ID (integer)
+
+**Response (200 OK):**
+```json
+{
+  "attendance_id": 1,
+  "facility_id": 1,
+  "member_id": 123,
+  "check_in_time": "2025-06-04T08:30:00Z",
+  "check_out_time": "2025-06-04T10:15:00Z",
+  "duration_minutes": 105,
+  "status": "checked_out",
+  "created_at": "2025-06-04T08:30:00Z",
+  "updated_at": "2025-06-04T10:15:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid attendance ID
+- `404 Not Found`: Attendance record not found
+
+### Member Check-In
+
+Records a member's check-in to a facility.
+
+**Endpoint:** `POST /attendance/checkin`
 
 **Request Body:**
 ```json
 {
-  "member_id": 123,
   "facility_id": 1,
-  "check_in_time": "2025-06-02T08:00:00Z"
+  "member_id": 123
 }
 ```
 
-**Field Descriptions:**
-- `member_id`: Member identifier (required, integer)
-- `facility_id`: Facility ID (required, integer, must exist)
-- `check_in_time`: Check-in timestamp in ISO 8601 format (required)
+**Field Validation:**
+- `facility_id`: Required, integer (must exist and be active)
+- `member_id`: Required, integer (must exist and have active membership)
 
 **Response (201 Created):**
 ```json
 {
-  "data": {
-    "attendance_id": 1,
-    "member_id": 123,
-    "check_in_time": "2025-06-02T08:00:00Z",
-    "check_out_time": null,
-    "date": "2025-06-02",
-    "facility_id": 1,
-    "created_at": "2025-06-02T08:00:00Z",
-    "updated_at": "2025-06-02T08:00:00Z"
+  "attendance_id": 150,
+  "facility_id": 1,
+  "member_id": 123,
+  "check_in_time": "2025-06-04T09:00:00Z",
+  "status": "checked_in",
+  "created_at": "2025-06-04T09:00:00Z",
+  "updated_at": "2025-06-04T09:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Member is already checked in to this facility"
   }
-}
-```
-
-### 2. Get All Attendance
-
-Lists all attendance records with pagination.
-
-**Endpoint:** `GET /api/v1/attendance`
-
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "attendance_id": 1,
-      "member_id": 123,
-      "check_in_time": "2025-06-02T08:00:00Z",
-      "check_out_time": "2025-06-02T10:30:00Z",
-      "date": "2025-06-02",
-      "facility_id": 1,
-      "created_at": "2025-06-02T08:00:00Z",
-      "updated_at": "2025-06-02T10:30:00Z"
-    }
-  ]
-}
-```
-
-### 3. Get Attendance by ID
-
-Returns a specific attendance record.
-
-**Endpoint:** `GET /api/v1/attendance/{id}`
-
-**Path Parameters:**
-- `id`: Attendance ID (integer, required)
-
-**Response (200 OK):**
-```json
-{
-  "data": {
-    "attendance_id": 1,
-    "member_id": 123,
-    "check_in_time": "2025-06-02T08:00:00Z",
-    "check_out_time": "2025-06-02T10:30:00Z",
-    "date": "2025-06-02",
-    "facility_id": 1,
-    "created_at": "2025-06-02T08:00:00Z",
-    "updated_at": "2025-06-02T10:30:00Z"
+  ```
+- `404 Not Found`: Facility or member not found
+- `409 Conflict`: Facility at capacity or member already checked in
+  ```json
+  {
+    "error": "Facility is at maximum capacity"
   }
-}
-```
+  ```
 
-### 4. Update Attendance
+### Member Check-Out
 
-Updates an existing attendance record.
+Records a member's check-out from a facility.
 
-**Endpoint:** `PUT /api/v1/attendance/{id}`
-
-**Path Parameters:**
-- `id`: Attendance ID (integer, required)
+**Endpoint:** `POST /attendance/checkout`
 
 **Request Body:**
 ```json
 {
   "member_id": 123,
-  "check_in_time": "2025-06-02T08:15:00Z",
-  "check_out_time": "2025-06-02T10:45:00Z",
   "facility_id": 1
 }
 ```
 
+**Field Validation:**
+- `member_id`: Required, integer (must be currently checked in)
+- `facility_id`: Required, integer (must match check-in facility)
+
 **Response (200 OK):**
 ```json
 {
-  "data": {
-    "attendance_id": 1,
-    "member_id": 123,
-    "check_in_time": "2025-06-02T08:15:00Z",
-    "check_out_time": "2025-06-02T10:45:00Z",
-    "date": "2025-06-02",
+  "attendance_id": 150,
+  "facility_id": 1,
+  "member_id": 123,
+  "check_in_time": "2025-06-04T09:00:00Z",
+  "check_out_time": "2025-06-04T11:30:00Z",
+  "duration_minutes": 150,
+  "status": "checked_out",
+  "created_at": "2025-06-04T09:00:00Z",
+  "updated_at": "2025-06-04T11:30:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or member not checked in
+  ```json
+  {
+    "error": "Member is not currently checked in to this facility"
+  }
+  ```
+- `404 Not Found`: Member or facility not found
+
+### Get Current Facility Occupancy
+
+Returns the current occupancy status of all facilities or a specific facility.
+
+**Endpoint:** `GET /attendance/occupancy`
+
+**Query Parameters:**
+- `facility_id` (optional): Get occupancy for specific facility
+
+**Example Request:**
+```
+GET /api/v1/attendance/occupancy?facility_id=1
+```
+
+**Response (200 OK):**
+```json
+[
+  {
     "facility_id": 1,
-    "created_at": "2025-06-02T08:00:00Z",
-    "updated_at": "2025-06-02T11:00:00Z"
+    "facility_name": "Main Gym",
+    "capacity": 100,
+    "current_occupancy": 25,
+    "occupancy_percentage": 25.0,
+    "available_spots": 75,
+    "status": "open"
   }
-}
+]
 ```
 
-### 5. Delete Attendance
+**Error Responses:**
+- `400 Bad Request`: Invalid facility ID
+- `404 Not Found`: Facility not found
 
-Deletes an attendance record.
+### Get Member Attendance History
 
-**Endpoint:** `DELETE /api/v1/attendance/{id}`
+Returns attendance history for a specific member.
+
+**Endpoint:** `GET /attendance/member/{memberId}`
 
 **Path Parameters:**
-- `id`: Attendance ID (integer, required)
+- `memberId`: Member ID (integer)
+
+**Query Parameters:**
+- `facility_id` (optional): Filter by facility
+- `start_date` (optional): Start date filter (YYYY-MM-DD)
+- `end_date` (optional): End date filter (YYYY-MM-DD)
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
 
 **Response (200 OK):**
 ```json
-{
-  "message": "Attendance record deleted successfully"
-}
-```
-
-### 6. Check Out Member
-
-Records a check-out time for an attendance record.
-
-**Endpoint:** `POST /api/v1/attendance/{id}/checkout`
-
-**Path Parameters:**
-- `id`: Attendance ID (integer, required)
-
-**Response (200 OK):**
-```json
-{
-  "data": {
-    "message": "Member checked out successfully",
-    "check_out_time": "2025-06-02T10:30:00Z",
-    "attendance_id": 1
+[
+  {
+    "attendance_id": 150,
+    "facility_id": 1,
+    "facility_name": "Main Gym",
+    "member_id": 123,
+    "check_in_time": "2025-06-04T09:00:00Z",
+    "check_out_time": "2025-06-04T11:30:00Z",
+    "duration_minutes": 150,
+    "status": "checked_out",
+    "created_at": "2025-06-04T09:00:00Z",
+    "updated_at": "2025-06-04T11:30:00Z"
   }
-}
+]
 ```
 
-### 7. List Attendance by Member
+**Error Responses:**
+- `400 Bad Request`: Invalid member ID or date parameters
+- `404 Not Found`: Member not found
 
-Returns attendance records for a specific member.
+## Health Check Endpoint
 
-**Endpoint:** `GET /api/v1/attendance/member/{memberID}`
+### Health Check
 
-**Path Parameters:**
-- `memberID`: Member ID (integer, required)
+Returns the health status of the Facility Service.
 
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
+**Endpoint:** `GET /health`
 
 **Response (200 OK):**
 ```json
 {
-  "data": [
-    {
-      "attendance_id": 1,
-      "member_id": 123,
-      "check_in_time": "2025-06-02T08:00:00Z",
-      "check_out_time": "2025-06-02T10:30:00Z",
-      "date": "2025-06-02",
-      "facility_id": 1,
-      "created_at": "2025-06-02T08:00:00Z",
-      "updated_at": "2025-06-02T10:30:00Z"
-    }
-  ]
+  "status": "healthy",
+  "service": "facility-service",
+  "version": "1.0.0",
+  "database": "connected",
+  "timestamp": "2025-06-04T10:00:00Z"
 }
 ```
 
-### 8. List Attendance by Facility
-
-Returns attendance records for a specific facility.
-
-**Endpoint:** `GET /api/v1/attendance/facility/{facilityID}`
-
-**Path Parameters:**
-- `facilityID`: Facility ID (integer, required)
-
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
-
-**Response (200 OK):**
+**Error Response (503 Service Unavailable):**
 ```json
 {
-  "data": [
-    {
-      "attendance_id": 1,
-      "member_id": 123,
-      "check_in_time": "2025-06-02T08:00:00Z",
-      "check_out_time": "2025-06-02T10:30:00Z",
-      "date": "2025-06-02",
-      "facility_id": 1,
-      "created_at": "2025-06-02T08:00:00Z",
-      "updated_at": "2025-06-02T10:30:00Z"
-    }
-  ]
-}
-```
-
-### 9. List Attendance by Date
-
-Returns attendance records for a specific date.
-
-**Endpoint:** `GET /api/v1/attendance/date/{date}`
-
-**Path Parameters:**
-- `date`: Date in YYYY-MM-DD format (required)
-
-**Query Parameters:**
-- `page` (optional): Page number for pagination (default: 1)
-- `pageSize` (optional): Number of items per page (default: 10)
-
-**Response (200 OK):**
-```json
-{
-  "data": [
-    {
-      "attendance_id": 1,
-      "member_id": 123,
-      "check_in_time": "2025-06-02T08:00:00Z",
-      "check_out_time": "2025-06-02T10:30:00Z",
-      "date": "2025-06-02",
-      "facility_id": 1,
-      "created_at": "2025-06-02T08:00:00Z",
-      "updated_at": "2025-06-02T10:30:00Z"
-    }
-  ]
+  "status": "unhealthy",
+  "service": "facility-service",
+  "database": "disconnected",
+  "error": "Database connection failed"
 }
 ```
 
