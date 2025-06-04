@@ -21,7 +21,6 @@ const FacilityModal = ({
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    facility_type: "gym",
     status: "active",
     address: "",
     phone_number: "",
@@ -37,7 +36,6 @@ const FacilityModal = ({
       setFormData({
         name: facility.name || "",
         description: facility.description || "",
-        facility_type: facility.facility_type || "gym",
         status: facility.status || "active",
         address: facility.address || "",
         phone_number: facility.phone_number || "",
@@ -48,7 +46,6 @@ const FacilityModal = ({
       setFormData({
         name: "",
         description: "",
-        facility_type: "gym",
         status: "active",
         address: "",
         phone_number: "",
@@ -64,10 +61,6 @@ const FacilityModal = ({
 
     if (!formData.name.trim()) {
       newErrors.name = "Facility name is required";
-    }
-
-    if (!formData.facility_type) {
-      newErrors.facility_type = "Facility type is required";
     }
 
     if (!formData.status) {
@@ -197,62 +190,29 @@ const FacilityModal = ({
             />
           </div>
 
-          {/* Two column layout */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Facility Type */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                <Building2 className="w-4 h-4 text-purple-500" />
-                Facility Type
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.facility_type}
-                onChange={(e) =>
-                  handleInputChange("facility_type", e.target.value)
-                }
-                className={`w-full px-4 py-3 bg-white border-2 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                  errors.facility_type ? "border-red-500" : "border-gray-200"
-                }`}
-              >
-                <option value="gym">🏋️ Gym</option>
-                <option value="pool">🏊 Pool</option>
-                <option value="studio">🧘 Studio</option>
-                <option value="court">🏀 Court</option>
-                <option value="sauna">🧖 Sauna</option>
-                <option value="locker_room">🚿 Locker Room</option>
-              </select>
-              {errors.facility_type && (
-                <p className="text-red-500 text-sm font-medium">
-                  {errors.facility_type}
-                </p>
-              )}
-            </div>
-
-            {/* Status */}
-            <div className="space-y-2">
-              <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
-                <Sparkles className="w-4 h-4 text-orange-500" />
-                Status
-                <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => handleInputChange("status", e.target.value)}
-                className={`w-full px-4 py-3 bg-white border-2 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
-                  errors.status ? "border-red-500" : "border-gray-200"
-                }`}
-              >
-                <option value="active">✅ Active</option>
-                <option value="inactive">⏸️ Inactive</option>
-                <option value="maintenance">🔧 Maintenance</option>
-              </select>
-              {errors.status && (
-                <p className="text-red-500 text-sm font-medium">
-                  {errors.status}
-                </p>
-              )}
-            </div>
+          {/* Status */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-2">
+              <Sparkles className="w-4 h-4 text-orange-500" />
+              Status
+              <span className="text-red-500">*</span>
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => handleInputChange("status", e.target.value)}
+              className={`w-full px-4 py-3 bg-white border-2 rounded-2xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 ${
+                errors.status ? "border-red-500" : "border-gray-200"
+              }`}
+            >
+              <option value="active">✅ Active</option>
+              <option value="inactive">⏸️ Inactive</option>
+              <option value="maintenance">🔧 Maintenance</option>
+            </select>
+            {errors.status && (
+              <p className="text-red-500 text-sm font-medium">
+                {errors.status}
+              </p>
+            )}
           </div>
 
           {/* Address */}

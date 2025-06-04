@@ -37,7 +37,6 @@ const FacilityList = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [typeFilter, setTypeFilter] = useState("all");
   const [sortField, setSortField] = useState("name");
   const [sortDirection, setSortDirection] = useState("asc");
 
@@ -97,10 +96,8 @@ const FacilityList = ({
 
       const matchesStatus =
         statusFilter === "all" || facility.status === statusFilter;
-      const matchesType =
-        typeFilter === "all" || facility.facility_type === typeFilter;
 
-      return matchesSearch && matchesStatus && matchesType;
+      return matchesSearch && matchesStatus;
     });
 
     // Sort the filtered results
@@ -121,14 +118,7 @@ const FacilityList = ({
     });
 
     return filtered;
-  }, [
-    facilities,
-    searchTerm,
-    statusFilter,
-    typeFilter,
-    sortField,
-    sortDirection,
-  ]);
+  }, [facilities, searchTerm, statusFilter, sortField, sortDirection]);
 
   return (
     <div className="bg-gradient-to-br from-white via-blue-50/20 to-indigo-50/10 backdrop-blur-sm rounded-3xl border border-white/20 shadow-xl overflow-hidden">
@@ -193,28 +183,6 @@ const FacilityList = ({
                     Maintenance
                   </option>
                 </select>
-
-                <select
-                  value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
-                  className="px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-2xl focus:ring-4 focus:ring-white/20 focus:border-white/50 text-white"
-                >
-                  <option value="all" className="text-gray-900">
-                    All Types
-                  </option>
-                  <option value="gym" className="text-gray-900">
-                    Gym
-                  </option>
-                  <option value="pool" className="text-gray-900">
-                    Pool
-                  </option>
-                  <option value="studio" className="text-gray-900">
-                    Studio
-                  </option>
-                  <option value="court" className="text-gray-900">
-                    Court
-                  </option>
-                </select>
               </div>
 
               {/* Modern Refresh Button */}
@@ -247,12 +215,6 @@ const FacilityList = ({
                   <Building2 className="w-4 h-4 text-blue-500" />
                   Facility Name
                   {getSortIcon("name")}
-                </div>
-              </th>
-              <th className="px-6 py-4 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-purple-500" />
-                  Type
                 </div>
               </th>
               <th
@@ -299,7 +261,7 @@ const FacilityList = ({
           <tbody className="bg-white/70 backdrop-blur-sm divide-y divide-gray-200/50">
             {loading && facilities.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-16 text-center">
+                <td colSpan="6" className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="w-12 h-12 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-4"></div>
                     <p className="text-gray-600 text-lg font-medium">
@@ -313,7 +275,7 @@ const FacilityList = ({
               </tr>
             ) : filteredAndSortedFacilities.length === 0 ? (
               <tr>
-                <td colSpan="7" className="px-6 py-16 text-center">
+                <td colSpan="6" className="px-6 py-16 text-center">
                   <div className="flex flex-col items-center">
                     <div className="p-6 bg-gradient-to-br from-blue-100 to-purple-100 rounded-3xl mb-4">
                       <MapPin size={48} className="text-blue-500" />
@@ -348,11 +310,6 @@ const FacilityList = ({
                         </div>
                       </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-5">
-                    <span className="inline-flex items-center px-3 py-1 rounded-2xl text-xs font-bold bg-gradient-to-r from-purple-100 to-pink-100 text-purple-700 capitalize border border-purple-200">
-                      {facility.facility_type || "General"}
-                    </span>
                   </td>
                   <td className="px-6 py-5">
                     <StatusBadge
