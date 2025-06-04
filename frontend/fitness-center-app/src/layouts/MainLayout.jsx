@@ -27,17 +27,17 @@ const MainLayout = ({ children }) => {
   // Now we can do conditional rendering after all hooks are called
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
         <div className="flex flex-col items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
+          <p className="mt-4 text-gray-600 font-medium">Loading...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex">
       {/* Sidebar */}
       {!isPublicPage && (
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -46,25 +46,29 @@ const MainLayout = ({ children }) => {
       {/* Overlay when sidebar is open on mobile */}
       {!isPublicPage && sidebarOpen && (
         <div
-          className="fixed inset-0 z-10 lg:hidden"
+          className="fixed inset-0 z-40 lg:hidden"
           style={{
-            backgroundColor: "rgba(0, 0, 0, 0.1)",
-            backdropFilter: "blur(4px)",
-            WebkitBackdropFilter: "blur(4px)",
+            backgroundColor: "rgba(0, 0, 0, 0.15)",
+            backdropFilter: "blur(8px)",
+            WebkitBackdropFilter: "blur(8px)",
           }}
           onClick={() => setSidebarOpen(false)}
         ></div>
       )}
 
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      {/* Main content - adjusted for floating sidebar */}
+      <main
+        className={`flex-1 overflow-y-auto transition-all duration-300 ${
+          !isPublicPage ? "lg:ml-80 pb-20 sm:pb-0" : ""
+        }`}
+      >
         {/* Top navigation */}
         {!isPublicPage && (
           <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
         )}
 
-        {/* Page content */}
-        <div className={isPublicPage ? "" : "p-6"}>{children}</div>
+        {/* Page content with proper spacing for floating sidebar */}
+        <div className={isPublicPage ? "" : "p-6 lg:pr-10"}>{children}</div>
       </main>
     </div>
   );
