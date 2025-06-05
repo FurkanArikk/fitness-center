@@ -30,7 +30,7 @@ const MainLayout = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
       {!isPublicPage && (
         <Sidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
@@ -50,7 +50,7 @@ const MainLayout = ({ children }) => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className={`overflow-y-auto transition-all duration-300 ${!isPublicPage ? 'lg:ml-96' : ''}`}>
         {/* Top navigation */}
         {!isPublicPage && (
           <Navbar toggleSidebar={() => setSidebarOpen(!sidebarOpen)} />
