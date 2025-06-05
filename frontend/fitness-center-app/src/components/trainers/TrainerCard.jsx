@@ -1,23 +1,137 @@
 import React, { useMemo } from "react";
-import { Award, ChevronDown, ChevronUp, Calendar, Star } from "lucide-react";
+import {
+  Award,
+  ChevronDown,
+  ChevronUp,
+  Calendar,
+  Star,
+  User,
+} from "lucide-react";
 import Button from "../common/Button";
 import { formatFullName } from "../../utils/formatters";
-import { TrainerAvatar } from "../../utils/avatarGenerator";
 
-// Enhanced array of softer, more subtle card colors with gradients
-const cardColors = [
-  "from-blue-50 to-blue-100 border-blue-100",
-  "from-emerald-50 to-emerald-100 border-emerald-100",
-  "from-amber-50 to-amber-100 border-amber-100",
-  "from-purple-50 to-purple-100 border-purple-100",
-  "from-pink-50 to-pink-100 border-pink-100",
-  "from-indigo-50 to-indigo-100 border-indigo-100",
-  "from-teal-50 to-teal-100 border-teal-100",
-  "from-orange-50 to-orange-100 border-orange-100",
-  "from-cyan-50 to-cyan-100 border-cyan-100",
-  "from-rose-50 to-rose-100 border-rose-100",
-  "from-lime-50 to-lime-100 border-lime-100",
-  "from-violet-50 to-violet-100 border-violet-100",
+// Modern vibrant color schemes inspired by the class cards
+const colorThemes = [
+  {
+    // Blue theme (Body Pump style)
+    card: "from-blue-100 via-blue-200 to-blue-300",
+    border: "border-blue-300",
+    avatar: "from-blue-500 to-blue-700",
+    primaryButton: "from-blue-600 to-blue-800",
+    secondaryButton: "from-blue-500 to-blue-700",
+    accent: "blue",
+    shadow: "shadow-blue-200/50",
+  },
+  {
+    // Green theme (Boxing style)
+    card: "from-emerald-100 via-emerald-200 to-emerald-300",
+    border: "border-emerald-300",
+    avatar: "from-emerald-500 to-emerald-700",
+    primaryButton: "from-emerald-600 to-emerald-800",
+    secondaryButton: "from-emerald-500 to-emerald-700",
+    accent: "emerald",
+    shadow: "shadow-emerald-200/50",
+  },
+  {
+    // Yellow theme (CrossFit style)
+    card: "from-amber-100 via-amber-200 to-amber-300",
+    border: "border-amber-300",
+    avatar: "from-amber-500 to-amber-700",
+    primaryButton: "from-amber-600 to-amber-800",
+    secondaryButton: "from-amber-500 to-amber-700",
+    accent: "amber",
+    shadow: "shadow-amber-200/50",
+  },
+  {
+    // Pink theme (HIIT style)
+    card: "from-pink-100 via-pink-200 to-pink-300",
+    border: "border-pink-300",
+    avatar: "from-pink-500 to-pink-700",
+    primaryButton: "from-pink-600 to-pink-800",
+    secondaryButton: "from-pink-500 to-pink-700",
+    accent: "pink",
+    shadow: "shadow-pink-200/50",
+  },
+  {
+    // Purple theme (Meditation style)
+    card: "from-purple-100 via-purple-200 to-purple-300",
+    border: "border-purple-300",
+    avatar: "from-purple-500 to-purple-700",
+    primaryButton: "from-purple-600 to-purple-800",
+    secondaryButton: "from-purple-500 to-purple-700",
+    accent: "purple",
+    shadow: "shadow-purple-200/50",
+  },
+  {
+    // Orange theme (Pilates style)
+    card: "from-orange-100 via-orange-200 to-orange-300",
+    border: "border-orange-300",
+    avatar: "from-orange-500 to-orange-700",
+    primaryButton: "from-orange-600 to-orange-800",
+    secondaryButton: "from-orange-500 to-orange-700",
+    accent: "orange",
+    shadow: "shadow-orange-200/50",
+  },
+  {
+    // Teal theme (Seniors Fitness style)
+    card: "from-teal-100 via-teal-200 to-teal-300",
+    border: "border-teal-300",
+    avatar: "from-teal-500 to-teal-700",
+    primaryButton: "from-teal-600 to-teal-800",
+    secondaryButton: "from-teal-500 to-teal-700",
+    accent: "teal",
+    shadow: "shadow-teal-200/50",
+  },
+  {
+    // Indigo theme (Spin Class style)
+    card: "from-indigo-100 via-indigo-200 to-indigo-300",
+    border: "border-indigo-300",
+    avatar: "from-indigo-500 to-indigo-700",
+    primaryButton: "from-indigo-600 to-indigo-800",
+    secondaryButton: "from-indigo-500 to-indigo-700",
+    accent: "indigo",
+    shadow: "shadow-indigo-200/50",
+  },
+  {
+    // Rose theme
+    card: "from-rose-100 via-rose-200 to-rose-300",
+    border: "border-rose-300",
+    avatar: "from-rose-500 to-rose-700",
+    primaryButton: "from-rose-600 to-rose-800",
+    secondaryButton: "from-rose-500 to-rose-700",
+    accent: "rose",
+    shadow: "shadow-rose-200/50",
+  },
+  {
+    // Cyan theme
+    card: "from-cyan-100 via-cyan-200 to-cyan-300",
+    border: "border-cyan-300",
+    avatar: "from-cyan-500 to-cyan-700",
+    primaryButton: "from-cyan-600 to-cyan-800",
+    secondaryButton: "from-cyan-500 to-cyan-700",
+    accent: "cyan",
+    shadow: "shadow-cyan-200/50",
+  },
+  {
+    // Lime theme
+    card: "from-lime-100 via-lime-200 to-lime-300",
+    border: "border-lime-300",
+    avatar: "from-lime-500 to-lime-700",
+    primaryButton: "from-lime-600 to-lime-800",
+    secondaryButton: "from-lime-500 to-lime-700",
+    accent: "lime",
+    shadow: "shadow-lime-200/50",
+  },
+  {
+    // Violet theme
+    card: "from-violet-100 via-violet-200 to-violet-300",
+    border: "border-violet-300",
+    avatar: "from-violet-500 to-violet-700",
+    primaryButton: "from-violet-600 to-violet-800",
+    secondaryButton: "from-violet-500 to-violet-700",
+    accent: "violet",
+    shadow: "shadow-violet-200/50",
+  },
 ];
 
 const TrainerCard = ({
@@ -29,13 +143,29 @@ const TrainerCard = ({
 }) => {
   if (!trainer) return null;
 
-  // Select enhanced colors based on the trainer's index
-  const cardColorScheme = useMemo(() => {
-    return cardColors[index % cardColors.length];
-  }, [index]);
+  // Dynamic color theme selection based on trainer ID for consistency
+  const colorTheme = useMemo(() => {
+    const trainerId = trainer.trainer_id || trainer.id || 0;
+    const themeIndex = (parseInt(trainerId) + index) % colorThemes.length;
+    return colorThemes[themeIndex];
+  }, [trainer.trainer_id, trainer.id, index]);
 
   // Get consistent trainer ID for both profile and classes
   const trainerId = trainer.trainer_id || trainer.id;
+
+  // Generate trainer initials and display ID
+  const getTrainerInitials = () => {
+    if (trainer.staff && trainer.staff.first_name && trainer.staff.last_name) {
+      const firstName = trainer.staff.first_name.trim();
+      const lastName = trainer.staff.last_name.trim();
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    }
+    return `T${trainerId.toString().slice(-1)}`;
+  };
+
+  const getTrainerDisplayId = () => {
+    return `T${trainerId.toString().padStart(2, "0")}`;
+  };
 
   // Check if this card's profile is currently expanded
   const isProfileExpanded = expanded === "profile";
@@ -150,125 +280,197 @@ const TrainerCard = ({
 
   return (
     <div
-      className={`bg-gradient-to-br ${cardColorScheme} rounded-2xl shadow-lg hover:shadow-xl border-2 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 overflow-hidden backdrop-blur-sm`}
+      className={`group bg-gradient-to-br ${colorTheme.card} ${colorTheme.border} border-2 rounded-3xl ${colorTheme.shadow} shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-3 overflow-hidden backdrop-blur-sm relative`}
+      style={{
+        boxShadow: `
+          0 25px 50px -12px rgba(0, 0, 0, 0.15),
+          0 0 0 1px rgba(255, 255, 255, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3)
+        `,
+      }}
     >
-      {/* Card Header - Always visible with enhanced styling */}
-      <div className="p-6 relative">
-        {/* Subtle pattern overlay */}
-        <div className="absolute inset-0 bg-white/10 rounded-t-2xl"></div>
+      {/* Decorative gradient orbs */}
+      <div className="absolute -top-6 -right-6 w-32 h-32 bg-gradient-to-br from-white/30 to-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700"></div>
+      <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-gradient-to-tr from-white/20 to-white/5 rounded-full blur-xl"></div>
 
-        <div className="relative flex items-center gap-5">
+      {/* Card Header */}
+      <div className="relative p-8">
+        <div className="flex items-center gap-6">
+          {/* Modern Avatar with Dynamic Gradient Background */}
           <div className="relative">
-            <TrainerAvatar
-              trainer={trainer}
-              size="w-20 h-20"
-              className="flex-shrink-0 border-4 border-white shadow-xl ring-4 ring-white/30 rounded-2xl backdrop-blur-sm"
-              showIcon={true}
-            />
-            {/* Status indicator */}
+            <div
+              className={`w-28 h-28 bg-gradient-to-br ${colorTheme.avatar} rounded-3xl flex flex-col items-center justify-center text-white font-black shadow-2xl ring-4 ring-white/40 backdrop-blur-sm group-hover:scale-110 transition-all duration-300 group-hover:rotate-2`}
+              style={{
+                boxShadow: `
+                  0 20px 25px -5px rgba(0, 0, 0, 0.2),
+                  0 10px 10px -5px rgba(0, 0, 0, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.2)
+                `,
+              }}
+            >
+              <div className="text-xl leading-none font-black">
+                {getTrainerInitials()}
+              </div>
+              <div className="text-sm font-bold opacity-90 mt-1">
+                {getTrainerDisplayId()}
+              </div>
+            </div>
+
+            {/* Active/Online Status Badge */}
             {trainer.is_active !== undefined && (
               <div
-                className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-3 border-white shadow-md ${
-                  trainer.is_active ? "bg-emerald-400" : "bg-gray-400"
+                className={`absolute -top-2 -right-2 w-8 h-8 rounded-full border-4 border-white shadow-xl transition-all duration-300 ${
+                  trainer.is_active
+                    ? "bg-gradient-to-br from-emerald-400 to-emerald-600"
+                    : "bg-gradient-to-br from-gray-400 to-gray-600"
                 }`}
-              ></div>
+                style={{
+                  boxShadow: trainer.is_active
+                    ? "0 0 20px rgba(16, 185, 129, 0.5), 0 0 40px rgba(16, 185, 129, 0.2)"
+                    : "0 4px 8px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                {trainer.is_active && (
+                  <div className="w-full h-full rounded-full bg-emerald-400/30 animate-ping"></div>
+                )}
+              </div>
             )}
           </div>
 
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-xl text-gray-800 mb-1 truncate">
+            <h3 className="font-black text-2xl text-gray-800 mb-3 truncate group-hover:text-gray-900 transition-colors">
               {trainerName}
             </h3>
+
             {trainer.specialization && (
-              <p className="text-sm text-gray-700 font-semibold capitalize mb-2 bg-white/50 rounded-full px-3 py-1 inline-block">
-                {trainer.specialization} Specialist
-              </p>
+              <div className="mb-4">
+                <span className="inline-flex items-center px-4 py-2 text-sm font-bold text-gray-700 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border border-white/60 hover:bg-white transition-all duration-300">
+                  <Award
+                    size={16}
+                    className={`mr-2 text-${colorTheme.accent}-600`}
+                  />
+                  {trainer.specialization} Specialist
+                </span>
+              </div>
             )}
+
             {trainer.rating && (
-              <div className="flex items-center gap-2 bg-gradient-to-r from-amber-400 to-yellow-500 text-white rounded-full px-3 py-1.5 shadow-md">
-                <Star size={16} fill="currentColor" />
-                <span className="font-bold text-sm">{trainer.rating}</span>
-                <span className="text-xs opacity-90">fitness rating</span>
+              <div
+                className="inline-flex items-center gap-3 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 text-white rounded-2xl px-5 py-3 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
+                style={{
+                  boxShadow: "0 10px 25px -5px rgba(245, 158, 11, 0.4)",
+                }}
+              >
+                <Star
+                  size={20}
+                  fill="currentColor"
+                  className="drop-shadow-lg"
+                />
+                <span className="font-black text-lg">{trainer.rating}</span>
+                <span className="text-sm font-semibold opacity-95">
+                  fitness rating
+                </span>
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Card Footer - Enhanced button styling */}
-      <div className="px-6 pb-6">
-        <div className="flex gap-3">
-          <Button
-            variant={isProfileExpanded ? "secondary" : "primary"}
-            size="sm"
-            className={`flex-1 flex items-center justify-center gap-2 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:shadow-xl ${
-              isProfileExpanded
-                ? "bg-white/80 text-gray-700 border-2 border-gray-200 hover:bg-white"
-                : "bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white border-0"
-            }`}
+      {/* Enhanced Action Buttons */}
+      <div className="relative px-8 pb-8">
+        <div className="flex gap-5">
+          <button
             onClick={toggleProfile}
-          >
-            Profile
-            {isProfileExpanded ? (
-              <ChevronUp size={16} />
-            ) : (
-              <ChevronDown size={16} />
-            )}
-          </Button>
-          <Button
-            variant={isClassesExpanded ? "secondary" : "primary"}
-            size="sm"
-            className={`flex-1 flex items-center justify-center gap-2 rounded-xl font-semibold shadow-lg transition-all duration-200 hover:shadow-xl ${
-              isClassesExpanded
-                ? "bg-white/80 text-gray-700 border-2 border-gray-200 hover:bg-white"
-                : "bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white border-0"
+            className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] ${
+              isProfileExpanded
+                ? "bg-white/95 text-gray-700 border-2 border-white/80 shadow-inner"
+                : `bg-gradient-to-r ${colorTheme.primaryButton} text-white border-0`
             }`}
-            onClick={toggleClasses}
+            style={{
+              boxShadow: isProfileExpanded
+                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
+                : "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+            }}
           >
-            <Calendar size={16} />
-            Classes
+            <User size={18} className="drop-shadow-lg" />
+            <span className="font-black">Profile</span>
+            <div
+              className={`transition-transform duration-300 ${
+                isProfileExpanded ? "rotate-180" : ""
+              }`}
+            >
+              <ChevronDown size={18} />
+            </div>
+          </button>
+
+          <button
+            onClick={toggleClasses}
+            className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] ${
+              isClassesExpanded
+                ? "bg-white/95 text-gray-700 border-2 border-white/80 shadow-inner"
+                : `bg-gradient-to-r ${colorTheme.secondaryButton} text-white border-0`
+            }`}
+            style={{
+              boxShadow: isClassesExpanded
+                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
+                : "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+            }}
+          >
+            <Calendar size={18} className="drop-shadow-lg" />
+            <span className="font-black">Classes</span>
             {trainerClasses.length > 0 && (
-              <span className="bg-white/30 rounded-full px-2 py-0.5 text-xs font-bold">
+              <div className="bg-white/40 backdrop-blur-sm rounded-xl px-3 py-1 text-sm font-black shadow-lg border border-white/30">
                 {trainerClasses.length}
-              </span>
+              </div>
             )}
-          </Button>
+            <div
+              className={`transition-transform duration-300 ${
+                isClassesExpanded ? "rotate-180" : ""
+              }`}
+            >
+              <ChevronDown size={18} />
+            </div>
+          </button>
         </div>
       </div>
 
-      {/* Expandable Profile Details Section - Enhanced styling with scrolling */}
+      {/* Expandable Profile Details Section */}
       <div
-        className={`overflow-hidden transition-all duration-500 ease-out bg-white/90 backdrop-blur-md border-t-2 border-white/50
+        className={`overflow-hidden transition-all duration-700 ease-out bg-white/95 backdrop-blur-xl border-t-2 border-white/80 shadow-inner
           ${
-            isProfileExpanded ? "max-h-[400px] py-6 px-6" : "max-h-0 py-0 px-6"
+            isProfileExpanded ? "max-h-[500px] py-6 px-8" : "max-h-0 py-0 px-8"
           }`}
       >
-        {/* Only render content when expanded for better performance */}
         {isProfileExpanded && (
-          <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-            <div className="space-y-4 pr-2">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-lg flex items-center justify-center">
-                  <Award size={16} className="text-white" />
+          <div className="h-full max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500 pr-2">
+            <div className="space-y-6">
+              <div className="flex items-center gap-4 mb-6">
+                <div
+                  className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-2xl flex items-center justify-center shadow-lg`}
+                >
+                  <Award size={24} className="text-white drop-shadow-lg" />
                 </div>
-                <h4 className="font-bold text-lg text-gray-900">
+                <h4 className="font-black text-2xl text-gray-900">
                   Trainer Details
                 </h4>
               </div>
 
-              <div className="grid gap-3">
-                {/* Standard fields if available */}
+              <div className="grid gap-5">
                 {trainer.certification && (
-                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-150">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-blue-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Award size={12} className="text-white" />
+                  <div
+                    className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border border-${colorTheme.accent}-200 shadow-lg hover:shadow-xl transition-all duration-300`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-10 h-10 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg`}
+                      >
+                        <Award size={18} className="text-white" />
                       </div>
                       <div>
-                        <span className="font-semibold text-gray-700 block">
+                        <span className="font-black text-gray-800 block text-lg">
                           Certification
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-gray-700 font-semibold">
                           {trainer.certification}
                         </span>
                       </div>
@@ -277,16 +479,20 @@ const TrainerCard = ({
                 )}
 
                 {trainer.experience && (
-                  <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-150">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Star size={12} className="text-white" />
+                  <div
+                    className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border border-${colorTheme.accent}-200 shadow-lg hover:shadow-xl transition-all duration-300`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div
+                        className={`w-10 h-10 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg`}
+                      >
+                        <Star size={18} className="text-white" />
                       </div>
                       <div>
-                        <span className="font-semibold text-gray-700 block">
+                        <span className="font-black text-gray-800 block text-lg">
                           Experience
                         </span>
-                        <span className="text-gray-600">
+                        <span className="text-gray-700 font-semibold">
                           {trainer.experience} years
                         </span>
                       </div>
@@ -298,17 +504,17 @@ const TrainerCard = ({
                 {trainerFields.map(({ key, value }) => (
                   <div
                     key={key}
-                    className="bg-gradient-to-r from-gray-50 to-slate-50 rounded-xl p-4 border border-gray-150"
+                    className="bg-gradient-to-r from-gray-50 via-slate-50 to-gray-100 rounded-2xl p-5 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300"
                   >
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 bg-gray-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <div className="w-2 h-2 bg-white rounded-full"></div>
+                    <div className="flex items-start gap-4">
+                      <div className="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg">
+                        <div className="w-3 h-3 bg-white rounded-full"></div>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <span className="font-semibold text-gray-700 block">
+                        <span className="font-black text-gray-800 block text-lg">
                           {key}
                         </span>
-                        <span className="text-gray-600 break-words">
+                        <span className="text-gray-600 font-medium break-words">
                           {typeof value === "object"
                             ? JSON.stringify(value)
                             : value}
@@ -323,40 +529,43 @@ const TrainerCard = ({
         )}
       </div>
 
-      {/* Expandable Classes Section - Enhanced styling */}
+      {/* Expandable Classes Section */}
       <div
-        className={`overflow-hidden transition-all duration-500 ease-out bg-white/90 backdrop-blur-md border-t-2 border-white/50
+        className={`overflow-hidden transition-all duration-700 ease-out bg-white/95 backdrop-blur-xl border-t-2 border-white/80 shadow-inner
           ${
-            isClassesExpanded ? "max-h-[600px] py-6 px-6" : "max-h-0 py-0 px-6"
+            isClassesExpanded ? "max-h-[700px] py-8 px-8" : "max-h-0 py-0 px-8"
           }`}
       >
-        {/* Only render content when expanded for better performance */}
         {isClassesExpanded && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
-                <Calendar size={16} className="text-white" />
+          <div className="space-y-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div
+                className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-2xl flex items-center justify-center shadow-lg`}
+              >
+                <Calendar size={24} className="text-white drop-shadow-lg" />
               </div>
-              <h4 className="font-bold text-lg text-gray-900">
+              <h4 className="font-black text-2xl text-gray-900">
                 Classes Schedule
               </h4>
-              <span className="bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 px-3 py-1 rounded-full text-sm font-semibold">
+              <div
+                className={`bg-gradient-to-r from-${colorTheme.accent}-100 via-${colorTheme.accent}-200 to-${colorTheme.accent}-100 text-${colorTheme.accent}-800 px-5 py-2 rounded-2xl text-sm font-black shadow-lg border border-${colorTheme.accent}-300`}
+              >
                 {trainerClasses.length}{" "}
                 {trainerClasses.length === 1 ? "class" : "classes"}
-              </span>
+              </div>
             </div>
 
             {trainerClasses.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Calendar size={24} className="text-gray-400" />
+              <div className="text-center py-16">
+                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                  <Calendar size={36} className="text-gray-400" />
                 </div>
-                <p className="text-gray-500 font-medium">
+                <p className="text-gray-500 font-semibold text-xl">
                   No classes assigned to this trainer
                 </p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {Object.entries(groupedClasses)
                   .sort(([a], [b]) => {
                     const days = [
@@ -373,33 +582,35 @@ const TrainerCard = ({
                   .map(([day, classes]) => (
                     <div
                       key={day}
-                      className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border-l-4 border-blue-500"
+                      className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border-l-4 border-${colorTheme.accent}-500 shadow-lg hover:shadow-xl transition-all duration-300`}
                     >
-                      <h5 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <h5 className="font-black text-gray-800 mb-4 flex items-center gap-3 text-xl">
+                        <div
+                          className={`w-5 h-5 bg-gradient-to-br ${colorTheme.avatar} rounded-full shadow-lg`}
+                        ></div>
                         {day}
                       </h5>
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         {classes.map((classSchedule) => (
                           <div
                             key={classSchedule.schedule_id}
-                            className="bg-white/80 backdrop-blur-sm rounded-xl p-4 shadow-sm border border-white/50 hover:shadow-md transition-shadow"
+                            className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-300"
                           >
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="font-semibold text-gray-900">
+                            <div className="flex items-center justify-between mb-3">
+                              <div className="font-black text-gray-900 text-lg">
                                 {classSchedule.class_name ||
                                   `Class #${classSchedule.class_id}`}
                               </div>
                               {classSchedule.status && (
                                 <div
-                                  className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                  className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-black shadow-lg ${
                                     classSchedule.status === "active"
-                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                      : "bg-red-100 text-red-800 border border-red-200"
+                                      ? "bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 border border-emerald-300"
+                                      : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300"
                                   }`}
                                 >
                                   <div
-                                    className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                    className={`w-2.5 h-2.5 rounded-full mr-2 shadow-sm ${
                                       classSchedule.status === "active"
                                         ? "bg-emerald-500"
                                         : "bg-red-500"
@@ -409,11 +620,15 @@ const TrainerCard = ({
                                 </div>
                               )}
                             </div>
-                            <div className="flex items-center gap-1 text-gray-600">
-                              <div className="w-4 h-4 bg-blue-100 rounded flex items-center justify-center">
-                                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <div className="flex items-center gap-3 text-gray-600">
+                              <div
+                                className={`w-6 h-6 bg-gradient-to-br from-${colorTheme.accent}-100 to-${colorTheme.accent}-200 rounded-lg flex items-center justify-center shadow-sm`}
+                              >
+                                <div
+                                  className={`w-3 h-3 bg-${colorTheme.accent}-500 rounded-full`}
+                                ></div>
                               </div>
-                              <span className="text-sm">
+                              <span className="font-bold text-lg">
                                 {formatTime(classSchedule.start_time)} -{" "}
                                 {formatTime(classSchedule.end_time)}
                               </span>

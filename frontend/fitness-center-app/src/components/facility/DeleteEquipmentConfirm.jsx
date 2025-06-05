@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import Button from '../common/Button';
+import React, { useState } from "react";
+import { AlertTriangle } from "lucide-react";
+import Button from "../common/Button";
 
-const DeleteEquipmentConfirm = ({ 
-  isOpen, 
-  onClose, 
-  onConfirm, 
-  equipment, 
-  isLoading = false 
+const DeleteEquipmentConfirm = ({
+  isOpen,
+  onClose,
+  onConfirm,
+  equipment,
+  isLoading = false,
 }) => {
   const [deleting, setDeleting] = useState(false);
 
@@ -16,7 +16,7 @@ const DeleteEquipmentConfirm = ({
     try {
       await onConfirm();
     } catch (error) {
-      console.error('Error deleting equipment:', error);
+      console.error("Error deleting equipment:", error);
     } finally {
       setDeleting(false);
     }
@@ -25,12 +25,12 @@ const DeleteEquipmentConfirm = ({
   if (!isOpen || !equipment) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
       style={{
-        backgroundColor: 'rgba(0, 0, 0, 0.1)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)'
+        backgroundColor: "rgba(0, 0, 0, 0.1)",
+        backdropFilter: "blur(4px)",
+        WebkitBackdropFilter: "blur(4px)",
       }}
     >
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
@@ -47,8 +47,9 @@ const DeleteEquipmentConfirm = ({
 
           {/* Message */}
           <p className="text-sm text-gray-600 text-center mb-6">
-            Are you sure you want to delete "<span className="font-medium text-gray-900">{equipment.name}</span>"? 
-            This action cannot be undone.
+            Are you sure you want to delete "
+            <span className="font-medium text-gray-900">{equipment.name}</span>
+            "? This action cannot be undone.
           </p>
 
           {/* Equipment Details */}
@@ -56,26 +57,36 @@ const DeleteEquipmentConfirm = ({
             <div className="text-sm">
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Name:</span>
-                <span className="font-medium text-gray-900">{equipment.name}</span>
+                <span className="font-medium text-gray-900">
+                  {equipment.name}
+                </span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Category:</span>
-                <span className="font-medium text-gray-900 capitalize">{equipment.category || 'N/A'}</span>
+                <span className="font-medium text-gray-900 capitalize">
+                  {equipment.category || "N/A"}
+                </span>
               </div>
               <div className="flex justify-between mb-2">
                 <span className="text-gray-600">Status:</span>
-                <span className="font-medium text-gray-900 capitalize">{equipment.status || 'N/A'}</span>
+                <span className="font-medium text-gray-900 capitalize">
+                  {equipment.status || "N/A"}
+                </span>
               </div>
               {equipment.brand && (
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Brand:</span>
-                  <span className="font-medium text-gray-900">{equipment.brand}</span>
+                  <span className="font-medium text-gray-900">
+                    {equipment.brand}
+                  </span>
                 </div>
               )}
               {equipment.model && (
                 <div className="flex justify-between">
                   <span className="text-gray-600">Model:</span>
-                  <span className="font-medium text-gray-900">{equipment.model}</span>
+                  <span className="font-medium text-gray-900">
+                    {equipment.model}
+                  </span>
                 </div>
               )}
             </div>
@@ -83,11 +94,7 @@ const DeleteEquipmentConfirm = ({
 
           {/* Actions */}
           <div className="flex justify-end gap-3">
-            <Button
-              variant="outline"
-              onClick={onClose}
-              disabled={deleting}
-            >
+            <Button variant="outline" onClick={onClose} disabled={deleting}>
               Cancel
             </Button>
             <Button
@@ -96,7 +103,7 @@ const DeleteEquipmentConfirm = ({
               disabled={deleting}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {deleting ? 'Deleting...' : 'Delete Equipment'}
+              {deleting ? "Deleting..." : "Delete Equipment"}
             </Button>
           </div>
         </div>

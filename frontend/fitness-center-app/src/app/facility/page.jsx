@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Plus, MapPin, Wrench, Users } from 'lucide-react';
-import Button from '@/components/common/Button';
-import Loader from '@/components/common/Loader';
-import FacilityList from '@/components/facility/FacilityList';
-import EquipmentList from '@/components/facility/EquipmentList';
-import AttendanceList from '@/components/facility/AttendanceList';
-import FacilityAnalytics from '@/components/facility/FacilityAnalytics';
-import FacilityModal from '@/components/facility/FacilityModal';
-import EquipmentModal from '@/components/facility/EquipmentModal';
-import CheckInModal from '@/components/facility/CheckInModal';
-import AttendanceModal from '@/components/facility/AttendanceModal';
-import DeleteFacilityConfirm from '@/components/facility/DeleteFacilityConfirm';
-import DeleteEquipmentConfirm from '@/components/facility/DeleteEquipmentConfirm';
-import DeleteAttendanceConfirm from '@/components/facility/DeleteAttendanceConfirm';
-import { facilityService, memberService } from '@/api';
+import React, { useState, useEffect } from "react";
+import { Plus, MapPin, Wrench, Users, Sparkles } from "lucide-react";
+import Button from "@/components/common/Button";
+import Loader from "@/components/common/Loader";
+import FacilityList from "@/components/facility/FacilityList";
+import EquipmentList from "@/components/facility/EquipmentList";
+import AttendanceList from "@/components/facility/AttendanceList";
+import FacilityAnalytics from "@/components/facility/FacilityAnalytics";
+import FacilityModal from "@/components/facility/FacilityModal";
+import EquipmentModal from "@/components/facility/EquipmentModal";
+import CheckInModal from "@/components/facility/CheckInModal";
+import AttendanceModal from "@/components/facility/AttendanceModal";
+import DeleteFacilityConfirm from "@/components/facility/DeleteFacilityConfirm";
+import DeleteEquipmentConfirm from "@/components/facility/DeleteEquipmentConfirm";
+import DeleteAttendanceConfirm from "@/components/facility/DeleteAttendanceConfirm";
+import { facilityService, memberService } from "@/api";
 
 const Facility = () => {
   const [facilities, setFacilities] = useState([]);
@@ -27,26 +27,29 @@ const Facility = () => {
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [membersLoading, setMembersLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('facilities'); // 'facilities', 'equipment', or 'attendance'
+  const [activeTab, setActiveTab] = useState("facilities"); // 'facilities', 'equipment', or 'attendance'
 
   // Facility Modal states
   const [showFacilityModal, setShowFacilityModal] = useState(false);
-  const [showDeleteFacilityConfirm, setShowDeleteFacilityConfirm] = useState(false);
+  const [showDeleteFacilityConfirm, setShowDeleteFacilityConfirm] =
+    useState(false);
   const [selectedFacility, setSelectedFacility] = useState(null);
-  const [facilityModalMode, setFacilityModalMode] = useState('add');
+  const [facilityModalMode, setFacilityModalMode] = useState("add");
 
   // Equipment Modal states
   const [showEquipmentModal, setShowEquipmentModal] = useState(false);
-  const [showDeleteEquipmentConfirm, setShowDeleteEquipmentConfirm] = useState(false);
+  const [showDeleteEquipmentConfirm, setShowDeleteEquipmentConfirm] =
+    useState(false);
   const [selectedEquipment, setSelectedEquipment] = useState(null);
-  const [equipmentModalMode, setEquipmentModalMode] = useState('add');
+  const [equipmentModalMode, setEquipmentModalMode] = useState("add");
 
   // Attendance Modal states
   const [showCheckInModal, setShowCheckInModal] = useState(false);
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
-  const [showDeleteAttendanceConfirm, setShowDeleteAttendanceConfirm] = useState(false);
+  const [showDeleteAttendanceConfirm, setShowDeleteAttendanceConfirm] =
+    useState(false);
   const [selectedAttendance, setSelectedAttendance] = useState(null);
-  const [attendanceModalMode, setAttendanceModalMode] = useState('add');
+  const [attendanceModalMode, setAttendanceModalMode] = useState("add");
 
   // Pagination states
   const [facilityPage, setFacilityPage] = useState(1);
@@ -60,12 +63,45 @@ const Facility = () => {
   const [attendanceTotalCount, setAttendanceTotalCount] = useState(0);
   const pageSize = 10;
 
+  // Load complete datasets for analytics on component mount
   useEffect(() => {
-    if (activeTab === 'facilities') {
+    const loadCompleteData = async () => {
+      setLoading(true);
+      try {
+        console.log("🔄 Loading complete datasets for analytics...");
+
+        // Fetch all data in parallel for analytics
+        const [facilitiesData, equipmentData] = await Promise.all([
+          facilityService.getAllFacilities(),
+          facilityService.getAllEquipment(),
+        ]);
+
+        console.log("✅ Complete data loaded:", {
+          facilities: facilitiesData.length,
+          equipment: equipmentData.length,
+        });
+
+        setFacilities(facilitiesData);
+        setEquipment(equipmentData);
+        setError(null);
+      } catch (err) {
+        setError("Failed to load complete facility data");
+        console.error("❌ Error loading complete data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadCompleteData();
+  }, []);
+
+  // Load paginated data based on active tab
+  useEffect(() => {
+    if (activeTab === "facilities") {
       fetchFacilities();
-    } else if (activeTab === 'equipment') {
+    } else if (activeTab === "equipment") {
       fetchEquipment();
-    } else if (activeTab === 'attendance') {
+    } else if (activeTab === "attendance") {
       // Ensure both facilities and members are loaded for attendance tab
       if (facilities.length === 0) {
         fetchFacilities();
@@ -82,14 +118,16 @@ const Facility = () => {
     setMembersLoading(true);
     try {
       const response = await memberService.getAllMembers();
-      console.log('Members API Response:', response);
+      console.log("Members API Response:", response);
       // Handle both array response and object with members array
-      const membersData = Array.isArray(response) ? response : (response.members || []);
+      const membersData = Array.isArray(response)
+        ? response
+        : response.members || [];
       setMembers(membersData);
       setError(null);
     } catch (err) {
       setError("Failed to load members data");
-      console.error('Error fetching members:', err);
+      console.error("Error fetching members:", err);
       setMembers([]);
     } finally {
       setMembersLoading(false);
@@ -99,15 +137,18 @@ const Facility = () => {
   const fetchFacilities = async () => {
     setLoading(true);
     try {
-      const response = await facilityService.getFacilities(facilityPage, pageSize);
-      console.log('Facilities API Response:', response);
+      const response = await facilityService.getFacilities(
+        facilityPage,
+        pageSize
+      );
+      console.log("Facilities API Response:", response);
       setFacilities(response.data || []);
       setFacilityTotalPages(response.totalPages || 1);
       setFacilityTotalCount(response.totalItems || 0);
       setError(null);
     } catch (err) {
       setError("Failed to load facility data");
-      console.error('Error fetching facilities:', err);
+      console.error("Error fetching facilities:", err);
     } finally {
       setLoading(false);
     }
@@ -116,15 +157,18 @@ const Facility = () => {
   const fetchEquipment = async () => {
     setEquipmentLoading(true);
     try {
-      const response = await facilityService.getEquipment(equipmentPage, pageSize);
-      console.log('Equipment API Response:', response);
+      const response = await facilityService.getEquipment(
+        equipmentPage,
+        pageSize
+      );
+      console.log("Equipment API Response:", response);
       setEquipment(response.data || []);
       setEquipmentTotalPages(response.totalPages || 1);
       setEquipmentTotalCount(response.totalItems || 0);
       setError(null);
     } catch (err) {
       setError("Failed to load equipment data");
-      console.error('Error fetching equipment:', err);
+      console.error("Error fetching equipment:", err);
     } finally {
       setEquipmentLoading(false);
     }
@@ -133,28 +177,39 @@ const Facility = () => {
   const fetchAttendance = async () => {
     setAttendanceLoading(true);
     try {
-      const response = await facilityService.getAllAttendance(attendancePage, pageSize);
-      console.log('Attendance API Response:', response);
-      
+      const response = await facilityService.getAllAttendance(
+        attendancePage,
+        pageSize
+      );
+      console.log("Attendance API Response:", response);
+
       // Enrich attendance data with member and facility names
-      const enrichedAttendance = (response.data || []).map(record => {
-        const member = members.find(m => (m.member_id || m.id) === record.member_id);
-        const facility = facilities.find(f => (f.facility_id || f.id) === record.facility_id);
-        
+      const enrichedAttendance = (response.data || []).map((record) => {
+        const member = members.find(
+          (m) => (m.member_id || m.id) === record.member_id
+        );
+        const facility = facilities.find(
+          (f) => (f.facility_id || f.id) === record.facility_id
+        );
+
         return {
           ...record,
-          member_name: member ? `${member.first_name} ${member.last_name}` : `Member ${record.member_id}`,
-          facility_name: facility ? facility.name : `Facility ${record.facility_id}`
+          member_name: member
+            ? `${member.first_name} ${member.last_name}`
+            : `Member ${record.member_id}`,
+          facility_name: facility
+            ? facility.name
+            : `Facility ${record.facility_id}`,
         };
       });
-      
+
       setAttendance(enrichedAttendance);
       setAttendanceTotalPages(response.totalPages || 1);
       setAttendanceTotalCount(response.totalItems || 0);
       setError(null);
     } catch (err) {
       setError("Failed to load attendance data");
-      console.error('Error fetching attendance:', err);
+      console.error("Error fetching attendance:", err);
     } finally {
       setAttendanceLoading(false);
     }
@@ -163,13 +218,13 @@ const Facility = () => {
   // Facility handlers
   const handleAddFacility = () => {
     setSelectedFacility(null);
-    setFacilityModalMode('add');
+    setFacilityModalMode("add");
     setShowFacilityModal(true);
   };
 
   const handleEditFacility = (facility) => {
     setSelectedFacility(facility);
-    setFacilityModalMode('edit');
+    setFacilityModalMode("edit");
     setShowFacilityModal(true);
   };
 
@@ -180,18 +235,23 @@ const Facility = () => {
 
   const handleFacilitySaved = async (facilityData) => {
     try {
-      console.log('Facility data received:', facilityData);
-      console.log('Facility modal mode:', facilityModalMode);
-      
-      if (facilityModalMode === 'add') {
+      console.log("Facility data received:", facilityData);
+      console.log("Facility modal mode:", facilityModalMode);
+
+      if (facilityModalMode === "add") {
         await facilityService.createFacility(facilityData);
       } else {
-        await facilityService.updateFacility(selectedFacility.facility_id, facilityData);
+        await facilityService.updateFacility(
+          selectedFacility.facility_id,
+          facilityData
+        );
       }
       setShowFacilityModal(false);
-      await fetchFacilities();
+
+      // Refresh both paginated and complete data
+      await Promise.all([fetchFacilities(), loadCompleteData()]);
     } catch (err) {
-      console.error('Error saving facility:', err);
+      console.error("Error saving facility:", err);
       throw err;
     }
   };
@@ -200,9 +260,11 @@ const Facility = () => {
     try {
       await facilityService.deleteFacility(selectedFacility.facility_id);
       setShowDeleteFacilityConfirm(false);
-      await fetchFacilities();
+
+      // Refresh both paginated and complete data
+      await Promise.all([fetchFacilities(), loadCompleteData()]);
     } catch (err) {
-      console.error('Error deleting facility:', err);
+      console.error("Error deleting facility:", err);
       throw err;
     }
   };
@@ -210,20 +272,20 @@ const Facility = () => {
   // Equipment handlers
   const handleAddEquipment = () => {
     setSelectedEquipment(null);
-    setEquipmentModalMode('add');
+    setEquipmentModalMode("add");
     // Ensure facilities are loaded for the equipment modal
     if (facilities.length === 0) {
-      fetchFacilities();
+      loadCompleteData();
     }
     setShowEquipmentModal(true);
   };
 
   const handleEditEquipment = (equipment) => {
     setSelectedEquipment(equipment);
-    setEquipmentModalMode('edit');
+    setEquipmentModalMode("edit");
     // Ensure facilities are loaded for the equipment modal
     if (facilities.length === 0) {
-      fetchFacilities();
+      loadCompleteData();
     }
     setShowEquipmentModal(true);
   };
@@ -235,18 +297,23 @@ const Facility = () => {
 
   const handleEquipmentSaved = async (equipmentData) => {
     try {
-      console.log('Equipment data received:', equipmentData);
-      console.log('Equipment modal mode:', equipmentModalMode);
-      
-      if (equipmentModalMode === 'add') {
+      console.log("Equipment data received:", equipmentData);
+      console.log("Equipment modal mode:", equipmentModalMode);
+
+      if (equipmentModalMode === "add") {
         await facilityService.createEquipment(equipmentData);
       } else {
-        await facilityService.updateEquipment(selectedEquipment.equipment_id, equipmentData);
+        await facilityService.updateEquipment(
+          selectedEquipment.equipment_id,
+          equipmentData
+        );
       }
       setShowEquipmentModal(false);
-      await fetchEquipment();
+
+      // Refresh both paginated and complete data
+      await Promise.all([fetchEquipment(), loadCompleteData()]);
     } catch (err) {
-      console.error('Error saving equipment:', err);
+      console.error("Error saving equipment:", err);
       throw err;
     }
   };
@@ -255,28 +322,22 @@ const Facility = () => {
     try {
       await facilityService.deleteEquipment(selectedEquipment.equipment_id);
       setShowDeleteEquipmentConfirm(false);
-      await fetchEquipment();
+
+      // Refresh both paginated and complete data
+      await Promise.all([fetchEquipment(), loadCompleteData()]);
     } catch (err) {
-      console.error('Error deleting equipment:', err);
+      console.error("Error deleting equipment:", err);
       throw err;
     }
-  };
-
-  const handleFacilityPageChange = (page) => {
-    setFacilityPage(page);
-  };
-
-  const handleEquipmentPageChange = (page) => {
-    setEquipmentPage(page);
   };
 
   // Attendance handlers
   const handleAddAttendance = () => {
     setSelectedAttendance(null);
-    setAttendanceModalMode('add');
+    setAttendanceModalMode("add");
     // Ensure both facilities and members are loaded for the attendance modal
     if (facilities.length === 0) {
-      fetchFacilities();
+      loadCompleteData();
     }
     if (members.length === 0) {
       fetchMembers();
@@ -286,10 +347,10 @@ const Facility = () => {
 
   const handleEditAttendance = (attendance) => {
     setSelectedAttendance(attendance);
-    setAttendanceModalMode('edit');
+    setAttendanceModalMode("edit");
     // Ensure both facilities and members are loaded for the attendance modal
     if (facilities.length === 0) {
-      fetchFacilities();
+      loadCompleteData();
     }
     if (members.length === 0) {
       fetchMembers();
@@ -307,25 +368,28 @@ const Facility = () => {
       await facilityService.checkOut(attendanceId);
       await fetchAttendance();
     } catch (err) {
-      console.error('Error checking out:', err);
+      console.error("Error checking out:", err);
       throw err;
     }
   };
 
   const handleAttendanceSaved = async (attendanceData) => {
     try {
-      console.log('Attendance data received:', attendanceData);
-      console.log('Attendance modal mode:', attendanceModalMode);
-      
-      if (attendanceModalMode === 'add') {
+      console.log("Attendance data received:", attendanceData);
+      console.log("Attendance modal mode:", attendanceModalMode);
+
+      if (attendanceModalMode === "add") {
         await facilityService.createAttendance(attendanceData);
       } else {
-        await facilityService.updateAttendance(selectedAttendance.attendance_id, attendanceData);
+        await facilityService.updateAttendance(
+          selectedAttendance.attendance_id,
+          attendanceData
+        );
       }
       setShowAttendanceModal(false);
       await fetchAttendance();
     } catch (err) {
-      console.error('Error saving attendance:', err);
+      console.error("Error saving attendance:", err);
       throw err;
     }
   };
@@ -336,21 +400,54 @@ const Facility = () => {
       setShowDeleteAttendanceConfirm(false);
       await fetchAttendance();
     } catch (err) {
-      console.error('Error deleting attendance:', err);
+      console.error("Error deleting attendance:", err);
       throw err;
     }
+  };
+
+  const handleFacilityPageChange = (page) => {
+    setFacilityPage(page);
+  };
+
+  const handleEquipmentPageChange = (page) => {
+    setEquipmentPage(page);
   };
 
   const handleAttendancePageChange = (page) => {
     setAttendancePage(page);
   };
 
+  // Add loadCompleteData function
+  const loadCompleteData = async () => {
+    try {
+      console.log("🔄 Refreshing complete datasets...");
+      const [facilitiesData, equipmentData] = await Promise.all([
+        facilityService.getAllFacilities(),
+        facilityService.getAllEquipment(),
+      ]);
+
+      console.log("✅ Complete data refreshed:", {
+        facilities: facilitiesData.length,
+        equipment: equipmentData.length,
+      });
+
+      // Update both paginated view and analytics data
+      setFacilities(facilitiesData);
+      setEquipment(equipmentData);
+    } catch (err) {
+      console.error("❌ Error refreshing complete data:", err);
+    }
+  };
+
   const handleRefresh = () => {
-    if (activeTab === 'facilities') {
+    // Always refresh complete data for accurate analytics
+    loadCompleteData();
+
+    if (activeTab === "facilities") {
       fetchFacilities();
-    } else if (activeTab === 'equipment') {
+    } else if (activeTab === "equipment") {
       fetchEquipment();
-    } else if (activeTab === 'attendance') {
+    } else if (activeTab === "attendance") {
       fetchAttendance();
     }
   };
@@ -360,100 +457,122 @@ const Facility = () => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white p-6 rounded-lg border border-gray-200">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Facility Management</h1>
-            <p className="text-gray-600 mt-1">Manage facilities and equipment</p>
-          </div>
-          <div className="flex gap-2">
-            {activeTab === 'facilities' ? (
-              <Button 
-                variant="primary" 
-                icon={<Plus size={18} />}
-                onClick={handleAddFacility}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
-              >
-                Add New Facility
-              </Button>
-            ) : activeTab === 'equipment' ? (
-              <Button 
-                variant="primary" 
-                icon={<Plus size={18} />}
-                onClick={handleAddEquipment}
-                className="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
-              >
-                Add New Equipment
-              </Button>
-            ) : (
-              <Button 
-                variant="primary" 
-                icon={<Plus size={18} />}
-                onClick={handleAddAttendance}
-                className="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-2 rounded-lg shadow-sm"
-              >
-                Add Check-in
-              </Button>
-            )}
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 p-6 space-y-8">
+      {/* Modern Header with Gradient Background */}
+      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-700 rounded-3xl shadow-2xl border border-white/20">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-purple-500/10 to-indigo-500/10"></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-white/10 to-transparent rounded-full -translate-y-48 translate-x-48"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-white/5 to-transparent rounded-full translate-y-32 -translate-x-32"></div>
 
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => setActiveTab('facilities')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'facilities'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <MapPin size={16} className="inline mr-1" />
-              Facilities
-            </button>
-            <button
-              onClick={() => setActiveTab('equipment')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'equipment'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Wrench size={16} className="inline mr-1" />
-              Equipment
-            </button>
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                activeTab === 'attendance'
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-              }`}
-            >
-              <Users size={16} className="inline mr-1" />
-              Attendance
-            </button>
-          </nav>
+        <div className="relative p-8">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
+                  <Sparkles className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-4xl font-bold text-white">
+                  Facility Management
+                </h1>
+              </div>
+              <p className="text-blue-100 text-lg font-medium">
+                Manage facilities, equipment, and track attendance with style
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {activeTab === "facilities" ? (
+                <button
+                  onClick={handleAddFacility}
+                  className="group flex items-center gap-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-2xl border border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                  Add New Facility
+                </button>
+              ) : activeTab === "equipment" ? (
+                <button
+                  onClick={handleAddEquipment}
+                  className="group flex items-center gap-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-2xl border border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                  Add New Equipment
+                </button>
+              ) : (
+                <button
+                  onClick={handleAddAttendance}
+                  className="group flex items-center gap-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-6 py-3 rounded-2xl border border-white/30 hover:border-white/50 transition-all duration-300 hover:scale-105 hover:shadow-lg"
+                >
+                  <Plus className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" />
+                  Add Check-in
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Modern Tab Navigation */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm p-2 rounded-2xl border border-white/20">
+              <button
+                onClick={() => setActiveTab("facilities")}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  activeTab === "facilities"
+                    ? "bg-white text-blue-600 shadow-lg scale-105"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <MapPin className="w-4 h-4" />
+                Facilities
+              </button>
+              <button
+                onClick={() => setActiveTab("equipment")}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  activeTab === "equipment"
+                    ? "bg-white text-blue-600 shadow-lg scale-105"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Wrench className="w-4 h-4" />
+                Equipment
+              </button>
+              <button
+                onClick={() => setActiveTab("attendance")}
+                className={`flex items-center gap-2 px-6 py-3 rounded-xl font-semibold text-sm transition-all duration-300 ${
+                  activeTab === "attendance"
+                    ? "bg-white text-blue-600 shadow-lg scale-105"
+                    : "text-white/80 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                <Users className="w-4 h-4" />
+                Attendance
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Content Area - Conditional rendering based on active tab */}
-      {activeTab === 'facilities' ? (
+      {activeTab === "facilities" ? (
         <>
-          {/* Error Message */}
+          {/* Error Message with Modern Styling */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200/50 text-red-700 p-6 rounded-2xl shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <svg
+                    className="h-5 w-5 text-red-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium">Error</h3>
+                <div>
+                  <h3 className="text-lg font-semibold">Error</h3>
                   <p className="text-sm mt-1">{error}</p>
                 </div>
               </div>
@@ -464,7 +583,7 @@ const Facility = () => {
           <FacilityAnalytics facilities={facilities} equipment={equipment} />
 
           {/* Facility List */}
-          <FacilityList 
+          <FacilityList
             facilities={facilities}
             onEdit={handleEditFacility}
             onDelete={handleDeleteFacility}
@@ -477,19 +596,27 @@ const Facility = () => {
             totalCount={facilityTotalCount}
           />
         </>
-      ) : activeTab === 'equipment' ? (
+      ) : activeTab === "equipment" ? (
         <>
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200/50 text-red-700 p-6 rounded-2xl shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <svg
+                    className="h-5 w-5 text-red-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium">Error</h3>
+                <div>
+                  <h3 className="text-lg font-semibold">Error</h3>
                   <p className="text-sm mt-1">{error}</p>
                 </div>
               </div>
@@ -497,7 +624,7 @@ const Facility = () => {
           )}
 
           {/* Equipment List */}
-          <EquipmentList 
+          <EquipmentList
             equipment={equipment}
             onEdit={handleEditEquipment}
             onDelete={handleDeleteEquipment}
@@ -514,15 +641,23 @@ const Facility = () => {
         <>
           {/* Error Message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+            <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200/50 text-red-700 p-6 rounded-2xl shadow-lg backdrop-blur-sm">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-xl">
+                  <svg
+                    className="h-5 w-5 text-red-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium">Error</h3>
+                <div>
+                  <h3 className="text-lg font-semibold">Error</h3>
                   <p className="text-sm mt-1">{error}</p>
                 </div>
               </div>
@@ -530,7 +665,7 @@ const Facility = () => {
           )}
 
           {/* Attendance List */}
-          <AttendanceList 
+          <AttendanceList
             attendance={attendance}
             onEdit={handleEditAttendance}
             onDelete={handleDeleteAttendance}
