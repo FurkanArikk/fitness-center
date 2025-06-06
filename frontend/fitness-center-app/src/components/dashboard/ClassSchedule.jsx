@@ -126,7 +126,7 @@ const ClassSchedule = ({ classes }) => {
                   </div>
 
                   {/* Capacity */}
-                  <div className="lg:col-span-3">
+                  <div className="lg:col-span-4">
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-1 text-sm text-gray-600">
@@ -154,17 +154,6 @@ const ClassSchedule = ({ classes }) => {
                         ></div>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Action */}
-                  <div className="lg:col-span-1">
-                    <button className="group/btn bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:shadow-lg hover:-translate-y-0.5 flex items-center space-x-2 w-full justify-center">
-                      <Eye
-                        size={14}
-                        className="group-hover/btn:scale-110 transition-transform duration-300"
-                      />
-                      <span>View</span>
-                    </button>
                   </div>
                 </div>
               </div>

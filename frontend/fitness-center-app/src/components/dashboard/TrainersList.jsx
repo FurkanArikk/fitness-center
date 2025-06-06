@@ -250,58 +250,32 @@ const TrainersList = ({ trainers = [] }) => {
       <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/40 to-white/30 backdrop-blur-xl"></div>
 
       <div className="relative z-10">
-        {/* Ultra Modern Header */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
             <div className="relative group">
               <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-red-600 rounded-3xl blur-lg opacity-75 group-hover:opacity-100 transition-all duration-300 animate-pulse"></div>
-              <div className="relative p-5 rounded-3xl bg-gradient-to-br from-orange-100 to-red-200 shadow-xl group-hover:scale-110 transition-all duration-300">
-                <Award size={32} className="text-orange-700" />
+              <div className="relative p-4 rounded-3xl bg-gradient-to-br from-orange-100 to-red-200 shadow-xl group-hover:scale-110 transition-all duration-300">
+                <Award size={28} className="text-orange-700" />
               </div>
             </div>
             <div>
-              <h2 className="text-3xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent mb-2">
-                Top Weekly Trainers
+              <h2 className="text-2xl font-black bg-gradient-to-r from-orange-600 via-red-600 to-pink-600 bg-clip-text text-transparent mb-1">
+                Top Trainers
               </h2>
-              <p className="text-gray-700 font-medium text-lg mb-2">
-                ✨ Performance leaders
+              <p className="text-gray-700 font-medium text-base">
+                ⚡ Performance leaders
               </p>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
-                  <Zap size={14} className="text-orange-500" />
-                  <span className="font-semibold">
-                    {popularTrainers.length} Top Performers
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 text-sm text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
-                  <div className="w-2 h-2 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse shadow-lg"></div>
-                  <span className="font-semibold">Live data</span>
-                </div>
-              </div>
             </div>
           </div>
 
-          {/* Stats Overview */}
-          <div className="flex items-center gap-4">
+          {/* Stats */}
+          <div className="flex items-center gap-3">
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="text-center px-6 py-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100 shadow-lg"
+              className="text-center px-5 py-3 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border border-orange-100 shadow-lg"
             >
-              <div className="text-2xl font-black text-orange-600">
-                {popularTrainers.reduce(
-                  (sum, t) => sum + (t.sessionsCount || 0),
-                  0
-                )}
-              </div>
-              <div className="text-sm text-gray-600 font-semibold">
-                Total Sessions
-              </div>
-            </motion.div>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="text-center px-6 py-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl border border-blue-100 shadow-lg"
-            >
-              <div className="text-2xl font-black text-blue-600">
+              <div className="text-xl font-black text-orange-600">
                 {(
                   popularTrainers.reduce((sum, t) => sum + (t.rating || 0), 0) /
                   popularTrainers.length
@@ -314,10 +288,10 @@ const TrainersList = ({ trainers = [] }) => {
           </div>
         </div>
 
-        {/* Trainer Cards Grid */}
-        <div className="space-y-6">
+        {/* Trainer Cards */}
+        <div className="space-y-5">
           <AnimatePresence>
-            {popularTrainers.map((trainer, index) => {
+            {popularTrainers.slice(0, 4).map((trainer, index) => {
               const experienceLevel = getExperienceLevel(trainer.experience);
               const theme = trainer.colorTheme;
 
@@ -333,39 +307,39 @@ const TrainersList = ({ trainers = [] }) => {
                     type: "spring",
                     stiffness: 100,
                   }}
-                  className={`group relative overflow-hidden bg-gradient-to-r ${theme.bgPattern} rounded-3xl p-8 shadow-2xl hover:shadow-3xl transition-all duration-500 hover:-translate-y-2 border border-white/40 backdrop-blur-sm`}
+                  className={`group relative overflow-hidden bg-gradient-to-r ${theme.bgPattern} rounded-3xl p-6 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 border border-white/40 backdrop-blur-sm`}
                   style={{
                     background: `linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.8) 50%, rgba(241,245,249,0.9) 100%)`,
                   }}
                 >
-                  {/* Animated background elements */}
-                  <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-3xl group-hover:scale-150 transition-all duration-700"></div>
-                  <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-white/20 to-transparent rounded-full blur-2xl group-hover:scale-125 transition-all duration-500"></div>
+                  {/* Background elements */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-white/30 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-700"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-white/20 to-transparent rounded-full blur-xl group-hover:scale-125 transition-all duration-500"></div>
 
                   {/* Rank Badge */}
-                  <div className="absolute top-6 right-6">
+                  <div className="absolute top-4 right-4">
                     <motion.div
                       whileHover={{ scale: 1.2, rotate: 10 }}
-                      className={`w-12 h-12 bg-gradient-to-br ${theme.gradient} rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-xl`}
+                      className={`w-10 h-10 bg-gradient-to-br ${theme.gradient} rounded-2xl flex items-center justify-center text-white font-black text-lg shadow-xl`}
                     >
                       #{trainer.rank}
                     </motion.div>
                   </div>
 
-                  <div className="relative z-10 flex items-center gap-8">
-                    {/* Large Trainer Avatar */}
+                  <div className="relative z-10 flex items-center gap-6">
+                    {/* Trainer Avatar */}
                     <div className="relative">
                       <div
-                        className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} rounded-3xl blur-xl opacity-50 group-hover:opacity-70 transition-all duration-300 animate-pulse`}
+                        className={`absolute inset-0 bg-gradient-to-br ${theme.gradient} rounded-3xl blur-lg opacity-50 group-hover:opacity-70 transition-all duration-300 animate-pulse`}
                       ></div>
                       <div
-                        className={`relative w-24 h-24 bg-gradient-to-br ${theme.avatarBg} rounded-3xl flex items-center justify-center text-white shadow-2xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}
+                        className={`relative w-20 h-20 bg-gradient-to-br ${theme.avatarBg} rounded-3xl flex items-center justify-center text-white shadow-xl group-hover:scale-110 group-hover:rotate-3 transition-all duration-300`}
                       >
                         <div className="text-center">
                           <div className="text-sm font-bold opacity-80">
                             {trainer.displayId}
                           </div>
-                          <div className="text-lg font-black">
+                          <div className="text-base font-black">
                             {trainer.initials}
                           </div>
                         </div>
@@ -373,18 +347,18 @@ const TrainersList = ({ trainers = [] }) => {
                       </div>
 
                       {/* Status indicator */}
-                      <div className="absolute -bottom-2 -right-2 w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg">
-                        <div className="w-5 h-5 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse"></div>
+                      <div className="absolute -bottom-2 -right-2 w-6 h-6 bg-white rounded-full flex items-center justify-center shadow-lg">
+                        <div className="w-4 h-4 bg-gradient-to-r from-emerald-400 to-green-500 rounded-full animate-pulse"></div>
                       </div>
                     </div>
 
                     {/* Trainer Info */}
-                    <div className="flex-1">
-                      <div className="mb-4">
-                        <h3 className="text-2xl font-black text-gray-900 mb-1 group-hover:scale-105 transition-all duration-300">
+                    <div className="flex-1 min-w-0">
+                      <div className="mb-3">
+                        <h3 className="text-xl font-black text-gray-900 mb-1 group-hover:scale-105 transition-all duration-300 truncate">
                           {trainer.name}
                         </h3>
-                        <p className="text-lg font-semibold text-gray-700 mb-2">
+                        <p className="text-base font-semibold text-gray-700 mb-3 truncate">
                           {trainer.specialization}
                         </p>
 
@@ -392,84 +366,43 @@ const TrainersList = ({ trainers = [] }) => {
                         <div className="flex items-center gap-3 mb-3">
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
-                              <motion.div
+                              <Star
                                 key={star}
-                                whileHover={{ scale: 1.2 }}
-                                className="relative"
-                              >
-                                <Star
-                                  size={18}
-                                  className={`${
-                                    star <= Math.floor(trainer.rating)
-                                      ? "text-amber-400 fill-current"
-                                      : star <= trainer.rating
-                                      ? "text-amber-400 fill-current opacity-50"
-                                      : "text-gray-300"
-                                  } transition-all duration-300`}
-                                />
-                              </motion.div>
+                                size={16}
+                                className={`${
+                                  star <= Math.floor(trainer.rating)
+                                    ? "text-amber-400 fill-current"
+                                    : star <= trainer.rating
+                                    ? "text-amber-400 fill-current opacity-50"
+                                    : "text-gray-300"
+                                } transition-all duration-300`}
+                              />
                             ))}
                           </div>
-                          <span className="text-lg font-bold text-gray-800">
+                          <span className="text-base font-bold text-gray-800">
                             ({trainer.rating}/5.0)
                           </span>
                         </div>
 
                         {/* Stats Row */}
-                        <div className="flex items-center gap-6 text-sm text-gray-600 mb-4">
+                        <div className="flex items-center gap-4 text-sm text-gray-600">
                           <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-2 rounded-full">
                             <Clock size={14} />
                             <span className="font-semibold">
-                              {trainer.sessionsCount} sessions
+                              {trainer.sessionsCount}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-2 rounded-full">
                             <Calendar size={14} />
                             <span className="font-semibold">
-                              {trainer.experience}y experience
+                              {trainer.experience}y
                             </span>
                           </div>
-                          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-3 py-2 rounded-full">
-                            <Award size={14} />
-                            <span className="font-semibold">
-                              {trainer.certification}
-                            </span>
+                          <div
+                            className={`px-3 py-2 bg-gradient-to-r ${experienceLevel.color} text-white text-sm font-bold rounded-full shadow-lg`}
+                          >
+                            {experienceLevel.label}
                           </div>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex items-center gap-4">
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className={`group/btn flex items-center gap-3 px-6 py-3 bg-gradient-to-r ${theme.buttonGradient} text-white font-bold rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-300`}
-                        >
-                          <User size={18} />
-                          <span>Profile</span>
-                          <ChevronRight
-                            size={16}
-                            className="group-hover/btn:translate-x-1 transition-transform duration-300"
-                          />
-                        </motion.button>
-
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          className="flex items-center gap-3 px-6 py-3 bg-white/80 backdrop-blur-sm text-gray-800 font-bold rounded-2xl shadow-lg hover:shadow-xl border border-gray-200/50 transition-all duration-300 hover:bg-white"
-                        >
-                          <Calendar size={18} />
-                          <span>Classes</span>
-                          <div className="w-6 h-6 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center text-xs font-black">
-                            {Math.floor(Math.random() * 5) + 1}
-                          </div>
-                        </motion.button>
-
-                        {/* Experience Badge */}
-                        <div
-                          className={`px-4 py-2 bg-gradient-to-r ${experienceLevel.color} text-white text-sm font-bold rounded-full shadow-lg`}
-                        >
-                          {experienceLevel.label}
                         </div>
                       </div>
                     </div>
@@ -481,14 +414,14 @@ const TrainersList = ({ trainers = [] }) => {
                         className="relative"
                       >
                         <div
-                          className={`w-20 h-20 bg-gradient-to-br ${theme.gradient} rounded-full flex items-center justify-center text-white shadow-2xl`}
+                          className={`w-18 h-18 bg-gradient-to-br ${theme.gradient} rounded-full flex items-center justify-center text-white shadow-xl`}
                         >
                           <div className="text-center">
-                            <div className="text-2xl font-black">
+                            <div className="text-xl font-black">
                               {trainer.sessionsCount}
                             </div>
-                            <div className="text-xs font-semibold opacity-80">
-                              Weekly
+                            <div className="text-sm font-semibold opacity-80">
+                              Week
                             </div>
                           </div>
                         </div>
@@ -496,15 +429,15 @@ const TrainersList = ({ trainers = [] }) => {
                       </motion.div>
 
                       {/* Trending indicator */}
-                      {index < 3 && (
+                      {index < 2 && (
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.5 + index * 0.1 }}
-                          className="flex items-center justify-center gap-1 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold mt-3 shadow-lg"
+                          className="flex items-center justify-center gap-1 bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold mt-3 shadow-lg"
                         >
                           <TrendingUp size={12} />
-                          <span>Trending</span>
+                          <span>Top</span>
                         </motion.div>
                       )}
                     </div>
@@ -520,7 +453,7 @@ const TrainersList = ({ trainers = [] }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1.5, duration: 0.4 }}
-          className="mt-8 pt-6 border-t border-gray-200/50"
+          className="mt-6 pt-4 border-t border-gray-200/50"
         >
           <div className="flex items-center justify-between text-sm">
             <div className="flex items-center gap-4 text-gray-500">
@@ -534,13 +467,13 @@ const TrainersList = ({ trainers = [] }) => {
                 >
                   <TrendingUp size={12} />
                 </motion.div>
-                <span>Live data</span>
+                <span>Live</span>
               </div>
             </div>
             <div className="flex items-center gap-2 text-gray-600 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-white/30">
               <Award size={14} className="text-amber-500" />
               <span className="font-semibold">
-                {popularTrainers.length} of {trainers.length} trainers shown
+                Top {Math.min(4, popularTrainers.length)} shown
               </span>
             </div>
           </div>
