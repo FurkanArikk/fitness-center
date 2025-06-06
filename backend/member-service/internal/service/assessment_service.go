@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
 var (
@@ -15,11 +14,11 @@ var (
 
 // AssessmentServiceImpl implements FitnessAssessmentService
 type AssessmentServiceImpl struct {
-	repo repository.AssessmentRepository
+	repo model.FitnessAssessmentRepository
 }
 
 // NewAssessmentService creates a new assessment service
-func NewAssessmentService(repo repository.AssessmentRepository) FitnessAssessmentService {
+func NewAssessmentService(repo model.FitnessAssessmentRepository) FitnessAssessmentService {
 	return &AssessmentServiceImpl{
 		repo: repo,
 	}

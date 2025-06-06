@@ -3,8 +3,9 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,7 +18,11 @@ func (h *Handler) CreateFacility(c *gin.Context) {
 	}
 
 	// Convert DTO to model
-	facility := facilityReq.ToModel()
+	facility, err := facilityReq.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	createdFacility, err := h.repo.Facility().Create(c.Request.Context(), &facility)
 	if err != nil {
@@ -64,11 +69,23 @@ func (h *Handler) UpdateFacility(c *gin.Context) {
 	}
 
 	// Convert DTO to model
-	facility := facilityReq.ToModel()
+	facility, err := facilityReq.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 	facility.FacilityID = id
 
 	updatedFacility, err := h.repo.Facility().Update(c.Request.Context(), &facility)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Facility not found"})
+			return
+		}
+		if strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -87,6 +104,10 @@ func (h *Handler) DeleteFacility(c *gin.Context) {
 	}
 
 	if err := h.repo.Facility().Delete(c.Request.Context(), id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Facility not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -143,8 +164,11 @@ func (h *Handler) ListFacilitiesByStatus(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.FacilityResponseListFromModel(facilities)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       facilities,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,

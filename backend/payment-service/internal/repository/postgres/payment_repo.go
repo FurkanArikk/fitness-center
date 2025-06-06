@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/model"
-	"github.com/furkan/fitness-center/backend/payment-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/repository"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -235,7 +235,7 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 		whereClause = "WHERE " + strings.Join(where, " AND ")
 	}
 
-	// Query for getting the statistics
+	// Query for getting the basic statistics
 	query := fmt.Sprintf(`
 		SELECT 
 			COUNT(*) as total_payments,
@@ -263,6 +263,84 @@ func (r *paymentRepository) GetStatistics(ctx context.Context, filter map[string
 
 	if err != nil {
 		return nil, fmt.Errorf("getting payment statistics: %w", err)
+	}
+
+	// Query for payment method statistics
+	// Build the query with proper parameter numbering for multiple WHERE clause usages
+	numParams := len(args)
+
+	// Rebuild WHERE clauses with proper parameter numbering
+	whereClause1 := whereClause
+	whereClause2 := ""
+	whereClause3 := ""
+
+	if len(where) > 0 {
+		// Create second WHERE clause with adjusted parameter numbers
+		where2 := make([]string, len(where))
+		for i, condition := range where {
+			// Replace parameter numbers for second usage
+			adjustedCondition := condition
+			for j := 1; j <= numParams; j++ {
+				adjustedCondition = strings.Replace(adjustedCondition, fmt.Sprintf("$%d", j), fmt.Sprintf("$%d", j+numParams), 1)
+			}
+			where2[i] = adjustedCondition
+		}
+		whereClause2 = "WHERE " + strings.Join(where2, " AND ")
+
+		// Create third WHERE clause with adjusted parameter numbers
+		where3 := make([]string, len(where))
+		for i, condition := range where {
+			// Replace parameter numbers for third usage
+			adjustedCondition := condition
+			for j := 1; j <= numParams; j++ {
+				adjustedCondition = strings.Replace(adjustedCondition, fmt.Sprintf("$%d", j), fmt.Sprintf("$%d", j+2*numParams), 1)
+			}
+			where3[i] = adjustedCondition
+		}
+		whereClause3 = "WHERE " + strings.Join(where3, " AND ")
+	}
+
+	methodQuery := fmt.Sprintf(`
+		SELECT 
+			payment_method,
+			COUNT(*) as count,
+			CASE WHEN (SELECT COUNT(*) FROM payments %s) > 0 
+				THEN ROUND((COUNT(*) * 100.0) / (SELECT COUNT(*) FROM payments %s), 2)
+				ELSE 0 
+			END as percentage
+		FROM payments
+		%s
+		GROUP BY payment_method
+		ORDER BY count DESC
+	`, whereClause1, whereClause2, whereClause3)
+
+	// Execute the payment method statistics query - need 3 copies of args for 3 whereClause usages
+	allArgs := append(append(args, args...), args...)
+	rows, err := r.db.QueryContext(ctx, methodQuery, allArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("getting payment method statistics: %w", err)
+	}
+	defer rows.Close()
+
+	// Initialize the payment method statistics slice
+	stats.PaymentMethodStatistics = make([]model.PaymentMethodStatistic, 0)
+
+	// Scan the payment method statistics
+	for rows.Next() {
+		var methodStat model.PaymentMethodStatistic
+		err := rows.Scan(
+			&methodStat.PaymentMethod,
+			&methodStat.Count,
+			&methodStat.Percentage,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scanning payment method statistics: %w", err)
+		}
+		stats.PaymentMethodStatistics = append(stats.PaymentMethodStatistics, methodStat)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterating payment method statistics: %w", err)
 	}
 
 	return stats, nil

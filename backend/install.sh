@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Colors - for better output
+# Colors for better output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -9,11 +9,58 @@ MAGENTA='\033[0;35m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Function to print headers
+# Default settings
+SAMPLE_DATA_OPTION="keep"
+USE_DOCKER="true"
+SHOW_HELP=false
+
+# Save start time
+START_TIME=$(date +%s)
+
+# Process command line arguments
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        -s|--sample-data)
+            if [ "$2" == "reset" ] || [ "$2" == "none" ] || [ "$2" == "keep" ]; then
+                SAMPLE_DATA_OPTION="$2"
+                shift 2
+            else
+                echo -e "${RED}Error: Invalid sample data option. Use reset, none or keep.${NC}"
+                exit 1
+            fi
+            ;;
+        -l|--local) USE_DOCKER="false"; shift ;;
+        -h|--help) SHOW_HELP=true; shift ;;
+        *) echo -e "${RED}Unknown parameter: $1${NC}"; exit 1 ;;
+    esac
+done
+
+# Function to display help
+show_help() {
+    echo -e "${CYAN}Usage:${NC} ./install.sh [options]"
+    echo
+    echo -e "${CYAN}Options:${NC}"
+    echo -e "  ${YELLOW}-s, --sample-data OPTION${NC}  Specify sample data option: reset (load fresh data), none (no sample data), keep (keep existing, default)"
+    echo -e "  ${YELLOW}-l, --local${NC}               Run services locally instead of in Docker"
+    echo -e "  ${YELLOW}-h, --help${NC}                Show this help message"
+    echo
+    echo -e "${CYAN}Examples:${NC}"
+    echo -e "  ${YELLOW}./install.sh${NC}                  Run with default settings (keep data, use Docker)"
+    echo -e "  ${YELLOW}./install.sh -s reset${NC}         Reset and load sample data"
+    echo -e "  ${YELLOW}./install.sh -s none${NC}          Start with clean database without sample data"
+    echo -e "  ${YELLOW}./install.sh -l${NC}               Run services locally (database still in Docker)"
+    echo
+}
+
+# Show help if requested
+if [ "$SHOW_HELP" = true ]; then
+    show_help
+    exit 0
+fi
+
+# Function to print colored section headers
 print_header() {
-    echo -e "\n${MAGENTA}====================================================${NC}"
-    echo -e "${MAGENTA}      $1${NC}"
-    echo -e "${MAGENTA}====================================================${NC}"
+    echo -e "\n${BLUE}===${NC} ${CYAN}$1${NC} ${BLUE}===${NC}"
 }
 
 # Function to print success messages
@@ -21,66 +68,56 @@ print_success() {
     echo -e "${GREEN}✓ $1${NC}"
 }
 
-# Function to print error messages
+# Function to print errors
 print_error() {
     echo -e "${RED}✗ $1${NC}"
 }
 
-# Function to print info messages
+# Function to print info
 print_info() {
     echo -e "${YELLOW}→ $1${NC}"
 }
 
-# Function to print warning messages
+# Function to print warnings
 print_warning() {
-    echo -e "${CYAN}⚠ $1${NC}"
+    echo -e "${MAGENTA}⚠ $1${NC}"
 }
 
-# List of services
-SERVICES=(
-    "api-gateway"
-    "member-service"
-    "staff-service"
-    "class-service"
-    "facility-service"
-    "payment-service"
-)
-
-# Array to store service states
-declare -A service_selected
-
-# All services selected by default
-for service in "${SERVICES[@]}"; do
-    service_selected["$service"]=true
-done
-
-# Check Docker installation
+# Function to check if Docker and Docker Compose are available
 check_docker() {
-    print_info "Checking Docker..."
+    print_header "Checking Docker"
     if ! command -v docker &> /dev/null; then
         print_error "Docker is not installed or not in PATH"
-        print_info "Please install Docker: https://docs.docker.com/get-docker/"
         exit 1
     fi
     
     if ! docker info &> /dev/null; then
         print_error "Docker daemon is not running"
-        print_info "Please start the Docker service"
         exit 1
     fi
     
-    print_success "Docker is ready"
+    print_success "Docker is available"
+    
+    # Check for Docker Compose
+    if command -v docker-compose &> /dev/null; then
+        print_success "Docker Compose is available"
+    elif docker compose version &> /dev/null; then
+        print_success "Docker Compose plugin is available"
+    else
+        print_error "Docker Compose is not installed. Please install it to continue."
+        exit 1
+    fi
 }
 
-# Check if Docker network exists, create if not
+# Function to ensure Docker network exists
 ensure_docker_network() {
-    print_info "Checking Docker network..."
+    print_header "Checking Docker Network"
     
-    if docker network inspect fitness-network &> /dev/null; then
-        print_success "Docker network 'fitness-network' already exists"
+    if docker network inspect ${DOCKER_NETWORK_NAME:-fitness-network} &> /dev/null; then
+        print_success "Docker network '${DOCKER_NETWORK_NAME:-fitness-network}' already exists"
     else
-        print_info "Creating Docker network 'fitness-network'..."
-        if docker network create fitness-network &> /dev/null; then
+        print_info "Creating Docker network '${DOCKER_NETWORK_NAME:-fitness-network}'..."
+        if docker network create ${DOCKER_NETWORK_NAME:-fitness-network} &> /dev/null; then
             print_success "Docker network created successfully"
         else
             print_error "Failed to create Docker network"
@@ -89,323 +126,205 @@ ensure_docker_network() {
     fi
 }
 
-# Service selection menu
-select_services() {
-    clear
-    print_header "FITNESS CENTER SERVICES SELECTION"
-    
-    echo -e "\nWhich services would you like to manage?"
-    echo -e "(${GREEN}✓${NC} = Selected, ${RED}✗${NC} = Not selected)\n"
-    
-    local counter=1
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]]; then
-            echo -e "$counter) [${GREEN}✓${NC}] $service"
-        else
-            echo -e "$counter) [${RED}✗${NC}] $service"
-        fi
-        counter=$((counter+1))
-    done
-    
-    echo -e "\n${CYAN}Options:${NC}"
-    echo -e "  ${YELLOW}Service number${NC} to toggle selection"
-    echo -e "  ${YELLOW}a${NC} - Select all"
-    echo -e "  ${YELLOW}n${NC} - Select none"
-    echo -e "  ${YELLOW}c${NC} - Continue"
-    echo -e "  ${YELLOW}q${NC} - Quit\n"
-    
-    read -p "Your choice: " choice
-    
-    case "$choice" in
-        [1-9]*)
-            # Set service index (0-based)
-            local index=$((choice-1))
-            if [ $index -lt ${#SERVICES[@]} ]; then
-                local selected_service=${SERVICES[$index]}
-                # Toggle selection
-                if [[ ${service_selected["$selected_service"]} == true ]]; then
-                    service_selected["$selected_service"]=false
-                else
-                    service_selected["$selected_service"]=true
-                fi
-                select_services  # Show menu again
-            else
-                print_error "Invalid selection"
-                sleep 1
-                select_services
-            fi
-            ;;
-        a|A)
-            # Select all
-            for service in "${SERVICES[@]}"; do
-                service_selected["$service"]=true
-            done
-            select_services
-            ;;
-        n|N)
-            # Select none
-            for service in "${SERVICES[@]}"; do
-                service_selected["$service"]=false
-            done
-            select_services
-            ;;
-        c|C)
-            # Continue - do nothing and exit
-            ;;
-        q|Q)
-            echo -e "\n${YELLOW}Exiting program...${NC}"
-            exit 0
-            ;;
-        *)
-            print_error "Invalid selection"
-            sleep 1
-            select_services
-            ;;
-    esac
-}
-
-# Service start function
+# Function to start a service
 start_service() {
-    local service=$1
-    local with_sample_data=$2
-    local start_process=$3
+    local service_name=$1
+    local service_dir="$(pwd)/$service_name"
     
-    print_info "Starting $service..."
-    
-    # Navigate to service directory
-    cd "$service" || {
-        print_error "Could not change directory to $service"
-        return 1
-    }
-    
-    if [ "$start_process" = true ]; then
-        # Only start service process
-        print_info "Starting $service process..."
+    if [ -d "$service_dir" ] && [ -f "$service_dir/run.sh" ]; then
+        print_header "Starting $service_name"
         
-        if [ "$service" = "api-gateway" ]; then
-            # For API Gateway run terminal in background
-            ./run.sh --start-only &
-            sleep 2
+        if [ "$USE_DOCKER" = "true" ]; then
+            print_info "Starting $service_name in Docker..."
+            cd "$service_dir" && ./run.sh -s $SAMPLE_DATA_OPTION
         else
-            # For other services run terminal in background
-            ./run.sh --start-only &
-            sleep 2
+            print_info "Starting $service_name locally..."
+            cd "$service_dir" && ./run.sh -s $SAMPLE_DATA_OPTION -l
         fi
+        
+        # Check exit code of run.sh script
+        if [ $? -eq 0 ]; then
+            print_success "$service_name started successfully"
+        else
+            print_error "Failed to start $service_name"
+            cd "$(dirname "$service_dir")"
+            return 1
+        fi
+        
+        cd "$(dirname "$service_dir")"
     else
-        # Setup operations
-        # Check sample data parameter
-        if [ "$with_sample_data" = true ]; then
-            ./run.sh --setup-with-data
-        else
-            ./run.sh --setup-only
-        fi
+        print_warning "$service_name directory or run.sh script not found: $service_dir"
     fi
-    
-    # Return to main directory
-    cd ..
-    
-    print_success "$service started"
 }
 
-# Service stop function
-stop_service() {
-    local service=$1
+# Function to start services in sequence
+start_services() {
+    # Start main services with database dependencies
+    local services=("auth-service" "member-service" "staff-service" "payment-service" "facility-service" "class-service")
     
-    print_info "Stopping $service..."
+    # Collect any failures during service startup
+    local failures=()
     
-    # Navigate to service directory
-    cd "$service" || {
-        print_error "Could not change directory to $service"
+    for service in "${services[@]}"; do
+        start_service "$service"
+        if [ $? -ne 0 ]; then
+            failures+=("$service")
+        fi
+        sleep 2  # Short delay to prevent services from interfering with each other
+    done
+    
+    # Report any services that failed to start
+    if [ ${#failures[@]} -gt 0 ]; then
+        print_header "Failed Services"
+        for failure in "${failures[@]}"; do
+            print_error "$failure - Failed to start"
+        done
         return 1
-    }
+    fi
     
-    # Determine Docker container name
-    local container_name="fitness-${service%-service}-db"
+    return 0
+}
+
+# Function to display container status
+show_container_status() {
+    print_header "Container Status"
     
-    if [ "$service" = "api-gateway" ]; then
-        # For API Gateway, no Docker container, just stop process
-        pkill -f "$service"
+    if [ "$USE_DOCKER" = "true" ]; then
+        docker ps --filter "network=${DOCKER_NETWORK_NAME:-fitness-network}" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
     else
-        # Stop Docker container
-        if ./scripts/docker-db.sh stop; then
-            print_success "Database for ${service} stopped"
+        print_info "Running in local mode, container status not shown"
+    fi
+}
+
+# Function to display access instructions
+show_access_instructions() {
+    print_header "Access Information"
+
+    echo -e "${GREEN}All services started!${NC}"
+    echo
+    echo -e "${CYAN}API Gateway (Traefik):${NC}"
+    echo -e "  ${YELLOW}Traefik Dashboard: http://localhost:8080/dashboard/#/${NC}"
+    echo
+    echo -e "${CYAN}Authentication:${NC}"
+    echo -e "  ${YELLOW}Login: http://localhost/api/v1/login${NC}"
+    echo -e "  ${YELLOW}Admin credentials: username=admin, password=admin${NC}"
+    echo
+    echo -e "${CYAN}Protected APIs (requires JWT token):${NC}"
+    echo -e "  ${YELLOW}Members API: http://localhost/api/v1/members${NC}"
+    echo -e "  ${YELLOW}Staff API: http://localhost/api/v1/staff${NC}"
+    echo -e "  ${YELLOW}Payment API: http://localhost/api/v1/payments${NC}"
+    echo -e "  ${YELLOW}Facility API: http://localhost/api/v1/facilities${NC}"
+    echo -e "  ${YELLOW}Class API: http://localhost/api/v1/classes${NC}"
+    echo
+    echo -e "${CYAN}To stop services:${NC}"
+    echo -e "  ${YELLOW}Run ./stop.sh script${NC}"
+    echo
+    echo -e "${CYAN}To stop individual service (if needed):${NC}"
+    echo -e "  ${YELLOW}cd <service-directory> && docker-compose down${NC}"
+}
+
+# Function to calculate and display elapsed time
+show_elapsed_time() {
+    END_TIME=$(date +%s)
+    ELAPSED=$((END_TIME - START_TIME))
+    
+    print_header "Setup Complete"
+    echo -e "${GREEN}All services started in ${ELAPSED} seconds${NC}"
+}
+
+# Function to create stop script
+create_stop_script() {
+    cat > "$(pwd)/stop.sh" << EOF
+#!/bin/bash
+
+# Colors for better output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+MAGENTA='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+echo -e "\${MAGENTA}==========================================${NC}"
+echo -e "\${MAGENTA}      STOPPING ALL SERVICES & TRAEFIK      ${NC}"
+echo -e "\${MAGENTA}==========================================${NC}"
+
+# Stop Traefik (assuming it's in the main docker-compose.yml)
+echo -e "\${BLUE}===${NC} \${CYAN}Stopping Traefik API Gateway${NC} \${BLUE}===${NC}"
+if docker-compose -f docker-compose.yml down &> /dev/null; then
+    echo -e "\${GREEN}✓ Traefik API Gateway stopped successfully${NC}"
+else
+    echo -e "\${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker-compose.yml${NC}"
+fi
+
+services=("member-service" "staff-service" "payment-service" "facility-service" "class-service")
+
+for service in "\${services[@]}"; do
+    echo -e "\${BLUE}===${NC} \${CYAN}Stopping \$service${NC} \${BLUE}===${NC}"
+    if [ -d "\$service" ]; then
+        cd "\$service"
+        if docker-compose down &> /dev/null; then
+            echo -e "\${GREEN}✓ \$service stopped successfully${NC}"
         else
-            print_warning "Could not stop database for ${service}"
+            echo -e "\${YELLOW}→ \$service might already be stopped${NC}"
         fi
-        
-        # Stop process
-        pkill -f "$service"
+        cd ..
+    else
+        echo -e "\${YELLOW}→ \$service directory not found${NC}"
     fi
-    
-    # Return to main directory
-    cd ..
-    
-    print_success "$service stopped"
+done
+
+echo -e "\${GREEN}All services and Traefik stopped${NC}"
+EOF
+
+    chmod +x "$(pwd)/stop.sh"
+    print_success "stop.sh script updated for Traefik"
 }
 
-# Start all selected services
-start_all_services() {
-    local with_sample_data=$1
-    
-    print_header "START SELECTED SERVICES"
-    
-    # Check Docker
-    check_docker
-    
-    # Check Docker network
-    ensure_docker_network
-    
-    # Start databases first
-    print_info "Preparing databases..."
-    
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]] && [[ "$service" != "api-gateway" ]]; then
-            # Database setup first
-            start_service "$service" "$with_sample_data" false
-            
-            # Then start service
-            start_service "$service" false true
-        fi
-    done
-    
-    # Finally start API Gateway
-    if [[ ${service_selected["api-gateway"]} == true ]]; then
-        # API Gateway setup
-        start_service "api-gateway" false false
-        
-        # Start API Gateway process
-        start_service "api-gateway" false true
+# MAIN PROGRAM STARTS HERE
+clear
+echo -e "${MAGENTA}==========================================${NC}"
+echo -e "${MAGENTA}   FITNESS CENTER - START ALL SERVICES   ${NC}"
+echo -e "${MAGENTA}==========================================${NC}"
+
+# Show current settings
+print_header "Settings"
+echo -e "Sample data option: ${YELLOW}${SAMPLE_DATA_OPTION}${NC}"
+echo -e "Run mode: ${YELLOW}$([ "$USE_DOCKER" = "true" ] && echo "Docker" || echo "Local")${NC}"
+
+# Check Docker is available
+check_docker
+
+# Check Docker network
+ensure_docker_network
+
+# Start services
+if start_services; then
+    # Start Traefik separately
+    print_header "Starting Traefik API Gateway"
+    if docker-compose -f docker-compose.yml up -d traefik &> /dev/null; then
+        print_success "Traefik API Gateway started successfully"
+    else
+        print_error "Failed to start Traefik API Gateway. Check docker-compose.yml in the main directory."
+        # Optionally, decide if you want to exit if Traefik fails
+        # exit 1 
     fi
-    
-    print_success "All selected services started"
-}
 
-# Stop all selected services
-stop_all_services() {
-    print_header "STOP SELECTED SERVICES"
+    # Show container status
+    show_container_status
     
-    # Stop API Gateway first
-    if [[ ${service_selected["api-gateway"]} == true ]]; then
-        stop_service "api-gateway"
-    fi
+    # Create stop.sh script
+    create_stop_script
     
-    # Then stop other services
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]] && [[ "$service" != "api-gateway" ]]; then
-            stop_service "$service"
-        fi
-    done
+    # Show access instructions
+    show_access_instructions
     
-    print_success "All selected services stopped"
-}
-
-# Check status of selected services
-check_services_status() {
-    print_header "SERVICE STATUS"
+    # Show elapsed time
+    show_elapsed_time
     
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]]; then
-            echo -e "\n${CYAN}${service}${NC} status:"
-            
-            # Process check
-            if pgrep -f "$service" > /dev/null; then
-                echo -e "  Process: ${GREEN}Running${NC}"
-            else
-                echo -e "  Process: ${RED}Not running${NC}"
-            fi
-            
-            # Database check (except API Gateway)
-            if [[ "$service" != "api-gateway" ]]; then
-                local container_name="fitness-${service%-service}-db"
-                if docker ps | grep -q "$container_name"; then
-                    echo -e "  Database: ${GREEN}Running${NC}"
-                else
-                    echo -e "  Database: ${RED}Not running${NC}"
-                fi
-            fi
-        fi
-    done
-}
-
-# Show main menu
-show_main_menu() {
-    clear
-    print_header "FITNESS CENTER SERVICE MANAGER"
-    
-    local selected_count=0
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]]; then
-            selected_count=$((selected_count+1))
-        fi
-    done
-    
-    echo -e "\n${CYAN}Selected services:${NC} $selected_count/${#SERVICES[@]}"
-    for service in "${SERVICES[@]}"; do
-        if [[ ${service_selected["$service"]} == true ]]; then
-            echo -e "  ${GREEN}✓${NC} $service"
-        fi
-    done
-    
-    echo -e "\n${CYAN}Actions:${NC}"
-    echo -e "  ${YELLOW}1)${NC} Select services"
-    echo -e "  ${YELLOW}2)${NC} Start selected services"
-    echo -e "  ${YELLOW}3)${NC} Start selected services with sample data"
-    echo -e "  ${YELLOW}4)${NC} Stop selected services"
-    echo -e "  ${YELLOW}5)${NC} Restart selected services"
-    echo -e "  ${YELLOW}6)${NC} Check status of selected services"
-    echo -e "  ${YELLOW}q)${NC} Quit\n"
-    
-    read -p "Your choice: " choice
-    
-    case "$choice" in
-        1)
-            select_services
-            show_main_menu
-            ;;
-        2)
-            start_all_services false
-            read -p "Press Enter to return to main menu..." 
-            show_main_menu
-            ;;
-        3)
-            start_all_services true
-            read -p "Press Enter to return to main menu..." 
-            show_main_menu
-            ;;
-        4)
-            stop_all_services
-            read -p "Press Enter to return to main menu..." 
-            show_main_menu
-            ;;
-        5)
-            print_info "Restarting services..."
-            stop_all_services
-            start_all_services false
-            read -p "Press Enter to return to main menu..." 
-            show_main_menu
-            ;;
-        6)
-            check_services_status
-            read -p "Press Enter to return to main menu..." 
-            show_main_menu
-            ;;
-        q|Q)
-            echo -e "\n${YELLOW}Exiting program...${NC}"
-            exit 0
-            ;;
-        *)
-            print_error "Invalid selection"
-            sleep 1
-            show_main_menu
-            ;;
-    esac
-}
-
-# Main program start
-main() {
-    clear
-    show_main_menu
-}
-
-# Start script
-main "$@"
+    exit 0
+else
+    print_error "Some services failed to start. Please check the errors."
+    exit 1
+fi

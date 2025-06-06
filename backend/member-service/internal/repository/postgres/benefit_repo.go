@@ -2,225 +2,122 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
+	"gorm.io/gorm"
 )
 
-// BenefitRepo, üyelik avantajları veritabanı işlemlerini gerçekleştirir
-type BenefitRepo struct {
-	db *sql.DB
+// BenefitRepository implements model.BenefitRepository interface
+type BenefitRepository struct {
+	db *gorm.DB
 }
 
-// NewBenefitRepo, yeni bir BenefitRepo oluşturur
-func NewBenefitRepo(db *sql.DB) repository.BenefitRepository {
-	return &BenefitRepo{
-		db: db,
-	}
+// NewBenefitRepository creates a new BenefitRepository
+func NewBenefitRepository(db *gorm.DB) model.BenefitRepository {
+	return &BenefitRepository{db: db}
 }
 
-// Create, yeni bir üyelik avantajı oluşturur
-func (r *BenefitRepo) Create(ctx context.Context, benefit *model.MembershipBenefit) error {
-	query := `
-		INSERT INTO membership_benefits (
-			membership_id, benefit_name, benefit_description, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5)
-		RETURNING benefit_id
-	`
-
-	now := time.Now()
-	benefit.CreatedAt = now
-	benefit.UpdatedAt = now
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		benefit.MembershipID,
-		benefit.BenefitName,
-		benefit.BenefitDescription,
-		benefit.CreatedAt,
-		benefit.UpdatedAt,
-	).Scan(&benefit.ID)
-
-	if err != nil {
-		return fmt.Errorf("failed to create membership benefit: %v", err)
+// Create adds a new membership benefit to the database
+func (r *BenefitRepository) Create(ctx context.Context, benefit *model.MembershipBenefit) error {
+	if err := r.db.WithContext(ctx).Create(benefit).Error; err != nil {
+		return fmt.Errorf("creating membership benefit: %w", err)
 	}
-
 	return nil
 }
 
-// GetByID, ID'ye göre üyelik avantajı getirir
-func (r *BenefitRepo) GetByID(ctx context.Context, id int64) (*model.MembershipBenefit, error) {
-	query := `
-		SELECT 
-			benefit_id, membership_id, benefit_name, benefit_description, created_at, updated_at
-		FROM membership_benefits
-		WHERE benefit_id = $1
-	`
-
+// GetByID retrieves a membership benefit by their ID
+func (r *BenefitRepository) GetByID(ctx context.Context, id int64) (*model.MembershipBenefit, error) {
 	var benefit model.MembershipBenefit
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&benefit.ID,
-		&benefit.MembershipID,
-		&benefit.BenefitName,
-		&benefit.BenefitDescription,
-		&benefit.CreatedAt,
-		&benefit.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("membership benefit not found: %v", err)
+	if err := r.db.WithContext(ctx).Where("benefit_id = ?", id).First(&benefit).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("membership benefit not found")
 		}
-		return nil, fmt.Errorf("failed to get membership benefit: %v", err)
+		return nil, fmt.Errorf("getting membership benefit by ID: %w", err)
 	}
-
 	return &benefit, nil
 }
 
-// Update, üyelik avantajı bilgilerini günceller
-func (r *BenefitRepo) Update(ctx context.Context, benefit *model.MembershipBenefit) error {
-	query := `
-		UPDATE membership_benefits
-		SET 
-			membership_id = $1,
-			benefit_name = $2,
-			benefit_description = $3,
-			updated_at = $4
-		WHERE benefit_id = $5
-	`
-
-	benefit.UpdatedAt = time.Now()
-
-	result, err := r.db.ExecContext(
-		ctx,
-		query,
-		benefit.MembershipID,
-		benefit.BenefitName,
-		benefit.BenefitDescription,
-		benefit.UpdatedAt,
-		benefit.ID,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to update membership benefit: %v", err)
+// Update updates membership benefit information
+func (r *BenefitRepository) Update(ctx context.Context, benefit *model.MembershipBenefit) error {
+	result := r.db.WithContext(ctx).Model(benefit).Where("benefit_id = ?", benefit.ID).Updates(benefit)
+	if result.Error != nil {
+		return fmt.Errorf("updating membership benefit: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("membership benefit not found")
 	}
-
 	return nil
 }
 
-// Delete, üyelik avantajını siler
-func (r *BenefitRepo) Delete(ctx context.Context, id int64) error {
-	query := `DELETE FROM membership_benefits WHERE benefit_id = $1`
-
-	result, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete membership benefit: %v", err)
+// Delete removes a membership benefit by their ID
+func (r *BenefitRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Where("benefit_id = ?", id).Delete(&model.MembershipBenefit{})
+	if result.Error != nil {
+		return fmt.Errorf("deleting membership benefit: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("membership benefit not found")
 	}
-
 	return nil
 }
 
-// List, belirli bir üyelik tipi için avantajları listeler
-func (r *BenefitRepo) List(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error) {
-	query := `
-		SELECT 
-			benefit_id, membership_id, benefit_name, benefit_description, created_at, updated_at
-		FROM membership_benefits
-		WHERE membership_id = $1
-		ORDER BY created_at DESC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, membershipID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list membership benefits: %v", err)
-	}
-	defer rows.Close()
-
+// List retrieves benefits for a specific membership
+func (r *BenefitRepository) List(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error) {
 	var benefits []*model.MembershipBenefit
-	for rows.Next() {
-		var benefit model.MembershipBenefit
-		if err := rows.Scan(
-			&benefit.ID,
-			&benefit.MembershipID,
-			&benefit.BenefitName,
-			&benefit.BenefitDescription,
-			&benefit.CreatedAt,
-			&benefit.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan membership benefit: %v", err)
-		}
-		benefits = append(benefits, &benefit)
+	if err := r.db.WithContext(ctx).Where("membership_id = ?", membershipID).Order("benefit_id").Find(&benefits).Error; err != nil {
+		return nil, fmt.Errorf("listing membership benefits: %w", err)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %v", err)
-	}
-
 	return benefits, nil
 }
 
-// ListAll returns all benefits regardless of membership
-func (r *BenefitRepo) ListAll(ctx context.Context) ([]*model.MembershipBenefit, error) {
-	query := `
-		SELECT 
-			benefit_id, membership_id, benefit_name, benefit_description, created_at, updated_at
-		FROM membership_benefits
-		ORDER BY created_at DESC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list all membership benefits: %v", err)
-	}
-	defer rows.Close()
-
+// ListPaginated retrieves paginated benefits for a specific membership
+func (r *BenefitRepository) ListPaginated(ctx context.Context, membershipID int64, offset, limit int) ([]*model.MembershipBenefit, error) {
 	var benefits []*model.MembershipBenefit
-	for rows.Next() {
-		var benefit model.MembershipBenefit
-		if err := rows.Scan(
-			&benefit.ID,
-			&benefit.MembershipID,
-			&benefit.BenefitName,
-			&benefit.BenefitDescription,
-			&benefit.CreatedAt,
-			&benefit.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan membership benefit: %v", err)
-		}
-		benefits = append(benefits, &benefit)
+	if err := r.db.WithContext(ctx).Where("membership_id = ?", membershipID).Offset(offset).Limit(limit).Order("benefit_id").Find(&benefits).Error; err != nil {
+		return nil, fmt.Errorf("listing paginated membership benefits: %w", err)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %v", err)
-	}
-
 	return benefits, nil
 }
 
-// GetByMembershipID is an alias for the List method
-func (r *BenefitRepo) GetByMembershipID(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error) {
+// GetByMembershipID retrieves benefits for a specific membership (alias for List)
+func (r *BenefitRepository) GetByMembershipID(ctx context.Context, membershipID int64) ([]*model.MembershipBenefit, error) {
 	return r.List(ctx, membershipID)
+}
+
+// ListAll retrieves all membership benefits
+func (r *BenefitRepository) ListAll(ctx context.Context) ([]*model.MembershipBenefit, error) {
+	var benefits []*model.MembershipBenefit
+	if err := r.db.WithContext(ctx).Order("benefit_id").Find(&benefits).Error; err != nil {
+		return nil, fmt.Errorf("listing all membership benefits: %w", err)
+	}
+	return benefits, nil
+}
+
+// ListAllPaginated retrieves all membership benefits with pagination
+func (r *BenefitRepository) ListAllPaginated(ctx context.Context, offset, limit int) ([]*model.MembershipBenefit, error) {
+	var benefits []*model.MembershipBenefit
+	if err := r.db.WithContext(ctx).Offset(offset).Limit(limit).Order("benefit_id").Find(&benefits).Error; err != nil {
+		return nil, fmt.Errorf("listing all paginated membership benefits: %w", err)
+	}
+	return benefits, nil
+}
+
+// Count returns the total number of membership benefits
+func (r *BenefitRepository) Count(ctx context.Context) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&model.MembershipBenefit{}).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("counting membership benefits: %w", err)
+	}
+	return int(count), nil
+}
+
+// CountByMembership returns the number of benefits for a specific membership
+func (r *BenefitRepository) CountByMembership(ctx context.Context, membershipID int64) (int, error) {
+	var count int64
+	if err := r.db.WithContext(ctx).Model(&model.MembershipBenefit{}).Where("membership_id = ?", membershipID).Count(&count).Error; err != nil {
+		return 0, fmt.Errorf("counting membership benefits by membership: %w", err)
+	}
+	return int(count), nil
 }

@@ -143,6 +143,7 @@ apply_migrations() {
     print_header "Applying Database Migrations"
 
     for migration in ./migrations/*.up.sql; do
+        # Skip sample data migration files
         if [[ "$migration" != *"sample_data"* && "$migration" != *"drop_tables"* ]]; then
             print_info "Applying migration: $(basename "$migration")"
             if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < "$migration"; then
@@ -159,87 +160,66 @@ load_sample_data() {
     print_header "Loading Sample Data"
     
     print_info "Loading sample data into database..."
-    # Use the migrate.sh script for sample data loading to ensure consistency
-    if ! ./scripts/migrate.sh sample; then
-        print_error "Failed to load sample data"
-        exit 1
-    fi
-    print_success "Sample data loaded successfully"
-}
-
-# Function to update Go dependencies
-update_dependencies() {
-    print_header "Updating Go Dependencies"
-    
-    print_info "Downloading required Go modules..."
-    if go mod tidy; then
-        print_success "Dependencies updated successfully"
-    else
-        print_error "Failed to update dependencies"
-        exit 1
-    fi
-    
-    # Ensure specific dependencies are present
-    print_info "Verifying critical dependencies..."
-    if ! go list -m github.com/joho/godotenv &> /dev/null; then
-        print_info "Adding godotenv package..."
-        if go get github.com/joho/godotenv; then
-            print_success "Added godotenv package"
-        else
-            print_error "Failed to add godotenv package"
+    if [ -f "./migrations/000004_sample_data.up.sql" ]; then
+        if ! docker exec -i ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} < ./migrations/000004_sample_data.up.sql; then
+            print_error "Failed to load sample data"
             exit 1
         fi
+        print_success "Sample data loaded successfully"
+    else
+        print_warning "Sample data file not found at ./migrations/000004_sample_data.up.sql"
     fi
 }
 
-# Function to handle database reset and sample data
+
+# Function to handle database setup
 handle_database_setup() {
     print_header "Database Setup"
-    
+
     # Handle based on sample data option
     case "$SAMPLE_DATA_OPTION" in
         "reset")
             print_info "Resetting database and loading sample data"
             reset_database_with_sample_data
+            apply_migrations
+            
+            # Always prompt before loading sample data
+            print_info "Do you want to load sample data? (y/n)"
+            read -r load_sample_data_response
+            if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+                load_sample_data
+            else
+                print_info "Skipping sample data loading"
+            fi
             ;;
         "none")
             print_info "Setting up clean database without sample data"
             reset_database_without_sample_data
+            apply_migrations
             ;;
         "keep")
             print_info "Keeping existing database data"
-            # Just ensure the database is running
             ensure_database_running
-            verify_migrations
+            apply_migrations
+            
+            # Check if tables exist but are empty
+            if docker exec ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} -t -c "SELECT EXISTS (SELECT FROM payments)" | grep -q "f"; then
+                print_info "Tables exist but are empty."
+                # Prompt before loading sample data
+                print_info "Do you want to load sample data? (y/n)"
+                read -r load_sample_data_response
+                if [[ "$load_sample_data_response" =~ ^[Yy]$ ]]; then
+                    print_info "Loading sample data..."
+                    load_sample_data
+                else
+                    print_info "Skipping sample data loading"
+                fi
+            fi
             ;;
     esac
 }
 
-# Function to verify if migrations have been properly applied
-verify_migrations() {
-    print_header "Verifying Database Migrations"
-    
-    # Check if the payments table exists
-    print_info "Checking if database tables exist..."
-    if ! docker exec ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db} psql -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db} -c "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'payments')" | grep -q "t"; then
-        print_warning "Database tables are missing. Applying migrations now..."
-        
-        # Apply migrations
-        print_info "Applying database schema migrations..."
-        apply_migrations
-        
-        print_success "Migrations have been applied"
-    else
-        print_success "Database tables exist. No migration needed."
-    fi
-    
-    # Ask if sample data should be loaded regardless of whether tables existed
-    print_info "Do you want to load sample data? (y/n)"
-    read -r load_sample_data
-    if [[ "$load_sample_data" =~ ^[Yy]$ ]]; then
-        load_sample_data
-    fi
-}
+
 
 # Function to ensure database is running
 ensure_database_running() {
@@ -323,7 +303,7 @@ wait_for_database() {
 
 # Function to reset database and load sample data
 reset_database_with_sample_data() {
-    print_info "Resetting database and loading sample data..."
+    print_info "Resetting database..."
     
     # Stop containers if running
     docker-compose down postgres &> /dev/null || true
@@ -342,13 +322,7 @@ reset_database_with_sample_data() {
     print_info "Waiting for database to initialize..."
     wait_for_database
     
-    # Apply migrations
-    apply_migrations
-    
-    # Load sample data
-    load_sample_data
-    
-    print_success "Database reset and sample data loaded successfully"
+    print_success "Database reset successfully"
 }
 
 # Function to reset database without sample data
@@ -372,9 +346,6 @@ reset_database_without_sample_data() {
     print_info "Waiting for database to initialize..."
     wait_for_database
     
-    # Apply migrations
-    apply_migrations
-    
     print_success "Database reset successfully without sample data"
 }
 
@@ -383,45 +354,10 @@ start_service() {
     print_header "Starting Payment Service"
     
     if [ "$USE_DOCKER" = "true" ]; then
-        # Create Docker-specific environment file if it doesn't exist
-        if [ ! -f ".env.docker" ]; then
-            print_info "Creating Docker-specific environment file (.env.docker)..."
-            cat > ".env.docker" << EOF
-# Payment Service Configuration
-PAYMENT_SERVICE_DB_NAME=${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
-PAYMENT_SERVICE_DB_PORT=5432
-PAYMENT_SERVICE_PORT=${PAYMENT_SERVICE_PORT:-8003}
-PAYMENT_SERVICE_HOST=${PAYMENT_SERVICE_HOST:-0.0.0.0}
-PAYMENT_SERVICE_CONTAINER_NAME=${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
-PAYMENT_SERVICE_READ_TIMEOUT=15s
-PAYMENT_SERVICE_WRITE_TIMEOUT=15s
-PAYMENT_SERVICE_IDLE_TIMEOUT=60s
-PAYMENT_SERVICE_SHUTDOWN_TIMEOUT=${PAYMENT_SERVICE_SHUTDOWN_TIMEOUT:-5s}
-
-# Common Database Configuration
-DB_HOST=postgres
-DB_PORT=5432
-DB_USER=${DB_USER:-fitness_user}
-DB_PASSWORD=${DB_PASSWORD:-admin}
-DB_SSLMODE=${DB_SSLMODE:-disable}
-
-# Docker Configuration
-DOCKER_NETWORK_NAME=${DOCKER_NETWORK_NAME:-fitness-network}
-
-# Authentication Configuration
-JWT_SECRET=${JWT_SECRET:-your_jwt_secret_key}
-JWT_EXPIRATION=24h
-
-# Logging Configuration
-LOG_LEVEL=${LOG_LEVEL:-debug}
-EOF
-            print_success "Created .env.docker file"
-        fi
-
-        # Start the service using docker-compose
-        print_info "Starting payment service in Docker container..."
+        # Start the service using docker-compose with --build flag
+        print_info "Building and starting payment service in Docker container..."
         print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-        if docker-compose up -d payment-service; then
+        if docker-compose up --build -d payment-service; then
             print_success "Payment service container started successfully"
             print_info "The service is running at http://${PAYMENT_SERVICE_HOST:-0.0.0.0}:${PAYMENT_SERVICE_PORT:-8003}"
             print_info "To view logs, run: docker-compose logs -f payment-service"
@@ -471,6 +407,9 @@ display_usage_instructions() {
         echo -e "   ${YELLOW}http://localhost:${PAYMENT_SERVICE_PORT:-8003}/health${NC}"
         echo -e "   ${YELLOW}http://localhost:${PAYMENT_SERVICE_PORT:-8003}/api/v1/payments${NC}"
         echo -e ""
+        echo -e "${CYAN}Load sample data manually:${NC}"
+        echo -e "   ${YELLOW}./scripts/migrate.sh sample${NC}"
+        echo -e ""
     else
         echo -e "${YELLOW}The service is running locally. The database is running in Docker.${NC}"
         echo -e ""
@@ -479,6 +418,9 @@ display_usage_instructions() {
         echo -e ""
         echo -e "${CYAN}To stop the database:${NC}"
         echo -e "   ${YELLOW}docker-compose stop postgres${NC}"
+        echo -e ""
+        echo -e "${CYAN}Load sample data manually:${NC}"
+        echo -e "   ${YELLOW}./scripts/migrate.sh sample${NC}"
         echo -e ""
     fi
 }
@@ -497,32 +439,14 @@ echo -e "Run mode: ${YELLOW}$([ "$USE_DOCKER" = "true" ] && echo "Docker" || ech
 # Load environment variables
 load_env_vars
 
-        # Check docker is available
-        check_docker
+# Check docker is available
+check_docker
 
-        # Ensure Docker network exists
-        ensure_docker_network
-
-# Update Go dependencies
-update_dependencies
+# Ensure Docker network exists
+ensure_docker_network
 
 # Set up the database
 handle_database_setup
-
-# Display manual sample data loading instructions
-print_header "How to Load Sample Data Manually"
-echo -e "${MAGENTA}If you want to load sample data later, follow these steps:${NC}"
-echo -e ""
-echo -e "${CYAN}1. Make sure the database is running:${NC}"
-echo -e "   ${YELLOW}docker-compose ps postgres${NC}"
-echo -e ""
-echo -e "${CYAN}2. Connect to the database and execute the sample data SQL file:${NC}"
-echo -e "   ${YELLOW}./scripts/db-connect.sh -f ./migrations/000004_sample_data.up.sql${NC}"
-echo -e ""
-echo -e "${CYAN}3. Or reset the database completely and start fresh:${NC}"
-echo -e "   ${YELLOW}./scripts/docker-db.sh reset${NC}"
-echo -e "   ${YELLOW}USE_DOCKER=true LOAD_SAMPLE_DATA=true ./scripts/setup-db.sh${NC}"
-echo -e ""
 
 # Start the service
 start_service

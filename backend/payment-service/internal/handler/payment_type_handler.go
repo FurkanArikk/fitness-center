@@ -4,19 +4,22 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
 // CreatePaymentType handles payment type creation
 func (h *Handler) CreatePaymentType(c *gin.Context) {
-	var paymentType model.PaymentType
-	if err := c.ShouldBindJSON(&paymentType); err != nil {
+	var paymentTypeReq dto.PaymentTypeRequest
+	if err := c.ShouldBindJSON(&paymentTypeReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	createdPaymentType, err := h.svc.PaymentType().Create(c.Request.Context(), &paymentType)
+	// Convert DTO to model
+	paymentType := dto.ConvertToPaymentTypeModel(&paymentTypeReq)
+
+	createdPaymentType, err := h.svc.PaymentType().Create(c.Request.Context(), paymentType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -50,14 +53,17 @@ func (h *Handler) UpdatePaymentType(c *gin.Context) {
 		return
 	}
 
-	var paymentType model.PaymentType
-	if err := c.ShouldBindJSON(&paymentType); err != nil {
+	var paymentTypeReq dto.PaymentTypeRequest
+	if err := c.ShouldBindJSON(&paymentTypeReq); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Convert DTO to model
+	paymentType := dto.ConvertToPaymentTypeModel(&paymentTypeReq)
 	paymentType.PaymentTypeID = id
-	updatedPaymentType, err := h.svc.PaymentType().Update(c.Request.Context(), &paymentType)
+
+	updatedPaymentType, err := h.svc.PaymentType().Update(c.Request.Context(), paymentType)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

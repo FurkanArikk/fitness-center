@@ -3,9 +3,10 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -88,6 +89,10 @@ func (h *Handler) DeleteAttendance(c *gin.Context) {
 	}
 
 	if err := h.repo.Attendance().Delete(c.Request.Context(), id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Attendance record not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -184,8 +189,11 @@ func (h *Handler) ListAttendanceByMember(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
@@ -217,8 +225,11 @@ func (h *Handler) ListAttendanceByFacility(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,
@@ -245,8 +256,11 @@ func (h *Handler) ListAttendanceByDate(c *gin.Context) {
 		return
 	}
 
+	// Convert model list to response DTO list
+	responseList := dto.AttendanceResponseListFromModel(attendance)
+
 	c.JSON(http.StatusOK, gin.H{
-		"data":       attendance,
+		"data":       responseList,
 		"page":       page,
 		"pageSize":   pageSize,
 		"totalItems": total,

@@ -1,6 +1,7 @@
 package dto
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
@@ -27,6 +28,15 @@ type QualificationRequest struct {
 	IssuingAuthority  string `json:"issuing_authority" validate:"required"`
 }
 
+// QualificationUpdateRequest represents a qualification update request from the client
+type QualificationUpdateRequest struct {
+	StaffID           *int64  `json:"staff_id,omitempty"`
+	QualificationName *string `json:"qualification_name,omitempty"`
+	IssueDate         *string `json:"issue_date,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	ExpiryDate        *string `json:"expiry_date,omitempty" validate:"omitempty,datetime=2006-01-02"`
+	IssuingAuthority  *string `json:"issuing_authority,omitempty"`
+}
+
 // ToModel converts a QualificationRequest to a Qualification model
 func (r *QualificationRequest) ToModel() (*model.Qualification, error) {
 	issueDate, err := time.Parse("2006-01-02", r.IssueDate)
@@ -46,6 +56,52 @@ func (r *QualificationRequest) ToModel() (*model.Qualification, error) {
 		ExpiryDate:        expiryDate,
 		IssuingAuthority:  r.IssuingAuthority,
 	}, nil
+}
+
+// ToModel converts a QualificationUpdateRequest to a Qualification model using an existing qualification
+func (r *QualificationUpdateRequest) ToModel(existing *model.Qualification) (*model.Qualification, error) {
+	// Start with the existing qualification
+	qualification := &model.Qualification{
+		QualificationID:   existing.QualificationID,
+		StaffID:           existing.StaffID,
+		QualificationName: existing.QualificationName,
+		IssueDate:         existing.IssueDate,
+		ExpiryDate:        existing.ExpiryDate,
+		IssuingAuthority:  existing.IssuingAuthority,
+		CreatedAt:         existing.CreatedAt,
+		UpdatedAt:         existing.UpdatedAt,
+	}
+
+	// Update fields that are provided in the request
+	if r.StaffID != nil {
+		qualification.StaffID = *r.StaffID
+	}
+
+	if r.QualificationName != nil {
+		qualification.QualificationName = *r.QualificationName
+	}
+
+	if r.IssueDate != nil {
+		issueDate, err := time.Parse("2006-01-02", *r.IssueDate)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse IssueDate '%s': %w", *r.IssueDate, err)
+		}
+		qualification.IssueDate = issueDate
+	}
+
+	if r.ExpiryDate != nil {
+		expiryDate, err := time.Parse("2006-01-02", *r.ExpiryDate)
+		if err != nil {
+			return nil, err
+		}
+		qualification.ExpiryDate = expiryDate
+	}
+
+	if r.IssuingAuthority != nil {
+		qualification.IssuingAuthority = *r.IssuingAuthority
+	}
+
+	return qualification, nil
 }
 
 // FromModel creates a QualificationResponse from a Qualification model

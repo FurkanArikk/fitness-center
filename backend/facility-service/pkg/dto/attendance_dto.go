@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // AttendanceResponse represents the response for attendance data
@@ -12,7 +12,7 @@ type AttendanceResponse struct {
 	MemberID     int        `json:"member_id"`
 	CheckInTime  time.Time  `json:"check_in_time"`
 	CheckOutTime *time.Time `json:"check_out_time,omitempty"`
-	Date         time.Time  `json:"date"`
+	Date         DateOnly   `json:"date"`
 	FacilityID   int        `json:"facility_id"`
 	CreatedAt    time.Time  `json:"created_at"`
 	UpdatedAt    time.Time  `json:"updated_at"`
@@ -72,7 +72,7 @@ func AttendanceResponseFromModel(model model.Attendance) AttendanceResponse {
 		MemberID:     model.MemberID,
 		CheckInTime:  model.CheckInTime,
 		CheckOutTime: model.CheckOutTime,
-		Date:         model.Date,
+		Date:         DateOnly(model.Date),
 		FacilityID:   model.FacilityID,
 		CreatedAt:    model.CreatedAt,
 		UpdatedAt:    model.UpdatedAt,

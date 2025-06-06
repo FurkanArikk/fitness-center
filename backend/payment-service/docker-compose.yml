@@ -1,16 +1,36 @@
 services:
+  postgres:
+    image: postgres:17
+    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
+    environment:
+      POSTGRES_USER: ${DB_USER:-fitness_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+      POSTGRES_DB: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${PAYMENT_SERVICE_DB_PORT:-5434}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - ${DOCKER_NETWORK_NAME:-fitness-network}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   payment-service:
     build: 
       context: .
       dockerfile: Dockerfile
     container_name: ${PAYMENT_SERVICE_NAME:-fitness-payment-service}
-    depends_on:
-      postgres:
-        condition: service_healthy
+    env_file:
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432  # Explicitly set the port to 5432 inside Docker
-      PAYMENT_SERVICE_DB_PORT: 5432  # Also set this explicitly
+      PAYMENT_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       PAYMENT_SERVICE_DB_NAME: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
@@ -18,6 +38,13 @@ services:
       DB_SSLMODE: ${DB_SSLMODE:-disable}
     ports:
       - "${PAYMENT_SERVICE_PORT:-8003}:8003"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-service.rule=PathPrefix(`/api/v1/payments`) || PathPrefix(`/api/v1/payment-types`) || PathPrefix(`/api/v1/transactions`) || PathPrefix(`/api/v1/admin/db-status`)"
+      - "traefik.http.routers.payment-service.entrypoints=web"
+      - "traefik.http.routers.payment-service.middlewares=auth-middleware"
+      - "traefik.http.services.payment-service.loadbalancer.server.port=8003"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     networks:
       - ${DOCKER_NETWORK_NAME:-fitness-network}
     volumes:
@@ -29,30 +56,9 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  postgres:
-    image: postgres:14
-    container_name: ${PAYMENT_SERVICE_CONTAINER_NAME:-fitness-payment-db}
-    environment:
-      POSTGRES_USER: ${DB_USER:-fitness_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
-      POSTGRES_DB: ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    ports:
-      - "${PAYMENT_SERVICE_DB_PORT:-5434}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      # Comment out this line to avoid the mount issues in WSL
-      # - ./migrations:/docker-entrypoint-initdb.d:ro
-    networks:
-      - ${DOCKER_NETWORK_NAME:-fitness-network}
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-fitness_user} -d ${PAYMENT_SERVICE_DB_NAME:-fitness_payment_db}"]
-      interval: 180s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 networks:
   fitness-network:

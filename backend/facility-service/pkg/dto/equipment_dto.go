@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // EquipmentResponse represents the response for equipment data
@@ -12,43 +12,43 @@ type EquipmentResponse struct {
 	Name                string    `json:"name"`
 	Description         string    `json:"description"`
 	Category            string    `json:"category"`
-	PurchaseDate        time.Time `json:"purchase_date"`
+	PurchaseDate        DateOnly  `json:"purchase_date"`
 	PurchasePrice       float64   `json:"purchase_price"`
 	Manufacturer        string    `json:"manufacturer"`
 	ModelNumber         string    `json:"model_number"`
 	Status              string    `json:"status"`
-	LastMaintenanceDate time.Time `json:"last_maintenance_date"`
-	NextMaintenanceDate time.Time `json:"next_maintenance_date"`
+	LastMaintenanceDate DateOnly  `json:"last_maintenance_date"`
+	NextMaintenanceDate DateOnly  `json:"next_maintenance_date"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 // EquipmentCreateRequest represents the request for creating equipment
 type EquipmentCreateRequest struct {
-	Name                string    `json:"name" binding:"required"`
-	Description         string    `json:"description"`
-	Category            string    `json:"category" binding:"required"`
-	PurchaseDate        time.Time `json:"purchase_date"`
-	PurchasePrice       float64   `json:"purchase_price"`
-	Manufacturer        string    `json:"manufacturer"`
-	ModelNumber         string    `json:"model_number"`
-	Status              string    `json:"status" binding:"required"`
-	LastMaintenanceDate time.Time `json:"last_maintenance_date"`
-	NextMaintenanceDate time.Time `json:"next_maintenance_date"`
+	Name                string   `json:"name" binding:"required"`
+	Description         string   `json:"description"`
+	Category            string   `json:"category" binding:"required"`
+	PurchaseDate        DateOnly `json:"purchase_date"`
+	PurchasePrice       float64  `json:"purchase_price"`
+	Manufacturer        string   `json:"manufacturer"`
+	ModelNumber         string   `json:"model_number"`
+	Status              string   `json:"status" binding:"required"`
+	LastMaintenanceDate DateOnly `json:"last_maintenance_date"`
+	NextMaintenanceDate DateOnly `json:"next_maintenance_date"`
 }
 
 // EquipmentUpdateRequest represents the request for updating equipment
 type EquipmentUpdateRequest struct {
-	Name                string    `json:"name" binding:"required"`
-	Description         string    `json:"description"`
-	Category            string    `json:"category" binding:"required"`
-	PurchaseDate        time.Time `json:"purchase_date"`
-	PurchasePrice       float64   `json:"purchase_price"`
-	Manufacturer        string    `json:"manufacturer"`
-	ModelNumber         string    `json:"model_number"`
-	Status              string    `json:"status" binding:"required"`
-	LastMaintenanceDate time.Time `json:"last_maintenance_date"`
-	NextMaintenanceDate time.Time `json:"next_maintenance_date"`
+	Name                string   `json:"name" binding:"required"`
+	Description         string   `json:"description"`
+	Category            string   `json:"category" binding:"required"`
+	PurchaseDate        DateOnly `json:"purchase_date"`
+	PurchasePrice       float64  `json:"purchase_price"`
+	Manufacturer        string   `json:"manufacturer"`
+	ModelNumber         string   `json:"model_number"`
+	Status              string   `json:"status" binding:"required"`
+	LastMaintenanceDate DateOnly `json:"last_maintenance_date"`
+	NextMaintenanceDate DateOnly `json:"next_maintenance_date"`
 }
 
 // ToModel converts EquipmentCreateRequest to model.Equipment
@@ -57,13 +57,13 @@ func (r *EquipmentCreateRequest) ToModel() model.Equipment {
 		Name:                r.Name,
 		Description:         r.Description,
 		Category:            r.Category,
-		PurchaseDate:        r.PurchaseDate,
+		PurchaseDate:        time.Time(r.PurchaseDate),
 		PurchasePrice:       r.PurchasePrice,
 		Manufacturer:        r.Manufacturer,
 		ModelNumber:         r.ModelNumber,
 		Status:              r.Status,
-		LastMaintenanceDate: r.LastMaintenanceDate,
-		NextMaintenanceDate: r.NextMaintenanceDate,
+		LastMaintenanceDate: time.Time(r.LastMaintenanceDate),
+		NextMaintenanceDate: time.Time(r.NextMaintenanceDate),
 	}
 }
 
@@ -73,13 +73,13 @@ func (r *EquipmentUpdateRequest) ToModel() model.Equipment {
 		Name:                r.Name,
 		Description:         r.Description,
 		Category:            r.Category,
-		PurchaseDate:        r.PurchaseDate,
+		PurchaseDate:        time.Time(r.PurchaseDate),
 		PurchasePrice:       r.PurchasePrice,
 		Manufacturer:        r.Manufacturer,
 		ModelNumber:         r.ModelNumber,
 		Status:              r.Status,
-		LastMaintenanceDate: r.LastMaintenanceDate,
-		NextMaintenanceDate: r.NextMaintenanceDate,
+		LastMaintenanceDate: time.Time(r.LastMaintenanceDate),
+		NextMaintenanceDate: time.Time(r.NextMaintenanceDate),
 	}
 }
 
@@ -90,13 +90,13 @@ func EquipmentResponseFromModel(model model.Equipment) EquipmentResponse {
 		Name:                model.Name,
 		Description:         model.Description,
 		Category:            model.Category,
-		PurchaseDate:        model.PurchaseDate,
+		PurchaseDate:        DateOnly(model.PurchaseDate),
 		PurchasePrice:       model.PurchasePrice,
 		Manufacturer:        model.Manufacturer,
 		ModelNumber:         model.ModelNumber,
 		Status:              model.Status,
-		LastMaintenanceDate: model.LastMaintenanceDate,
-		NextMaintenanceDate: model.NextMaintenanceDate,
+		LastMaintenanceDate: DateOnly(model.LastMaintenanceDate),
+		NextMaintenanceDate: DateOnly(model.NextMaintenanceDate),
 		CreatedAt:           model.CreatedAt,
 		UpdatedAt:           model.UpdatedAt,
 	}

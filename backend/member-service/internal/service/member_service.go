@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
 var (
@@ -16,11 +15,11 @@ var (
 
 // MemberServiceImpl implements MemberService
 type MemberServiceImpl struct {
-	repo repository.MemberRepository
+	repo model.MemberRepository
 }
 
 // NewMemberService creates a new member service
-func NewMemberService(repo repository.MemberRepository) MemberService {
+func NewMemberService(repo model.MemberRepository) MemberService {
 	return &MemberServiceImpl{
 		repo: repo,
 	}
@@ -109,7 +108,7 @@ func (s *MemberServiceImpl) Delete(ctx context.Context, id int64) error {
 }
 
 // List retrieves a paginated list of members
-func (s *MemberServiceImpl) List(ctx context.Context, page, pageSize int) ([]*model.Member, error) {
+func (s *MemberServiceImpl) List(ctx context.Context, page, pageSize int) ([]*model.Member, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -120,7 +119,19 @@ func (s *MemberServiceImpl) List(ctx context.Context, page, pageSize int) ([]*mo
 	// Calculate offset based on page and pageSize
 	offset := (page - 1) * pageSize
 
-	return s.repo.List(ctx, offset, pageSize)
+	// Get the members
+	members, err := s.repo.List(ctx, offset, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Get total count
+	totalCount, err := s.repo.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return members, totalCount, nil
 }
 
 // GetByEmail retrieves a member by email

@@ -20,64 +20,8 @@ type Server struct {
 func NewServer(h *handler.Handler, port string) *Server {
 	router := gin.Default()
 
-	// Health check endpoint with standardized response format
-	router.GET("/health", h.HealthCheck)
-
-	// API routes
-	api := router.Group("/api/v1")
-	{
-		members := api.Group("/members")
-		{
-			members.GET("", h.MemberHandler.GetMembers)
-			members.GET("/:id", h.MemberHandler.GetMemberByID)
-			members.POST("", h.MemberHandler.CreateMember)
-			members.PUT("/:id", h.MemberHandler.UpdateMember)
-			members.DELETE("/:id", h.MemberHandler.DeleteMember)
-
-			// Move these routes inside the members group and use a different param
-			// to avoid conflict with the :id param
-			members.GET("/:id/memberships", h.MemberMembershipHandler.GetMemberMemberships)
-			members.GET("/:id/active-membership", h.MemberMembershipHandler.GetActiveMembership)
-			members.GET("/:id/assessments", h.AssessmentHandler.GetMemberAssessments)
-		}
-
-		memberships := api.Group("/memberships")
-		{
-			memberships.GET("", h.MembershipHandler.GetMemberships)
-			memberships.GET("/:id", h.MembershipHandler.GetMembershipByID)
-			memberships.POST("", h.MembershipHandler.CreateMembership)
-			memberships.PUT("/:id", h.MembershipHandler.UpdateMembership)
-			memberships.DELETE("/:id", h.MembershipHandler.DeleteMembership)
-			memberships.PUT("/:id/status", h.MembershipHandler.ToggleMembershipStatus)
-			// Move this under the memberships group and use :id
-			memberships.GET("/:id/benefits", h.MembershipHandler.GetMembershipBenefits)
-		}
-
-		benefits := api.Group("/benefits")
-		{
-			benefits.GET("", h.BenefitHandler.GetBenefits)
-			benefits.GET("/:id", h.BenefitHandler.GetBenefitByID)
-			benefits.POST("", h.BenefitHandler.CreateBenefit)
-			benefits.PUT("/:id", h.BenefitHandler.UpdateBenefit)
-			benefits.DELETE("/:id", h.BenefitHandler.DeleteBenefit)
-		}
-
-		assessments := api.Group("/assessments")
-		{
-			assessments.GET("/:id", h.AssessmentHandler.GetAssessmentByID)
-			assessments.POST("", h.AssessmentHandler.CreateAssessment)
-			assessments.PUT("/:id", h.AssessmentHandler.UpdateAssessment)
-			assessments.DELETE("/:id", h.AssessmentHandler.DeleteAssessment)
-		}
-
-		memberMemberships := api.Group("/member-memberships")
-		{
-			memberMemberships.GET("/:id", h.MemberMembershipHandler.GetMemberMembershipByID)
-			memberMemberships.POST("", h.MemberMembershipHandler.CreateMemberMembership)
-			memberMemberships.PUT("/:id", h.MemberMembershipHandler.UpdateMemberMembership)
-			memberMemberships.DELETE("/:id", h.MemberMembershipHandler.DeleteMemberMembership)
-		}
-	}
+	// Configure all routes using the setupRoutes function
+	setupRoutes(router, h)
 
 	srv := &Server{
 		router: router,

@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:14
+    image: postgres:17
     container_name: ${FACILITY_SERVICE_CONTAINER_NAME:-fitness-facility-db}
     environment:
       POSTGRES_USER: ${DB_USER:-fitness_user}
@@ -28,10 +28,10 @@ services:
       dockerfile: Dockerfile
     container_name: fitness-facility-service
     env_file:
-      - .env.docker
+      - .env
     environment:
       DB_HOST: postgres
-      DB_PORT: 5432
+      FACILITY_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
       FACILITY_SERVICE_DB_NAME: ${FACILITY_SERVICE_DB_NAME:-fitness_facility_db}
@@ -42,6 +42,13 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-debug}
     ports:
       - "${FACILITY_SERVICE_PORT:-8004}:8004"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.facility-service.rule=PathPrefix(`/api/v1/facilities`) || PathPrefix(`/api/v1/equipment`) || PathPrefix(`/api/v1/attendance`) || PathPrefix(`/api/v1/admin/db-status`)"
+      - "traefik.http.routers.facility-service.entrypoints=web"
+      - "traefik.http.routers.facility-service.middlewares=auth-middleware"
+      - "traefik.http.services.facility-service.loadbalancer.server.port=8004"
+      - "traefik.docker.network=${DOCKER_NETWORK_NAME:-fitness-network}"
     depends_on:
       postgres:
         condition: service_healthy

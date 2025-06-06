@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
 )
 
 var (
@@ -16,11 +15,11 @@ var (
 
 // MembershipServiceImpl implements MembershipService
 type MembershipServiceImpl struct {
-	repo repository.MembershipRepository
+	repo model.MembershipRepository
 }
 
 // NewMembershipService creates a new membership service
-func NewMembershipService(repo repository.MembershipRepository) MembershipService {
+func NewMembershipService(repo model.MembershipRepository) MembershipService {
 	return &MembershipServiceImpl{
 		repo: repo,
 	}
@@ -106,7 +105,7 @@ func (s *MembershipServiceImpl) Delete(ctx context.Context, id int64) error {
 }
 
 // List retrieves a paginated list of memberships
-func (s *MembershipServiceImpl) List(ctx context.Context, page, pageSize int) ([]*model.Membership, error) {
+func (s *MembershipServiceImpl) List(ctx context.Context, page, pageSize int) ([]*model.Membership, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -114,7 +113,18 @@ func (s *MembershipServiceImpl) List(ctx context.Context, page, pageSize int) ([
 		pageSize = 10
 	}
 
-	return s.repo.List(ctx, page, pageSize)
+	offset := (page - 1) * pageSize
+	memberships, err := s.repo.List(ctx, offset, pageSize)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := s.repo.Count(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return memberships, total, nil
 }
 
 // GetActiveOnes retrieves all active memberships

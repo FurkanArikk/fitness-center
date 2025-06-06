@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/furkan/fitness-center/backend/payment-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/model"
 )
 
 // PaymentRequest represents the payment creation/update request
@@ -13,9 +13,9 @@ type PaymentRequest struct {
 	PaymentDate   time.Time `json:"payment_date"`
 	PaymentMethod string    `json:"payment_method" binding:"required"`
 	PaymentStatus string    `json:"payment_status"`
-	InvoiceNumber *string   `json:"invoice_number"` // Changed to pointer
-	Description   *string   `json:"description"`    // Changed to pointer
-	PaymentTypeID int       `json:"payment_type_id" binding:"required"`
+	InvoiceNumber *string   `json:"invoice_number"`  // Changed to pointer
+	Description   *string   `json:"description"`     // Changed to pointer
+	PaymentTypeID *int      `json:"payment_type_id"` // Changed to pointer to handle NULL
 }
 
 // PaymentResponse represents the payment response to clients
@@ -26,10 +26,10 @@ type PaymentResponse struct {
 	PaymentDate     time.Time `json:"payment_date"`
 	PaymentMethod   string    `json:"payment_method"`
 	PaymentStatus   string    `json:"payment_status"`
-	InvoiceNumber   *string   `json:"invoice_number,omitempty"` // Changed to pointer
-	Description     *string   `json:"description,omitempty"`    // Changed to pointer
-	PaymentTypeID   int       `json:"payment_type_id"`
-	PaymentTypeName string    `json:"payment_type_name,omitempty"`
+	InvoiceNumber   *string   `json:"invoice_number,omitempty"`    // Changed to pointer
+	Description     *string   `json:"description,omitempty"`       // Changed to pointer
+	PaymentTypeID   *int      `json:"payment_type_id,omitempty"`   // Changed to pointer to handle NULL
+	PaymentTypeName *string   `json:"payment_type_name,omitempty"` // Changed to pointer to handle NULL
 	CreatedAt       time.Time `json:"created_at"`
 	UpdatedAt       time.Time `json:"updated_at"`
 }
@@ -108,6 +108,11 @@ type PaginatedResponse struct {
 
 // Convert model objects to DTOs
 func ConvertToPaymentResponse(payment *model.Payment) *PaymentResponse {
+	var paymentTypeName *string
+	if payment.PaymentType != nil {
+		paymentTypeName = &payment.PaymentType.TypeName
+	}
+
 	return &PaymentResponse{
 		PaymentID:       payment.PaymentID,
 		MemberID:        payment.MemberID,
@@ -118,7 +123,7 @@ func ConvertToPaymentResponse(payment *model.Payment) *PaymentResponse {
 		InvoiceNumber:   payment.InvoiceNumber,
 		Description:     payment.Description,
 		PaymentTypeID:   payment.PaymentTypeID,
-		PaymentTypeName: payment.PaymentTypeName,
+		PaymentTypeName: paymentTypeName,
 		CreatedAt:       payment.CreatedAt,
 		UpdatedAt:       payment.UpdatedAt,
 	}

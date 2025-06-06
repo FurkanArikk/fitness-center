@@ -1,32 +1,33 @@
 package postgres
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
-	_ "github.com/lib/pq" // PostgreSQL driver
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-// NewPostgresDB, PostgreSQL veritabanı bağlantısı oluşturur
-func NewPostgresDB(host, port, user, password, dbname string) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+// NewPostgresDB, PostgreSQL veritabanı bağlantısı oluşturur (GORM ile)
+func NewPostgresDB(host, port, user, password, dbname string) (*gorm.DB, error) {
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
 		host, port, user, password, dbname)
 
-	db, err := sql.Open("postgres", connStr)
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("postgres connection error: %v", err)
 	}
 
-	// Bağlantıyı test et
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("postgres ping error: %v", err)
+	// Get underlying sql.DB to configure connection pool
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %v", err)
 	}
 
 	// Bağlantı havuzu ayarları
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
+	sqlDB.SetMaxOpenConns(25)
+	sqlDB.SetMaxIdleConns(25)
+	sqlDB.SetConnMaxLifetime(5 * time.Minute)
 
 	return db, nil
 }

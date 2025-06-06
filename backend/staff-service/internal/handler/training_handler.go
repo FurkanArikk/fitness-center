@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/staff-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -17,9 +18,12 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 	trainerIDStr := c.Query("trainer_id") // Changed from trainerId to trainer_id to match endpoint docs
 	memberIDStr := c.Query("member_id")   // Changed from memberId to member_id to match endpoint docs
 
+	// Parse pagination parameters
+	params := ParsePaginationParams(c)
+	var err error
+
 	// Handle date parameter
 	var date time.Time
-	var err error
 	if dateStr != "" {
 		date, err = time.Parse("2006-01-02", dateStr)
 		if err != nil {
@@ -52,17 +56,43 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 	var trainingSessions []model.PersonalTraining
 	var fetchErr error
 
-	if status != "" {
-		trainingSessions, fetchErr = h.service.GetByStatus(status)
+	// Using both status and date for filtering
+	if status != "" && !date.IsZero() {
+		// Both status and date parameters are present, use them together
+		trainingSessions, fetchErr = h.service.GetByStatusAndDate(c.Request.Context(), status, date)
+	} else if status != "" {
+		// Only status parameter is present
+		trainingSessions, fetchErr = h.service.GetByStatus(c.Request.Context(), status)
 	} else if !date.IsZero() {
-		// Use appropriate service method for date filtering
-		trainingSessions, fetchErr = h.service.GetByDateRange(date, date.AddDate(0, 0, 1))
+		// Only date parameter is present
+		trainingSessions, fetchErr = h.service.GetByDateRange(c.Request.Context(), date, date.AddDate(0, 0, 1))
 	} else if trainerID > 0 {
-		trainingSessions, fetchErr = h.service.GetByTrainerID(trainerID)
+		trainingSessions, fetchErr = h.service.GetByTrainerID(c.Request.Context(), trainerID)
 	} else if memberID > 0 {
-		trainingSessions, fetchErr = h.service.GetByMemberID(memberID)
+		trainingSessions, fetchErr = h.service.GetByMemberID(c.Request.Context(), memberID)
+	} else if params.IsPagined {
+		// Use pagination when specifically requested and no other filters applied
+		var totalCount int
+		trainingSessions, totalCount, fetchErr = h.service.GetAllPaginated(c.Request.Context(), params.Offset, params.PageSize)
+
+		if fetchErr != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fetchErr.Error()})
+			return
+		}
+
+		// Return an empty array instead of null when no sessions are found
+		if trainingSessions == nil {
+			trainingSessions = []model.PersonalTraining{}
+		}
+
+		// Convert to response DTOs
+		trainingsDTO := dto.TrainingListFromModel(trainingSessions)
+		response := CreatePaginatedResponse(trainingsDTO, params, totalCount)
+
+		c.JSON(http.StatusOK, response)
+		return
 	} else {
-		trainingSessions, fetchErr = h.service.GetAll()
+		trainingSessions, fetchErr = h.service.GetAll(c.Request.Context())
 	}
 
 	if fetchErr != nil {
@@ -75,7 +105,9 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 		trainingSessions = []model.PersonalTraining{}
 	}
 
-	c.JSON(http.StatusOK, trainingSessions)
+	// Convert to response DTOs
+	response := dto.TrainingListFromModel(trainingSessions)
+	c.JSON(http.StatusOK, response)
 }
 
 // GetTrainingSessionByID returns a specific training session
@@ -86,31 +118,42 @@ func (h *TrainingHandler) GetTrainingSessionByID(c *gin.Context) {
 		return
 	}
 
-	trainingSession, err := h.service.GetByID(id)
+	trainingSession, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, trainingSession)
+	// Convert to response DTO
+	response := dto.TrainingFromModel(trainingSession)
+	c.JSON(http.StatusOK, response)
 }
 
 // CreateTrainingSession creates a new training session
 func (h *TrainingHandler) CreateTrainingSession(c *gin.Context) {
-	var trainingSession model.PersonalTraining
-	if err := c.ShouldBindJSON(&trainingSession); err != nil {
+	var trainingRequest dto.TrainingRequest
+	if err := c.ShouldBindJSON(&trainingRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Convert DTO to model
+	trainingSession, err := trainingRequest.ToModel()
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
 	// Use ScheduleSession for appropriate business logic
-	result, err := h.service.ScheduleSession(&trainingSession)
+	result, err := h.service.ScheduleSession(c.Request.Context(), trainingSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusCreated, result)
+	// Convert model back to response DTO
+	response := dto.TrainingFromModel(result)
+	c.JSON(http.StatusCreated, response)
 }
 
 // UpdateTrainingSession updates an existing training session
@@ -121,27 +164,62 @@ func (h *TrainingHandler) UpdateTrainingSession(c *gin.Context) {
 		return
 	}
 
-	// Get the existing training session first
-	existingSession, err := h.service.GetByID(id)
+	// Get the existing training session first to preserve member_id and trainer_id
+	existingSession, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Training session not found: " + err.Error()})
 		return
 	}
 
+	// Create a partial request object that doesn't require member_id and trainer_id
+	type PartialTrainingRequest struct {
+		SessionDate string  `json:"session_date" validate:"datetime=2006-01-02"`
+		StartTime   string  `json:"start_time"`
+		EndTime     string  `json:"end_time"`
+		Notes       string  `json:"notes"`
+		Status      string  `json:"status" validate:"oneof=Scheduled Completed Cancelled"`
+		Price       float64 `json:"price" validate:"gte=0"`
+	}
+
 	// Bind the updated data from JSON request
-	if err := c.ShouldBindJSON(existingSession); err != nil {
+	var partialRequest PartialTrainingRequest
+	if err := c.ShouldBindJSON(&partialRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
+	// Create a complete request by combining partial request with existing data
+	completeRequest := dto.TrainingRequest{
+		MemberID:    existingSession.MemberID,  // Preserve existing member ID
+		TrainerID:   existingSession.TrainerID, // Preserve existing trainer ID
+		SessionDate: partialRequest.SessionDate,
+		StartTime:   partialRequest.StartTime,
+		EndTime:     partialRequest.EndTime,
+		Notes:       partialRequest.Notes,
+		Status:      partialRequest.Status,
+		Price:       partialRequest.Price,
+	}
+
+	// Convert request to model
+	updatedSession, err := completeRequest.ToModel()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Keep the original ID
+	updatedSession.SessionID = id
+
 	// Now update the session
-	result, err := h.service.Update(existingSession)
+	result, err := h.service.Update(c.Request.Context(), updatedSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, result)
+	// Convert result back to response DTO
+	response := dto.TrainingFromModel(result)
+	c.JSON(http.StatusOK, response)
 }
 
 // DeleteTrainingSession deletes a training session
@@ -152,7 +230,7 @@ func (h *TrainingHandler) DeleteTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -168,7 +246,7 @@ func (h *TrainingHandler) CancelTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CancelSession(id); err != nil {
+	if err := h.service.CancelSession(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -184,7 +262,7 @@ func (h *TrainingHandler) CompleteTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CompleteSession(id); err != nil {
+	if err := h.service.CompleteSession(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -208,11 +286,13 @@ func (h *TrainingHandler) GetTrainingSessionsByDate(c *gin.Context) {
 
 	// Use next day to get all sessions on the specified date
 	nextDay := date.AddDate(0, 0, 1)
-	trainingSessions, err := h.service.GetByDateRange(date, nextDay)
+	trainingSessions, err := h.service.GetByDateRange(c.Request.Context(), date, nextDay)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, trainingSessions)
+	// Convert to response DTOs
+	response := dto.TrainingListFromModel(trainingSessions)
+	c.JSON(http.StatusOK, response)
 }

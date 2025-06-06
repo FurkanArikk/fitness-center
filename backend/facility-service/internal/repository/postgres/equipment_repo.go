@@ -3,175 +3,83 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strings"
+	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
-	"github.com/jmoiron/sqlx"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
+	"gorm.io/gorm"
 )
 
 type equipmentRepository struct {
-	db *sqlx.DB
+	db *gorm.DB
 }
 
 // NewEquipmentRepository creates a new equipment repository
-func NewEquipmentRepository(db *sqlx.DB) repository.EquipmentRepository {
+func NewEquipmentRepository(db *gorm.DB) repository.EquipmentRepository {
 	return &equipmentRepository{db: db}
 }
 
 // Create adds a new equipment record
 func (r *equipmentRepository) Create(ctx context.Context, equipment *model.Equipment) (*model.Equipment, error) {
-	query := `
-		INSERT INTO equipment (
-			name, description, category, purchase_date, purchase_price, 
-			manufacturer, model_number, status, last_maintenance_date, next_maintenance_date
-		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-		) RETURNING equipment_id, created_at, updated_at
-	`
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		equipment.Name,
-		equipment.Description,
-		equipment.Category,
-		equipment.PurchaseDate,
-		equipment.PurchasePrice,
-		equipment.Manufacturer,
-		equipment.ModelNumber,
-		equipment.Status,
-		equipment.LastMaintenanceDate,
-		equipment.NextMaintenanceDate,
-	).Scan(
-		&equipment.EquipmentID,
-		&equipment.CreatedAt,
-		&equipment.UpdatedAt,
-	)
-
-	if err != nil {
+	if err := r.db.WithContext(ctx).Create(equipment).Error; err != nil {
 		return nil, fmt.Errorf("creating equipment: %w", err)
 	}
-
 	return equipment, nil
 }
 
 // GetByID retrieves equipment by ID
 func (r *equipmentRepository) GetByID(ctx context.Context, id int) (*model.Equipment, error) {
-	equipment := &model.Equipment{}
-
-	query := `SELECT * FROM equipment WHERE equipment_id = $1`
-
-	if err := r.db.GetContext(ctx, equipment, query, id); err != nil {
+	var equipment model.Equipment
+	if err := r.db.WithContext(ctx).Where("equipment_id = ?", id).First(&equipment).Error; err != nil {
 		return nil, fmt.Errorf("getting equipment by ID: %w", err)
 	}
-
-	return equipment, nil
+	return &equipment, nil
 }
 
 // Update updates an equipment record
 func (r *equipmentRepository) Update(ctx context.Context, equipment *model.Equipment) (*model.Equipment, error) {
-	query := `
-		UPDATE equipment SET
-			name = $1,
-			description = $2,
-			category = $3,
-			purchase_date = $4,
-			purchase_price = $5,
-			manufacturer = $6,
-			model_number = $7,
-			status = $8,
-			last_maintenance_date = $9,
-			next_maintenance_date = $10,
-			updated_at = NOW()
-		WHERE equipment_id = $11
-		RETURNING updated_at
-	`
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		equipment.Name,
-		equipment.Description,
-		equipment.Category,
-		equipment.PurchaseDate,
-		equipment.PurchasePrice,
-		equipment.Manufacturer,
-		equipment.ModelNumber,
-		equipment.Status,
-		equipment.LastMaintenanceDate,
-		equipment.NextMaintenanceDate,
-		equipment.EquipmentID,
-	).Scan(&equipment.UpdatedAt)
-
-	if err != nil {
+	if err := r.db.WithContext(ctx).Save(equipment).Error; err != nil {
 		return nil, fmt.Errorf("updating equipment: %w", err)
 	}
-
 	return equipment, nil
 }
 
 // Delete removes an equipment record
 func (r *equipmentRepository) Delete(ctx context.Context, id int) error {
-	query := `DELETE FROM equipment WHERE equipment_id = $1`
-
-	result, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("deleting equipment: %w", err)
+	result := r.db.WithContext(ctx).Delete(&model.Equipment{}, id)
+	if result.Error != nil {
+		return fmt.Errorf("deleting equipment: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("equipment with ID %d not found", id)
 	}
-
 	return nil
 }
 
-// List retrieves equipment with filters
+// List retrieves equipment with filters and pagination
 func (r *equipmentRepository) List(ctx context.Context, filter map[string]interface{}, page, pageSize int) ([]*model.Equipment, int, error) {
-	where := []string{}
-	args := []interface{}{}
-	argID := 1
+	var equipment []*model.Equipment
+	var total int64
 
+	db := r.db.WithContext(ctx).Model(&model.Equipment{})
+
+	// Apply filters
 	for key, value := range filter {
-		where = append(where, fmt.Sprintf("%s = $%d", key, argID))
-		args = append(args, value)
-		argID++
+		db = db.Where(fmt.Sprintf("%s = ?", key), value)
 	}
 
-	whereClause := ""
-	if len(where) > 0 {
-		whereClause = "WHERE " + strings.Join(where, " AND ")
-	}
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM equipment %s", whereClause)
-
-	var total int
-	if err := r.db.GetContext(ctx, &total, countQuery, args...); err != nil {
+	// Count total records
+	if err := db.Count(&total).Error; err != nil {
 		return nil, 0, fmt.Errorf("counting equipment: %w", err)
 	}
 
+	// Apply pagination
 	offset := (page - 1) * pageSize
-	args = append(args, pageSize, offset)
-
-	query := fmt.Sprintf(`
-		SELECT * FROM equipment 
-		%s
-		ORDER BY equipment_id
-		LIMIT $%d OFFSET $%d
-	`, whereClause, argID, argID+1)
-
-	var equipment []*model.Equipment
-	if err := r.db.SelectContext(ctx, &equipment, query, args...); err != nil {
+	if err := db.Offset(offset).Limit(pageSize).Order("equipment_id").Find(&equipment).Error; err != nil {
 		return nil, 0, fmt.Errorf("listing equipment: %w", err)
 	}
 
-	return equipment, total, nil
+	return equipment, int(total), nil
 }
 
 // ListByCategory retrieves equipment by category
@@ -184,31 +92,28 @@ func (r *equipmentRepository) ListByStatus(ctx context.Context, status string, p
 	return r.List(ctx, map[string]interface{}{"status": status}, page, pageSize)
 }
 
-// ListByMaintenanceDue retrieves equipment by next maintenance date
+// ListByMaintenanceDue retrieves equipment needing maintenance by a specific date
 func (r *equipmentRepository) ListByMaintenanceDue(ctx context.Context, date string, page, pageSize int) ([]*model.Equipment, int, error) {
-	where := "WHERE next_maintenance_date <= $1"
-	args := []interface{}{date}
-
-	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM equipment %s", where)
-
-	var total int
-	if err := r.db.GetContext(ctx, &total, countQuery, args...); err != nil {
-		return nil, 0, fmt.Errorf("counting equipment: %w", err)
-	}
-
-	offset := (page - 1) * pageSize
-
-	query := fmt.Sprintf(`
-		SELECT * FROM equipment 
-		%s
-		ORDER BY next_maintenance_date
-		LIMIT $2 OFFSET $3
-	`, where)
-
 	var equipment []*model.Equipment
-	if err := r.db.SelectContext(ctx, &equipment, query, date, pageSize, offset); err != nil {
-		return nil, 0, fmt.Errorf("listing equipment by maintenance: %w", err)
+	var total int64
+
+	parsedDate, err := time.Parse("2006-01-02", date)
+	if err != nil {
+		return nil, 0, fmt.Errorf("parsing date: %w", err)
 	}
 
-	return equipment, total, nil
+	db := r.db.WithContext(ctx).Model(&model.Equipment{}).Where("next_maintenance_date <= ?", parsedDate)
+
+	// Count total records
+	if err := db.Count(&total).Error; err != nil {
+		return nil, 0, fmt.Errorf("counting equipment needing maintenance: %w", err)
+	}
+
+	// Apply pagination
+	offset := (page - 1) * pageSize
+	if err := db.Offset(offset).Limit(pageSize).Order("next_maintenance_date").Find(&equipment).Error; err != nil {
+		return nil, 0, fmt.Errorf("listing equipment needing maintenance: %w", err)
+	}
+
+	return equipment, int(total), nil
 }

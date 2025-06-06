@@ -60,8 +60,8 @@ func TrainingFromModel(t *model.PersonalTraining) *TrainingResponse {
 		MemberID:    t.MemberID,
 		TrainerID:   t.TrainerID,
 		SessionDate: t.SessionDate.Format("2006-01-02"),
-		StartTime:   t.StartTime,
-		EndTime:     t.EndTime,
+		StartTime:   t.StartTime, // HH:MM:SS
+		EndTime:     t.EndTime,   // HH:MM:SS
 		Notes:       t.Notes,
 		Status:      t.Status,
 		Price:       t.Price,

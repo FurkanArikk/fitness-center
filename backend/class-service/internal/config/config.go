@@ -6,17 +6,23 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
 
+// Config holds application configuration
 type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 }
 
+// ServerConfig holds HTTP server configuration
 type ServerConfig struct {
-	Port int
+	Port         int
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
 }
 
 type DatabaseConfig struct {
@@ -65,7 +71,10 @@ func LoadConfig() Config {
 
 	config := Config{
 		Server: ServerConfig{
-			Port: getEnvAsInt("CLASS_SERVICE_PORT", 8005),
+			Port:         getEnvAsInt("CLASS_SERVICE_PORT", 8005),
+			ReadTimeout:  getEnvAsDuration("CLASS_SERVICE_READ_TIMEOUT", 15*time.Second),
+			WriteTimeout: getEnvAsDuration("CLASS_SERVICE_WRITE_TIMEOUT", 15*time.Second),
+			IdleTimeout:  getEnvAsDuration("CLASS_SERVICE_IDLE_TIMEOUT", 60*time.Second),
 		},
 		Database: DatabaseConfig{
 			Host:     getEnv("DB_HOST", "localhost"),
@@ -171,6 +180,15 @@ func getEnv(key, defaultValue string) string {
 func getEnvAsInt(key string, defaultValue int) int {
 	valueStr := getEnv(key, "")
 	if value, err := strconv.Atoi(valueStr); err == nil {
+		return value
+	}
+	return defaultValue
+}
+
+// Helper function to get environment variables as durations
+func getEnvAsDuration(key string, defaultValue time.Duration) time.Duration {
+	valueStr := getEnv(key, "")
+	if value, err := time.ParseDuration(valueStr); err == nil {
 		return value
 	}
 	return defaultValue
