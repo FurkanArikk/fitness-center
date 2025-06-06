@@ -1,190 +1,117 @@
 package postgres
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
-	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
 
 // QualificationRepository handles database operations related to staff qualifications
 type QualificationRepository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 // NewQualificationRepository creates a new QualificationRepository
-func NewQualificationRepository(db *sql.DB) *QualificationRepository {
+func NewQualificationRepository(db *gorm.DB) *QualificationRepository {
 	return &QualificationRepository{db: db}
 }
 
 // GetAll retrieves all qualifications from the database
-func (r *QualificationRepository) GetAll() ([]model.Qualification, error) {
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        ORDER BY expiry_date DESC
-    `
-
-	rows, err := r.db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error querying qualifications: %w", err)
-	}
-	defer rows.Close()
-
+func (r *QualificationRepository) GetAll(ctx context.Context) ([]model.Qualification, error) {
 	var qualifications []model.Qualification
-	for rows.Next() {
-		var q model.Qualification
-		if err := rows.Scan(
-			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning qualification: %w", err)
-		}
-		qualifications = append(qualifications, q)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating qualification rows: %w", err)
+	result := r.db.WithContext(ctx).Order("expiry_date DESC").Find(&qualifications)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying qualifications: %w", result.Error)
 	}
 
 	return qualifications, nil
 }
 
 // GetByID retrieves a qualification by ID
-func (r *QualificationRepository) GetByID(id int64) (*model.Qualification, error) {
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        WHERE qualification_id = $1
-    `
+func (r *QualificationRepository) GetByID(ctx context.Context, id int64) (*model.Qualification, error) {
+	var qualification model.Qualification
 
-	var q model.Qualification
-	err := r.db.QueryRow(query, id).Scan(
-		&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-		&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("qualification not found: %w", err)
+	result := r.db.WithContext(ctx).First(&qualification, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("qualification not found")
 		}
-		return nil, fmt.Errorf("error querying qualification: %w", err)
+		return nil, fmt.Errorf("error querying qualification: %w", result.Error)
 	}
 
-	return &q, nil
+	return &qualification, nil
 }
 
 // GetByStaffID retrieves all qualifications for a staff member
-func (r *QualificationRepository) GetByStaffID(staffID int64) ([]model.Qualification, error) {
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        WHERE staff_id = $1
-        ORDER BY expiry_date DESC
-    `
-
-	rows, err := r.db.Query(query, staffID)
-	if err != nil {
-		return nil, fmt.Errorf("error querying qualifications by staff ID: %w", err)
-	}
-	defer rows.Close()
-
+func (r *QualificationRepository) GetByStaffID(ctx context.Context, staffID int64) ([]model.Qualification, error) {
 	var qualifications []model.Qualification
-	for rows.Next() {
-		var q model.Qualification
-		if err := rows.Scan(
-			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning qualification: %w", err)
-		}
-		qualifications = append(qualifications, q)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating qualification rows: %w", err)
+	result := r.db.WithContext(ctx).Where("staff_id = ?", staffID).Order("expiry_date DESC").Find(&qualifications)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying qualifications by staff ID: %w", result.Error)
 	}
 
 	return qualifications, nil
 }
 
 // Create adds a new qualification to the database
-func (r *QualificationRepository) Create(qualification *model.Qualification) (*model.Qualification, error) {
-	query := `
-        INSERT INTO staff_qualifications (staff_id, qualification_name, issue_date, 
-                                         expiry_date, issuing_authority)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING qualification_id, created_at, updated_at
-    `
+func (r *QualificationRepository) Create(ctx context.Context, req *model.QualificationRequest) (*model.Qualification, error) {
+	qualification := &model.Qualification{
+		StaffID:           req.StaffID,
+		QualificationName: req.QualificationName,
+		IssueDate:         req.IssueDate,
+		ExpiryDate:        req.ExpiryDate,
+		IssuingAuthority:  req.IssuingAuthority,
+	}
 
-	err := r.db.QueryRow(
-		query, qualification.StaffID, qualification.QualificationName,
-		qualification.IssueDate, qualification.ExpiryDate, qualification.IssuingAuthority,
-	).Scan(&qualification.QualificationID, &qualification.CreatedAt, &qualification.UpdatedAt)
-
-	if err != nil {
-		// Check for unique constraint violation
-		pqErr, ok := err.(*pq.Error)
-		if ok && pqErr.Code == "23505" {
-			if strings.Contains(pqErr.Constraint, "unique_staff_qualification") {
-				return nil, fmt.Errorf("this qualification is already registered for this staff member: %w", err)
-			}
-		}
-		return nil, fmt.Errorf("error creating qualification: %w", err)
+	result := r.db.WithContext(ctx).Create(qualification)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error creating qualification: %w", result.Error)
 	}
 
 	return qualification, nil
 }
 
 // Update modifies an existing qualification in the database
-func (r *QualificationRepository) Update(qualification *model.Qualification) (*model.Qualification, error) {
-	query := `
-        UPDATE staff_qualifications
-        SET staff_id = $1, qualification_name = $2, issue_date = $3, 
-            expiry_date = $4, issuing_authority = $5, updated_at = $6
-        WHERE qualification_id = $7
-        RETURNING updated_at
-    `
+func (r *QualificationRepository) Update(ctx context.Context, id int64, req *model.QualificationRequest) (*model.Qualification, error) {
+	var qualification model.Qualification
 
-	now := time.Now()
-	err := r.db.QueryRow(
-		query, qualification.StaffID, qualification.QualificationName,
-		qualification.IssueDate, qualification.ExpiryDate, qualification.IssuingAuthority,
-		now, qualification.QualificationID,
-	).Scan(&qualification.UpdatedAt)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("qualification not found: %w", err)
+	// First check if qualification exists
+	result := r.db.WithContext(ctx).First(&qualification, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("qualification not found")
 		}
-		return nil, fmt.Errorf("error updating qualification: %w", err)
+		return nil, fmt.Errorf("error finding qualification: %w", result.Error)
 	}
 
-	return qualification, nil
+	// Update qualification
+	qualification.StaffID = req.StaffID
+	qualification.QualificationName = req.QualificationName
+	qualification.IssueDate = req.IssueDate
+	qualification.ExpiryDate = req.ExpiryDate
+	qualification.IssuingAuthority = req.IssuingAuthority
+
+	result = r.db.WithContext(ctx).Save(&qualification)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error updating qualification: %w", result.Error)
+	}
+
+	return &qualification, nil
 }
 
 // Delete removes a qualification from the database
-func (r *QualificationRepository) Delete(id int64) error {
-	query := `DELETE FROM staff_qualifications WHERE qualification_id = $1`
-
-	result, err := r.db.Exec(query, id)
-	if err != nil {
-		return fmt.Errorf("error deleting qualification: %w", err)
+func (r *QualificationRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Delete(&model.Qualification{}, id)
+	if result.Error != nil {
+		return fmt.Errorf("error deleting qualification: %w", result.Error)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("qualification not found")
 	}
 
@@ -192,125 +119,63 @@ func (r *QualificationRepository) Delete(id int64) error {
 }
 
 // GetExpiringSoon retrieves qualifications expiring within the specified number of days
-func (r *QualificationRepository) GetExpiringSoon(days int) ([]model.Qualification, error) {
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        WHERE expiry_date <= CURRENT_DATE + $1
-        ORDER BY expiry_date
-    `
-
-	rows, err := r.db.Query(query, days)
-	if err != nil {
-		return nil, fmt.Errorf("error querying expiring qualifications: %w", err)
-	}
-	defer rows.Close()
-
+func (r *QualificationRepository) GetExpiringSoon(ctx context.Context, days int) ([]model.Qualification, error) {
 	var qualifications []model.Qualification
-	for rows.Next() {
-		var q model.Qualification
-		if err := rows.Scan(
-			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning qualification: %w", err)
-		}
-		qualifications = append(qualifications, q)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating qualification rows: %w", err)
+	result := r.db.WithContext(ctx).
+		Where("expiry_date <= CURRENT_DATE + ?", days).
+		Order("expiry_date").Find(&qualifications)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying expiring qualifications: %w", result.Error)
 	}
 
 	return qualifications, nil
 }
 
 // GetAllPaginated retrieves qualifications with pagination
-func (r *QualificationRepository) GetAllPaginated(offset, limit int) ([]model.Qualification, int, error) {
-	// First get the total count
-	countQuery := `SELECT COUNT(*) FROM staff_qualifications`
-	var totalCount int
-	err := r.db.QueryRow(countQuery).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error counting qualifications: %w", err)
-	}
-
-	// Then get the paginated data
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        ORDER BY expiry_date DESC
-        LIMIT $1 OFFSET $2
-    `
-
-	rows, err := r.db.Query(query, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error querying paginated qualifications: %w", err)
-	}
-	defer rows.Close()
-
+func (r *QualificationRepository) GetAllPaginated(ctx context.Context, offset, limit int) ([]model.Qualification, int, error) {
 	var qualifications []model.Qualification
-	for rows.Next() {
-		var q model.Qualification
-		if err := rows.Scan(
-			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-		); err != nil {
-			return nil, 0, fmt.Errorf("error scanning paginated qualification: %w", err)
-		}
-		qualifications = append(qualifications, q)
+	var totalCount int64
+
+	// Get total count
+	countResult := r.db.WithContext(ctx).Model(&model.Qualification{}).Count(&totalCount)
+	if countResult.Error != nil {
+		return nil, 0, fmt.Errorf("error counting qualifications: %w", countResult.Error)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating paginated qualification rows: %w", err)
+	// Get paginated data
+	result := r.db.WithContext(ctx).
+		Order("expiry_date DESC").
+		Offset(offset).Limit(limit).Find(&qualifications)
+
+	if result.Error != nil {
+		return nil, 0, fmt.Errorf("error querying paginated qualifications: %w", result.Error)
 	}
 
-	return qualifications, totalCount, nil
+	return qualifications, int(totalCount), nil
 }
 
 // GetByStaffIDPaginated retrieves qualifications for a specific staff member with pagination
-func (r *QualificationRepository) GetByStaffIDPaginated(staffID int64, offset, limit int) ([]model.Qualification, int, error) {
-	// First get the total count for this staff member
-	countQuery := `SELECT COUNT(*) FROM staff_qualifications WHERE staff_id = $1`
-	var totalCount int
-	err := r.db.QueryRow(countQuery, staffID).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error counting qualifications for staff: %w", err)
-	}
-
-	// Then get the paginated data
-	query := `
-        SELECT qualification_id, staff_id, qualification_name, issue_date, 
-               expiry_date, issuing_authority, created_at, updated_at
-        FROM staff_qualifications
-        WHERE staff_id = $1
-        ORDER BY expiry_date DESC
-        LIMIT $2 OFFSET $3
-    `
-
-	rows, err := r.db.Query(query, staffID, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error querying paginated qualifications by staff ID: %w", err)
-	}
-	defer rows.Close()
-
+func (r *QualificationRepository) GetByStaffIDPaginated(ctx context.Context, staffID int64, offset, limit int) ([]model.Qualification, int, error) {
 	var qualifications []model.Qualification
-	for rows.Next() {
-		var q model.Qualification
-		if err := rows.Scan(
-			&q.QualificationID, &q.StaffID, &q.QualificationName, &q.IssueDate,
-			&q.ExpiryDate, &q.IssuingAuthority, &q.CreatedAt, &q.UpdatedAt,
-		); err != nil {
-			return nil, 0, fmt.Errorf("error scanning paginated qualification: %w", err)
-		}
-		qualifications = append(qualifications, q)
+	var totalCount int64
+
+	// Get total count for this staff member
+	countResult := r.db.WithContext(ctx).Model(&model.Qualification{}).Where("staff_id = ?", staffID).Count(&totalCount)
+	if countResult.Error != nil {
+		return nil, 0, fmt.Errorf("error counting qualifications for staff: %w", countResult.Error)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating paginated qualification rows: %w", err)
+	// Get paginated data
+	result := r.db.WithContext(ctx).
+		Where("staff_id = ?", staffID).
+		Order("expiry_date DESC").
+		Offset(offset).Limit(limit).Find(&qualifications)
+
+	if result.Error != nil {
+		return nil, 0, fmt.Errorf("error querying paginated qualifications by staff ID: %w", result.Error)
 	}
 
-	return qualifications, totalCount, nil
+	return qualifications, int(totalCount), nil
 }

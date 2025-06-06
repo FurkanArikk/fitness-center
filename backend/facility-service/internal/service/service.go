@@ -1,7 +1,7 @@
 package service
 
 import (
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
 )
 
 // Service combines all business services

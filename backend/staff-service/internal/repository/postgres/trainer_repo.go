@@ -1,188 +1,124 @@
 package postgres
 
 import (
-	"database/sql"
+	"context"
 	"errors"
 	"fmt"
-	"strings"
-	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/model"
-	"github.com/lib/pq"
+	"gorm.io/gorm"
 )
 
 // TrainerRepository handles database operations related to trainers
 type TrainerRepository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 // NewTrainerRepository creates a new TrainerRepository
-func NewTrainerRepository(db *sql.DB) *TrainerRepository {
+func NewTrainerRepository(db *gorm.DB) *TrainerRepository {
 	return &TrainerRepository{db: db}
 }
 
 // GetAll retrieves all active trainers from the database
-func (r *TrainerRepository) GetAll() ([]model.Trainer, error) {
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE is_active = true
-        ORDER BY rating DESC
-    `
-
-	rows, err := r.db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error querying trainers: %w", err)
-	}
-	defer rows.Close()
-
+func (r *TrainerRepository) GetAll(ctx context.Context) ([]model.Trainer, error) {
 	var trainers []model.Trainer
-	for rows.Next() {
-		var t model.Trainer
-		if err := rows.Scan(
-			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning trainer: %w", err)
-		}
-		trainers = append(trainers, t)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating trainer rows: %w", err)
+	result := r.db.WithContext(ctx).Where("is_active = ?", true).Order("rating DESC").Find(&trainers)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying trainers: %w", result.Error)
 	}
 
 	return trainers, nil
 }
 
 // GetByID retrieves an active trainer by ID
-func (r *TrainerRepository) GetByID(id int64) (*model.Trainer, error) {
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE trainer_id = $1 AND is_active = true
-    `
+func (r *TrainerRepository) GetByID(ctx context.Context, id int64) (*model.Trainer, error) {
+	var trainer model.Trainer
 
-	var t model.Trainer
-	err := r.db.QueryRow(query, id).Scan(
-		&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-		&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("trainer not found: %w", err)
+	result := r.db.WithContext(ctx).Where("trainer_id = ? AND is_active = ?", id, true).First(&trainer)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("trainer not found")
 		}
-		return nil, fmt.Errorf("error querying trainer: %w", err)
+		return nil, fmt.Errorf("error querying trainer: %w", result.Error)
 	}
 
-	return &t, nil
+	return &trainer, nil
 }
 
 // GetByStaffID retrieves an active trainer by staff ID
-func (r *TrainerRepository) GetByStaffID(staffID int64) (*model.Trainer, error) {
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE staff_id = $1 AND is_active = true
-    `
+func (r *TrainerRepository) GetByStaffID(ctx context.Context, staffID int64) (*model.Trainer, error) {
+	var trainer model.Trainer
 
-	var t model.Trainer
-	err := r.db.QueryRow(query, staffID).Scan(
-		&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-		&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("trainer not found: %w", err)
+	result := r.db.WithContext(ctx).Where("staff_id = ? AND is_active = ?", staffID, true).First(&trainer)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("trainer not found")
 		}
-		return nil, fmt.Errorf("error querying trainer: %w", err)
+		return nil, fmt.Errorf("error querying trainer: %w", result.Error)
 	}
 
-	return &t, nil
+	return &trainer, nil
 }
 
 // Create adds a new trainer to the database
-func (r *TrainerRepository) Create(trainer *model.Trainer) (*model.Trainer, error) {
-	query := `
-        INSERT INTO trainers (staff_id, specialization, certification, 
-                             experience, rating, is_active)
-        VALUES ($1, $2, $3, $4, $5, $6)
-        RETURNING trainer_id, created_at, updated_at
-    `
+func (r *TrainerRepository) Create(ctx context.Context, req *model.TrainerRequest) (*model.Trainer, error) {
+	trainer := &model.Trainer{
+		StaffID:        req.StaffID,
+		Specialization: req.Specialization,
+		Certification:  req.Certification,
+		Experience:     req.Experience,
+		Rating:         req.Rating,
+		IsActive:       true,
+	}
 
-	// Set trainer as active by default
-	trainer.IsActive = true
-
-	err := r.db.QueryRow(
-		query, trainer.StaffID, trainer.Specialization, trainer.Certification,
-		trainer.Experience, trainer.Rating, trainer.IsActive,
-	).Scan(&trainer.TrainerID, &trainer.CreatedAt, &trainer.UpdatedAt)
-
-	if err != nil {
-		// Check for unique constraint violation
-		pqErr, ok := err.(*pq.Error)
-		if ok && pqErr.Code == "23505" {
-			if strings.Contains(pqErr.Constraint, "trainers_staff_id_key") {
-				return nil, fmt.Errorf("this staff member is already registered as a trainer: %w", err)
-			}
-		}
-		return nil, fmt.Errorf("error creating trainer: %w", err)
+	result := r.db.WithContext(ctx).Create(trainer)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error creating trainer: %w", result.Error)
 	}
 
 	return trainer, nil
 }
 
 // Update modifies an existing trainer in the database
-func (r *TrainerRepository) Update(trainer *model.Trainer) (*model.Trainer, error) {
-	query := `
-        UPDATE trainers
-        SET staff_id = $1, specialization = $2, certification = $3, 
-            experience = $4, rating = $5, is_active = $6, updated_at = $7
-        WHERE trainer_id = $8 AND is_active = true
-        RETURNING updated_at
-    `
+func (r *TrainerRepository) Update(ctx context.Context, id int64, req *model.TrainerRequest) (*model.Trainer, error) {
+	var trainer model.Trainer
 
-	now := time.Now()
-	err := r.db.QueryRow(
-		query, trainer.StaffID, trainer.Specialization, trainer.Certification,
-		trainer.Experience, trainer.Rating, trainer.IsActive, now, trainer.TrainerID,
-	).Scan(&trainer.UpdatedAt)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("trainer not found or already deleted: %w", err)
+	// First check if trainer exists and is active
+	result := r.db.WithContext(ctx).Where("trainer_id = ? AND is_active = ?", id, true).First(&trainer)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("trainer not found or already deleted")
 		}
-		return nil, fmt.Errorf("error updating trainer: %w", err)
+		return nil, fmt.Errorf("error finding trainer: %w", result.Error)
 	}
 
-	return trainer, nil
+	// Update trainer
+	trainer.StaffID = req.StaffID
+	trainer.Specialization = req.Specialization
+	trainer.Certification = req.Certification
+	trainer.Experience = req.Experience
+	trainer.Rating = req.Rating
+
+	result = r.db.WithContext(ctx).Save(&trainer)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error updating trainer: %w", result.Error)
+	}
+
+	return &trainer, nil
 }
 
 // Delete soft deletes a trainer by setting is_active to false
-func (r *TrainerRepository) Delete(id int64) error {
-	query := `
-        UPDATE trainers 
-        SET is_active = false, updated_at = $1
-        WHERE trainer_id = $2 AND is_active = true
-    `
+func (r *TrainerRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Model(&model.Trainer{}).
+		Where("trainer_id = ? AND is_active = ?", id, true).
+		Update("is_active", false)
 
-	now := time.Now()
-	result, err := r.db.Exec(query, now, id)
-	if err != nil {
-		return fmt.Errorf("error soft deleting trainer: %w", err)
+	if result.Error != nil {
+		return fmt.Errorf("error soft deleting trainer: %w", result.Error)
 	}
 
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("trainer not found or already deleted")
 	}
 
@@ -190,168 +126,72 @@ func (r *TrainerRepository) Delete(id int64) error {
 }
 
 // GetBySpecialization retrieves trainers by specialization
-func (r *TrainerRepository) GetBySpecialization(specialization string) ([]model.Trainer, error) {
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE specialization = $1 AND is_active = true
-        ORDER BY rating DESC
-    `
-
-	rows, err := r.db.Query(query, specialization)
-	if err != nil {
-		return nil, fmt.Errorf("error querying trainers by specialization: %w", err)
-	}
-	defer rows.Close()
-
+func (r *TrainerRepository) GetBySpecialization(ctx context.Context, specialization string) ([]model.Trainer, error) {
 	var trainers []model.Trainer
-	for rows.Next() {
-		var t model.Trainer
-		if err := rows.Scan(
-			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning trainer: %w", err)
-		}
-		trainers = append(trainers, t)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating trainer rows: %w", err)
+	result := r.db.WithContext(ctx).
+		Where("specialization = ? AND is_active = ?", specialization, true).
+		Order("rating DESC").Find(&trainers)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying trainers by specialization: %w", result.Error)
 	}
 
 	return trainers, nil
 }
 
 // GetTopRated retrieves the top rated trainers
-func (r *TrainerRepository) GetTopRated(limit int) ([]model.Trainer, error) {
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE is_active = true
-        ORDER BY rating DESC
-        LIMIT $1
-    `
-
-	rows, err := r.db.Query(query, limit)
-	if err != nil {
-		return nil, fmt.Errorf("error querying top rated trainers: %w", err)
-	}
-	defer rows.Close()
-
+func (r *TrainerRepository) GetTopRated(ctx context.Context, limit int) ([]model.Trainer, error) {
 	var trainers []model.Trainer
-	for rows.Next() {
-		var t model.Trainer
-		if err := rows.Scan(
-			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning trainer: %w", err)
-		}
-		trainers = append(trainers, t)
-	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating trainer rows: %w", err)
+	result := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Order("rating DESC").
+		Limit(limit).Find(&trainers)
+
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying top rated trainers: %w", result.Error)
 	}
 
 	return trainers, nil
 }
 
 // GetWithStaffDetails retrieves all trainers with their staff details
-func (r *TrainerRepository) GetWithStaffDetails() ([]model.Trainer, error) {
-	query := `
-        SELECT t.trainer_id, t.staff_id, t.specialization, t.certification, 
-               t.experience, t.rating, t.is_active, t.created_at, t.updated_at,
-               s.first_name, s.last_name, s.email, s.phone, s.position
-        FROM trainers t
-        JOIN staff s ON t.staff_id = s.staff_id
-        WHERE t.is_active = true
-        ORDER BY t.rating DESC
-    `
-
-	rows, err := r.db.Query(query)
-	if err != nil {
-		return nil, fmt.Errorf("error querying trainers with staff details: %w", err)
-	}
-	defer rows.Close()
-
+func (r *TrainerRepository) GetWithStaffDetails(ctx context.Context) ([]model.Trainer, error) {
 	var trainers []model.Trainer
-	for rows.Next() {
-		var t model.Trainer
-		var firstName, lastName, email, phone, position string
 
-		if err := rows.Scan(
-			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-			&firstName, &lastName, &email, &phone, &position,
-		); err != nil {
-			return nil, fmt.Errorf("error scanning trainer with staff details: %w", err)
-		}
+	result := r.db.WithContext(ctx).
+		Preload("Staff").
+		Where("is_active = ?", true).
+		Order("rating DESC").Find(&trainers)
 
-		// Create embedded staff object with the retrieved values
-		t.Staff = &model.Staff{
-			StaffID:   t.StaffID,
-			FirstName: firstName,
-			LastName:  lastName,
-			Email:     email,
-			Phone:     phone,
-			Position:  position,
-		}
-
-		trainers = append(trainers, t)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating trainer rows: %w", err)
+	if result.Error != nil {
+		return nil, fmt.Errorf("error querying trainers with staff details: %w", result.Error)
 	}
 
 	return trainers, nil
 }
 
 // GetAllPaginated retrieves trainers with pagination
-func (r *TrainerRepository) GetAllPaginated(offset, limit int) ([]model.Trainer, int, error) {
-	// First get the total count
-	countQuery := `SELECT COUNT(*) FROM trainers WHERE is_active = true`
-	var totalCount int
-	err := r.db.QueryRow(countQuery).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error counting trainers: %w", err)
-	}
-
-	// Then get the paginated data
-	query := `
-        SELECT trainer_id, staff_id, specialization, certification, 
-               experience, rating, is_active, created_at, updated_at
-        FROM trainers
-        WHERE is_active = true
-        ORDER BY rating DESC
-        LIMIT $1 OFFSET $2
-    `
-
-	rows, err := r.db.Query(query, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error querying paginated trainers: %w", err)
-	}
-	defer rows.Close()
-
+func (r *TrainerRepository) GetAllPaginated(ctx context.Context, offset, limit int) ([]model.Trainer, int, error) {
 	var trainers []model.Trainer
-	for rows.Next() {
-		var t model.Trainer
-		if err := rows.Scan(
-			&t.TrainerID, &t.StaffID, &t.Specialization, &t.Certification,
-			&t.Experience, &t.Rating, &t.IsActive, &t.CreatedAt, &t.UpdatedAt,
-		); err != nil {
-			return nil, 0, fmt.Errorf("error scanning paginated trainer: %w", err)
-		}
-		trainers = append(trainers, t)
+	var totalCount int64
+
+	// Get total count
+	countResult := r.db.WithContext(ctx).Model(&model.Trainer{}).Where("is_active = ?", true).Count(&totalCount)
+	if countResult.Error != nil {
+		return nil, 0, fmt.Errorf("error counting trainers: %w", countResult.Error)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating paginated trainer rows: %w", err)
+	// Get paginated data
+	result := r.db.WithContext(ctx).
+		Where("is_active = ?", true).
+		Order("rating DESC").
+		Offset(offset).Limit(limit).Find(&trainers)
+
+	if result.Error != nil {
+		return nil, 0, fmt.Errorf("error querying paginated trainers: %w", result.Error)
 	}
 
-	return trainers, totalCount, nil
+	return trainers, int(totalCount), nil
 }

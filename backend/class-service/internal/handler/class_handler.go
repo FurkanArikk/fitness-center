@@ -93,6 +93,13 @@ func (h *ClassHandler) UpdateClass(c *gin.Context) {
 		return
 	}
 
+	// Check if class exists
+	_, err = h.service.GetClassByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Class not found"})
+		return
+	}
+
 	// Convert DTO to model
 	modelReq := req.ToModel()
 
@@ -119,8 +126,19 @@ func (h *ClassHandler) DeleteClass(c *gin.Context) {
 		return
 	}
 
+	// First check if class exists
+	_, err = h.service.GetClassByID(c.Request.Context(), id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Class not found"})
+		return
+	}
+
 	err = h.service.DeleteClass(c.Request.Context(), id)
 	if err != nil {
+		if err.Error() == "cannot delete class that is used in schedules" {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

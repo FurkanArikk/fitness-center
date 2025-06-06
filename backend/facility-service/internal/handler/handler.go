@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
-	"github.com/furkan/fitness-center/backend/facility-service/internal/service"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/service"
 	"github.com/gin-gonic/gin"
 )
 

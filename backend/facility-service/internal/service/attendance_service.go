@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
-	"github.com/furkan/fitness-center/backend/facility-service/internal/repository"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/repository"
 )
 
 // AttendanceService defines business operations for attendance

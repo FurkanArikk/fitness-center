@@ -2,43 +2,63 @@ package db
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/FurkanArikk/fitness-center/backend/staff-service/internal/config"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 // PostgresDB represents the PostgreSQL database implementation
 type PostgresDB struct {
-	DB *sql.DB
+	DB *gorm.DB
 }
 
 // NewPostgresDB creates a new PostgreSQL database connection
 func NewPostgresDB(cfg config.DatabaseConfig) (*PostgresDB, error) {
-	connStr := cfg.GetDSN()
+	dsn := cfg.GetDSN()
 
-	db, err := sql.Open("postgres", connStr)
+	// Configure GORM to disable automatic foreign key constraints
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
+	// Get underlying sql.DB to configure connection pool
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get underlying sql.DB: %w", err)
+	}
+
+	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	log.Println("Connected to PostgreSQL database")
+	// Skip auto-migration since database schema already exists with proper constraints
+	// The migrations folder contains the proper SQL migrations for this service
+
+	log.Println("Connected to PostgreSQL database with GORM")
 
 	return &PostgresDB{DB: db}, nil
 }
 
 // Ping checks if the database connection is active
 func (db *PostgresDB) Ping(ctx context.Context) error {
-	return db.DB.PingContext(ctx)
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.PingContext(ctx)
 }
 
 // Close closes the database connection
 func (db *PostgresDB) Close() error {
-	return db.DB.Close()
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
 }

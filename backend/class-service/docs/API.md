@@ -1,19 +1,38 @@
 # Class Service API Documentation
 
-This document outlines all the API endpoints provided by the Class Service.
+The Class Service manages fitness classes, schedules, and bookings within the Fitness Center application. This service provides RESTful APIs for creating and managing classes, scheduling sessions, and handling member bookings.
 
-Base URL: `/api/v1`
+## Base URL
 
-## Classes
+```
+http://localhost:8001/api/v1
+```
+
+## Table of Contents
+
+- [Class Endpoints](#class-endpoints)
+- [Schedule Endpoints](#schedule-endpoints)
+- [Booking Endpoints](#booking-endpoints)
+- [Health Check Endpoint](#health-check-endpoint)
+
+## Class Endpoints
 
 ### Get All Classes
 
-Returns a list of all classes, optionally filtered by active status.
+Returns a list of all fitness classes with optional filtering and pagination support.
 
 **Endpoint:** `GET /classes`
 
 **Query Parameters:**
 - `active` (optional): Filter by active status (true/false)
+- `difficulty` (optional): Filter by difficulty level (Beginner, Intermediate, Advanced)
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+
+**Example Request:**
+```
+GET /api/v1/classes?active=true&difficulty=Beginner&page=1&pageSize=20
+```
 
 **Response (200 OK):**
 ```json
@@ -32,7 +51,7 @@ Returns a list of all classes, optionally filtered by active status.
   {
     "class_id": 2,
     "class_name": "HIIT",
-    "description": "High-intensity interval training",
+    "description": "High-intensity interval training for maximum calorie burn",
     "duration": 45,
     "capacity": 15,
     "difficulty": "Advanced",
@@ -43,11 +62,28 @@ Returns a list of all classes, optionally filtered by active status.
 ]
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+  ```json
+  {
+    "error": "Invalid difficulty level"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Database connection error"
+  }
+  ```
+
 ### Get Class by ID
 
-Returns a specific class by its ID.
+Returns a specific fitness class by its ID.
 
 **Endpoint:** `GET /classes/{id}`
+
+**Path Parameters:**
+- `id`: Class ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -64,9 +100,23 @@ Returns a specific class by its ID.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid class ID
+  ```json
+  {
+    "error": "Invalid class ID"
+  }
+  ```
+- `404 Not Found`: Class not found
+  ```json
+  {
+    "error": "Class not found"
+  }
+  ```
+
 ### Create Class
 
-Creates a new class.
+Creates a new fitness class.
 
 **Endpoint:** `POST /classes`
 
@@ -74,7 +124,7 @@ Creates a new class.
 ```json
 {
   "class_name": "Pilates",
-  "description": "A system of exercises designed to improve physical strength",
+  "description": "A system of exercises designed to improve physical strength and flexibility",
   "duration": 50,
   "capacity": 15,
   "difficulty": "Intermediate",
@@ -82,12 +132,20 @@ Creates a new class.
 }
 ```
 
+**Field Validation:**
+- `class_name`: Required, string (1-100 characters)
+- `description`: Optional, string (max 500 characters)
+- `duration`: Required, integer (15-180 minutes)
+- `capacity`: Required, integer (1-100 people)
+- `difficulty`: Required, one of: "Beginner", "Intermediate", "Advanced"
+- `is_active`: Required, boolean
+
 **Response (201 Created):**
 ```json
 {
   "class_id": 3,
   "class_name": "Pilates",
-  "description": "A system of exercises designed to improve physical strength",
+  "description": "A system of exercises designed to improve physical strength and flexibility",
   "duration": 50,
   "capacity": 15,
   "difficulty": "Intermediate",
@@ -97,44 +155,73 @@ Creates a new class.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Class name is required"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Failed to create class"
+  }
+  ```
+
 ### Update Class
 
-Updates an existing class.
+Updates an existing fitness class.
 
 **Endpoint:** `PUT /classes/{id}`
+
+**Path Parameters:**
+- `id`: Class ID (integer)
 
 **Request Body:**
 ```json
 {
-  "class_name": "Pilates Plus",
-  "description": "An advanced system of exercises designed to improve physical strength",
-  "duration": 55,
+  "class_name": "Advanced Pilates",
+  "description": "An advanced system of exercises for experienced practitioners",
+  "duration": 60,
   "capacity": 12,
   "difficulty": "Advanced",
   "is_active": true
 }
 ```
 
+**Field Validation:**
+- All fields are optional for updates
+- Same validation rules as Create Class apply to provided fields
+
 **Response (200 OK):**
 ```json
 {
   "class_id": 3,
-  "class_name": "Pilates Plus",
-  "description": "An advanced system of exercises designed to improve physical strength",
-  "duration": 55,
+  "class_name": "Advanced Pilates",
+  "description": "An advanced system of exercises for experienced practitioners",
+  "duration": 60,
   "capacity": 12,
   "difficulty": "Advanced",
   "is_active": true,
   "created_at": "2023-07-15T10:00:00Z",
-  "updated_at": "2023-07-15T11:30:00Z"
+  "updated_at": "2023-07-16T14:30:00Z"
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid class ID or request data
+- `404 Not Found`: Class not found
+- `500 Internal Server Error`: Server-side error
+
 ### Delete Class
 
-Deletes a class. This will fail if the class is used in any schedule.
+Deletes a fitness class.
 
 **Endpoint:** `DELETE /classes/{id}`
+
+**Path Parameters:**
+- `id`: Class ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -143,16 +230,34 @@ Deletes a class. This will fail if the class is used in any schedule.
 }
 ```
 
-## Schedules
+**Error Responses:**
+- `400 Bad Request`: Invalid class ID
+- `404 Not Found`: Class not found
+- `409 Conflict`: Class has existing schedules or bookings
+  ```json
+  {
+    "error": "Cannot delete class with existing schedules"
+  }
+  ```
+
+## Schedule Endpoints
 
 ### Get All Schedules
 
-Returns a list of all schedules, optionally filtered by status.
+Returns a list of all schedules with optional filtering by status, class, or trainer.
 
 **Endpoint:** `GET /schedules`
 
 **Query Parameters:**
 - `status` (optional): Filter by status (active/cancelled)
+- `class_id` (optional): Filter by class ID
+- `trainer_id` (optional): Filter by trainer ID
+- `day_of_week` (optional): Filter by day (Monday, Tuesday, etc.)
+
+**Example Request:**
+```
+GET /api/v1/schedules?status=active&class_id=1
+```
 
 **Response (200 OK):**
 ```json
@@ -174,11 +279,28 @@ Returns a list of all schedules, optionally filtered by status.
 ]
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+  ```json
+  {
+    "error": "Invalid status value"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Database connection error"
+  }
+  ```
+
 ### Get Schedule by ID
 
 Returns a specific schedule by its ID.
 
 **Endpoint:** `GET /schedules/{id}`
+
+**Path Parameters:**
+- `id`: Schedule ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -198,11 +320,28 @@ Returns a specific schedule by its ID.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid schedule ID
+  ```json
+  {
+    "error": "Invalid schedule ID"
+  }
+  ```
+- `404 Not Found`: Schedule not found
+  ```json
+  {
+    "error": "Schedule not found"
+  }
+  ```
+
 ### Get Schedules by Class ID
 
-Returns schedules for a specific class.
+Returns all schedules for a specific class.
 
 **Endpoint:** `GET /schedules/class/{classId}`
+
+**Path Parameters:**
+- `classId`: Class ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -238,6 +377,10 @@ Returns schedules for a specific class.
 ]
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid class ID
+- `404 Not Found`: Class not found
+
 ### Create Schedule
 
 Creates a new schedule.
@@ -257,6 +400,15 @@ Creates a new schedule.
 }
 ```
 
+**Field Validation:**
+- `class_id`: Required, integer (must exist)
+- `trainer_id`: Required, integer (must exist)
+- `room_id`: Required, integer (must exist)
+- `start_time`: Required, time format (HH:MM:SS)
+- `end_time`: Required, time format (HH:MM:SS, must be after start_time)
+- `day_of_week`: Required, one of: "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
+- `status`: Required, one of: "active", "cancelled"
+
 **Response (201 Created):**
 ```json
 {
@@ -273,11 +425,29 @@ Creates a new schedule.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Start time must be before end time"
+  }
+  ```
+- `404 Not Found`: Class, trainer, or room not found
+- `409 Conflict`: Schedule conflict (trainer/room already booked)
+  ```json
+  {
+    "error": "Room is already booked at this time"
+  }
+  ```
+
 ### Update Schedule
 
 Updates an existing schedule.
 
 **Endpoint:** `PUT /schedules/{id}`
+
+**Path Parameters:**
+- `id`: Schedule ID (integer)
 
 **Request Body:**
 ```json
@@ -291,6 +461,10 @@ Updates an existing schedule.
   "status": "active"
 }
 ```
+
+**Field Validation:**
+- All fields are optional for updates
+- Same validation rules as Create Schedule apply to provided fields
 
 **Response (200 OK):**
 ```json
@@ -308,11 +482,20 @@ Updates an existing schedule.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid schedule ID or request data
+- `404 Not Found`: Schedule not found
+- `409 Conflict`: Schedule conflict or bookings exist
+- `500 Internal Server Error`: Server-side error
+
 ### Delete Schedule
 
 Deletes a schedule. This will fail if there are any bookings for this schedule.
 
 **Endpoint:** `DELETE /schedules/{id}`
+
+**Path Parameters:**
+- `id`: Schedule ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -321,17 +504,35 @@ Deletes a schedule. This will fail if there are any bookings for this schedule.
 }
 ```
 
-## Bookings
+**Error Responses:**
+- `400 Bad Request`: Invalid schedule ID
+- `404 Not Found`: Schedule not found
+- `409 Conflict`: Schedule has existing bookings
+  ```json
+  {
+    "error": "Cannot delete schedule with existing bookings"
+  }
+  ```
+
+## Booking Endpoints
 
 ### Get All Bookings
 
-Returns a list of all bookings, optionally filtered by status and date.
+Returns a list of all bookings with optional filtering and pagination support.
 
 **Endpoint:** `GET /bookings`
 
 **Query Parameters:**
 - `status` (optional): Filter by attendance status (booked/attended/cancelled/no_show)
 - `date` (optional): Filter by booking date (YYYY-MM-DD)
+- `member_id` (optional): Filter by member ID
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+
+**Example Request:**
+```
+GET /api/v1/bookings?status=attended&date=2023-07-10
+```
 
 **Response (200 OK):**
 ```json
@@ -354,11 +555,23 @@ Returns a list of all bookings, optionally filtered by status and date.
 ]
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+  ```json
+  {
+    "error": "Invalid date format"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+
 ### Get Booking by ID
 
 Returns a specific booking by its ID.
 
 **Endpoint:** `GET /bookings/{id}`
+
+**Path Parameters:**
+- `id`: Booking ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -518,5 +731,34 @@ Cancels a booking. Only bookings with 'booked' status can be cancelled.
   "attendance_status": "cancelled",
   "created_at": "2023-07-15T14:00:00Z",
   "updated_at": "2023-07-16T09:30:00Z"
+}
+```
+
+## Health Check Endpoint
+
+### Health Check
+
+Returns the health status of the Class Service.
+
+**Endpoint:** `GET /health`
+
+**Response (200 OK):**
+```json
+{
+  "status": "healthy",
+  "service": "class-service",
+  "version": "1.0.0",
+  "database": "connected",
+  "timestamp": "2023-07-15T10:00:00Z"
+}
+```
+
+**Error Response (503 Service Unavailable):**
+```json
+{
+  "status": "unhealthy",
+  "service": "class-service",
+  "database": "disconnected",
+  "error": "Database connection failed"
 }
 ```

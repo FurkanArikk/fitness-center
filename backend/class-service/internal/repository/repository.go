@@ -1,10 +1,9 @@
 package repository
 
 import (
-	"database/sql"
-
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/model"
 	"github.com/FurkanArikk/fitness-center/backend/class-service/internal/repository/postgres"
+	"gorm.io/gorm"
 )
 
 // Repository is a factory for all repositories
@@ -15,7 +14,7 @@ type Repository struct {
 }
 
 // NewRepositories creates a new repository factory with all repositories
-func NewRepositories(db *sql.DB) *Repository {
+func NewRepositories(db *gorm.DB) *Repository {
 	return &Repository{
 		ClassRepo:    postgres.NewClassRepository(db),
 		ScheduleRepo: postgres.NewScheduleRepository(db),
@@ -24,16 +23,16 @@ func NewRepositories(db *sql.DB) *Repository {
 }
 
 // NewClassRepository creates a new class repository
-func NewClassRepository(db *sql.DB) model.ClassRepository {
+func NewClassRepository(db *gorm.DB) model.ClassRepository {
 	return postgres.NewClassRepository(db)
 }
 
 // NewScheduleRepository creates a new schedule repository
-func NewScheduleRepository(db *sql.DB) model.ScheduleRepository {
+func NewScheduleRepository(db *gorm.DB) model.ScheduleRepository {
 	return postgres.NewScheduleRepository(db)
 }
 
 // NewBookingRepository creates a new booking repository
-func NewBookingRepository(db *sql.DB) model.BookingRepository {
+func NewBookingRepository(db *gorm.DB) model.BookingRepository {
 	return postgres.NewBookingRepository(db)
 }

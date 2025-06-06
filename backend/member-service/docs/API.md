@@ -1,20 +1,39 @@
 # Member Service API Documentation
 
-This document outlines all the API endpoints provided by the Member Service.
+The Member Service manages fitness center members, memberships, benefits, and fitness assessments within the Fitness Center application. This service provides RESTful APIs for member management, membership tracking, and fitness assessment functionality.
 
-Base URL: `/api/v1`
+## Base URL
 
-## Members
+```
+http://localhost:8002/api/v1
+```
+
+## Table of Contents
+
+- [Member Endpoints](#member-endpoints)
+- [Membership Endpoints](#membership-endpoints)
+- [Benefit Endpoints](#benefit-endpoints)
+- [Fitness Assessment Endpoints](#fitness-assessment-endpoints)
+- [Health Check Endpoint](#health-check-endpoint)
+
+## Member Endpoints
 
 ### Get All Members
 
-Returns a list of all members, with optional pagination.
+Returns a list of all members with optional filtering and pagination support.
 
 **Endpoint:** `GET /members`
 
 **Query Parameters:**
-- `page` (optional): Page number for pagination
-- `size` (optional): Number of items per page
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
+- `email` (optional): Filter by email address
+- `status` (optional): Filter by member status
+
+**Example Request:**
+```
+GET /api/v1/members?page=1&pageSize=20
+```
 
 **Response (200 OK):**
 ```json
@@ -48,11 +67,28 @@ Returns a list of all members, with optional pagination.
 ]
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid query parameters
+  ```json
+  {
+    "error": "Invalid page number"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Database connection error"
+  }
+  ```
+
 ### Get Member by ID
 
 Returns a specific member by their ID.
 
 **Endpoint:** `GET /members/{id}`
+
+**Path Parameters:**
+- `id`: Member ID (integer)
 
 **Response (200 OK):**
 ```json
@@ -71,6 +107,20 @@ Returns a specific member by their ID.
 }
 ```
 
+**Error Responses:**
+- `400 Bad Request`: Invalid member ID
+  ```json
+  {
+    "error": "Invalid member ID"
+  }
+  ```
+- `404 Not Found`: Member not found
+  ```json
+  {
+    "error": "Member not found"
+  }
+  ```
+
 ### Create Member
 
 Creates a new member.
@@ -81,6 +131,130 @@ Creates a new member.
 ```json
 {
   "first_name": "Sarah",
+  "last_name": "Johnson",
+  "email": "sarah.johnson@example.com",
+  "phone": "555-345-6789",
+  "address": "789 Pine St",
+  "date_of_birth": "1992-08-10T00:00:00Z",
+  "emergency_contact_name": "Mike Johnson",
+  "emergency_contact_phone": "555-765-4321"
+}
+```
+
+**Field Validation:**
+- `first_name`: Required, string (1-50 characters)
+- `last_name`: Required, string (1-50 characters)
+- `email`: Required, valid email format (must be unique)
+- `phone`: Required, string (phone number format)
+- `address`: Required, string (max 200 characters)
+- `date_of_birth`: Required, ISO 8601 datetime format
+- `emergency_contact_name`: Required, string (1-100 characters)
+- `emergency_contact_phone`: Required, string (phone number format)
+
+**Response (201 Created):**
+```json
+{
+  "member_id": 3,
+  "first_name": "Sarah",
+  "last_name": "Johnson",
+  "email": "sarah.johnson@example.com",
+  "phone": "555-345-6789",
+  "address": "789 Pine St",
+  "date_of_birth": "1992-08-10T00:00:00Z",
+  "emergency_contact_name": "Mike Johnson",
+  "emergency_contact_phone": "555-765-4321",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Email already exists"
+  }
+  ```
+- `500 Internal Server Error`: Server-side error
+  ```json
+  {
+    "error": "Failed to create member"
+  }
+  ```
+
+### Update Member
+
+Updates an existing member.
+
+**Endpoint:** `PUT /members/{id}`
+
+**Path Parameters:**
+- `id`: Member ID (integer)
+
+**Request Body:**
+```json
+{
+  "first_name": "Sarah",
+  "last_name": "Johnson-Smith",
+  "email": "sarah.johnson.smith@example.com",
+  "phone": "555-345-6789",
+  "address": "789 Pine St, Apt 2B",
+  "emergency_contact_name": "Mike Johnson",
+  "emergency_contact_phone": "555-765-4321"
+}
+```
+
+**Field Validation:**
+- All fields are optional for updates
+- Same validation rules as Create Member apply to provided fields
+
+**Response (200 OK):**
+```json
+{
+  "member_id": 3,
+  "first_name": "Sarah",
+  "last_name": "Johnson-Smith",
+  "email": "sarah.johnson.smith@example.com",
+  "phone": "555-345-6789",
+  "address": "789 Pine St, Apt 2B",
+  "date_of_birth": "1992-08-10T00:00:00Z",
+  "emergency_contact_name": "Mike Johnson",
+  "emergency_contact_phone": "555-765-4321",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T14:30:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid member ID or request data
+- `404 Not Found`: Member not found
+- `500 Internal Server Error`: Server-side error
+
+### Delete Member
+
+Deletes a member.
+
+**Endpoint:** `DELETE /members/{id}`
+
+**Path Parameters:**
+- `id`: Member ID (integer)
+
+**Response (200 OK):**
+```json
+{
+  "message": "Member deleted successfully"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid member ID
+- `404 Not Found`: Member not found
+- `409 Conflict`: Member has active memberships or bookings
+  ```json
+  {
+    "error": "Cannot delete member with active memberships"
+  }
+  ```
   "last_name": "Johnson",
   "email": "sarah.johnson@example.com",
   "phone": "555-345-6789",
@@ -105,6 +279,20 @@ Creates a new member.
   "emergency_contact_phone": "555-765-4321",
   "created_at": "2023-07-15T10:00:00Z",
   "updated_at": "2023-07-15T10:00:00Z"
+}
+```
+
+**Response (400 Bad Request):**
+```json
+{
+  "error": "Email already exists"
+}
+```
+
+**Response (400 Bad Request - Validation Error):**
+```json
+{
+  "error": "First name is required"
 }
 ```
 
@@ -209,124 +397,126 @@ Returns the active membership for a specific member.
 
 ### Get All Memberships
 
-Returns a list of all membership types, optionally filtered by active status.
+Returns a list of all memberships with optional filtering and pagination support.
 
 **Endpoint:** `GET /memberships`
 
 **Query Parameters:**
-- `active` (optional): Filter by active status (true/false)
+- `member_id` (optional): Filter by member ID
+- `status` (optional): Filter by status (active/inactive/expired)
+- `type` (optional): Filter by membership type
+- `page` (optional): Page number for pagination (default: 1)
+- `pageSize` (optional): Number of items per page (default: 10)
 
 **Response (200 OK):**
 ```json
 [
   {
     "membership_id": 1,
-    "membership_name": "Basic",
-    "description": "Access to gym facilities during standard hours",
-    "duration": 1,
-    "price": 29.99,
-    "is_active": true,
-    "created_at": "2023-06-01T10:00:00Z",
-    "updated_at": "2023-06-01T10:00:00Z"
-  },
-  {
-    "membership_id": 2,
-    "membership_name": "Gold",
-    "description": "Full access with premium features",
-    "duration": 3,
-    "price": 49.99,
-    "is_active": true,
-    "created_at": "2023-06-01T11:00:00Z",
-    "updated_at": "2023-06-01T11:00:00Z"
+    "member_id": 1,
+    "membership_type": "Premium",
+    "start_date": "2023-07-01T00:00:00Z",
+    "end_date": "2024-07-01T00:00:00Z",
+    "status": "active",
+    "price": 99.99,
+    "created_at": "2023-07-01T10:00:00Z",
+    "updated_at": "2023-07-01T10:00:00Z"
   }
 ]
 ```
 
 ### Get Membership by ID
 
-Returns a specific membership type by its ID.
+Returns a specific membership by its ID.
 
 **Endpoint:** `GET /memberships/{id}`
+
+**Path Parameters:**
+- `id`: Membership ID (integer)
 
 **Response (200 OK):**
 ```json
 {
   "membership_id": 1,
-  "membership_name": "Basic",
-  "description": "Access to gym facilities during standard hours",
-  "duration": 1,
-  "price": 29.99,
-  "is_active": true,
-  "created_at": "2023-06-01T10:00:00Z",
-  "updated_at": "2023-06-01T10:00:00Z"
+  "member_id": 1,
+  "membership_type": "Premium",
+  "start_date": "2023-07-01T00:00:00Z",
+  "end_date": "2024-07-01T00:00:00Z",
+  "status": "active",
+  "price": 99.99,
+  "created_at": "2023-07-01T10:00:00Z",
+  "updated_at": "2023-07-01T10:00:00Z"
 }
 ```
 
 ### Create Membership
 
-Creates a new membership type.
+Creates a new membership for a member.
 
 **Endpoint:** `POST /memberships`
 
 **Request Body:**
 ```json
 {
-  "membership_name": "Premium",
-  "description": "Full access to gym facilities and group classes",
-  "duration": 3,
-  "price": 49.99,
-  "is_active": true
+  "member_id": 1,
+  "membership_type": "Premium",
+  "start_date": "2025-06-04T00:00:00Z",
+  "end_date": "2026-06-04T00:00:00Z",
+  "status": "active",
+  "price": 99.99
 }
 ```
+
+**Field Validation:**
+- `member_id`: Required, integer (must exist)
+- `membership_type`: Required, one of: "Basic", "Premium", "VIP"
+- `start_date`: Required, ISO 8601 datetime format
+- `end_date`: Required, ISO 8601 datetime format (must be after start_date)
+- `status`: Required, one of: "active", "inactive", "expired"
+- `price`: Required, decimal (positive value)
 
 **Response (201 Created):**
 ```json
 {
-  "membership_id": 3,
-  "membership_name": "Premium",
-  "description": "Full access to gym facilities and group classes",
-  "duration": 3,
-  "price": 49.99,
-  "is_active": true,
-  "created_at": "2023-07-15T12:00:00Z",
-  "updated_at": "2023-07-15T12:00:00Z"
+  "membership_id": 10,
+  "member_id": 1,
+  "membership_type": "Premium",
+  "start_date": "2025-06-04T00:00:00Z",
+  "end_date": "2026-06-04T00:00:00Z",
+  "status": "active",
+  "price": 99.99,
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
 }
 ```
 
 ### Update Membership
 
-Updates an existing membership type.
+Updates an existing membership.
 
 **Endpoint:** `PUT /memberships/{id}`
 
-**Request Body:**
-```json
-{
-  "membership_name": "Premium Plus",
-  "description": "Enhanced Premium membership with additional benefits",
-  "duration": 3,
-  "price": 59.99,
-  "is_active": true
-}
-```
+**Path Parameters:**
+- `id`: Membership ID (integer)
 
 **Response (200 OK):**
 ```json
 {
-  "membership_id": 3,
-  "membership_name": "Premium Plus",
-  "description": "Enhanced Premium membership with additional benefits",
-  "duration": 3,
-  "price": 59.99,
-  "is_active": true,
-  "created_at": "2023-07-15T12:00:00Z",
-  "updated_at": "2023-07-15T14:30:00Z"
+  "membership_id": 10,
+  "member_id": 1,
+  "membership_type": "Premium",
+  "start_date": "2025-06-04T00:00:00Z",
+  "end_date": "2026-06-04T00:00:00Z",
+  "status": "active",
+  "price": 109.99,
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T14:30:00Z"
 }
 ```
 
 ### Delete Membership
 
-Deletes a membership type. This will fail if the membership is used by any members.
+Deletes a membership.
 
 **Endpoint:** `DELETE /memberships/{id}`
 
@@ -337,66 +527,11 @@ Deletes a membership type. This will fail if the membership is used by any membe
 }
 ```
 
-### Toggle Membership Status
-
-Toggles the active status of a membership.
-
-**Endpoint:** `PUT /memberships/{id}/status`
-
-**Request Body:**
-```json
-{
-  "is_active": false
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "membership_id": 3,
-  "membership_name": "Premium Plus",
-  "description": "Enhanced Premium membership with additional benefits",
-  "duration": 3,
-  "price": 59.99,
-  "is_active": false,
-  "created_at": "2023-07-15T12:00:00Z",
-  "updated_at": "2023-07-15T15:00:00Z"
-}
-```
-
-### Get Membership Benefits
-
-Returns benefits for a specific membership type.
-
-**Endpoint:** `GET /memberships/{membershipID}/benefits`
-
-**Response (200 OK):**
-```json
-[
-  {
-    "benefit_id": 1,
-    "membership_id": 2,
-    "benefit_name": "Gym Access",
-    "benefit_description": "Full access to gym equipment 24/7",
-    "created_at": "2023-06-01T12:00:00Z",
-    "updated_at": "2023-06-01T12:00:00Z"
-  },
-  {
-    "benefit_id": 2,
-    "membership_id": 2,
-    "benefit_name": "Group Classes",
-    "benefit_description": "Access to all group fitness classes",
-    "created_at": "2023-06-01T12:05:00Z",
-    "updated_at": "2023-06-01T12:05:00Z"
-  }
-]
-```
-
-## Benefits
+## Benefit Endpoints
 
 ### Get All Benefits
 
-Returns a list of all benefits.
+Returns a list of all membership benefits.
 
 **Endpoint:** `GET /benefits`
 
@@ -405,328 +540,132 @@ Returns a list of all benefits.
 [
   {
     "benefit_id": 1,
-    "membership_id": 2,
-    "benefit_name": "Gym Access",
-    "benefit_description": "Full access to gym equipment 24/7",
-    "created_at": "2023-06-01T12:00:00Z",
-    "updated_at": "2023-06-01T12:00:00Z"
-  },
-  {
-    "benefit_id": 2,
-    "membership_id": 2,
-    "benefit_name": "Group Classes",
-    "benefit_description": "Access to all group fitness classes",
-    "created_at": "2023-06-01T12:05:00Z",
-    "updated_at": "2023-06-01T12:05:00Z"
+    "name": "Personal Training Session",
+    "description": "One-on-one training session with certified trainer",
+    "membership_type": "Premium",
+    "created_at": "2023-07-01T10:00:00Z",
+    "updated_at": "2023-07-01T10:00:00Z"
   }
 ]
 ```
 
-### Get Benefit by ID
-
-Returns a specific benefit by its ID.
-
-**Endpoint:** `GET /benefits/{id}`
-
-**Response (200 OK):**
-```json
-{
-  "benefit_id": 1,
-  "membership_id": 2,
-  "benefit_name": "Gym Access",
-  "benefit_description": "Full access to gym equipment 24/7",
-  "created_at": "2023-06-01T12:00:00Z",
-  "updated_at": "2023-06-01T12:00:00Z"
-}
-```
-
 ### Create Benefit
 
-Creates a new benefit.
+Creates a new membership benefit.
 
 **Endpoint:** `POST /benefits`
 
 **Request Body:**
 ```json
 {
-  "membership_id": 3,
-  "benefit_name": "Personal Training Session",
-  "benefit_description": "One free personal training session per month"
+  "name": "Nutrition Consultation",
+  "description": "Professional nutrition guidance and meal planning",
+  "membership_type": "VIP"
 }
 ```
 
 **Response (201 Created):**
 ```json
 {
-  "benefit_id": 3,
-  "membership_id": 3,
-  "benefit_name": "Personal Training Session",
-  "benefit_description": "One free personal training session per month",
-  "created_at": "2023-07-15T14:00:00Z",
-  "updated_at": "2023-07-15T14:00:00Z"
+  "benefit_id": 5,
+  "name": "Nutrition Consultation",
+  "description": "Professional nutrition guidance and meal planning",
+  "membership_type": "VIP",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
 }
 ```
 
-### Update Benefit
+## Fitness Assessment Endpoints
 
-Updates an existing benefit.
+### Get All Fitness Assessments
 
-**Endpoint:** `PUT /benefits/{id}`
+Returns a list of all fitness assessments with optional filtering.
 
-**Request Body:**
-```json
-{
-  "membership_id": 3,
-  "benefit_name": "Personal Training Sessions",
-  "benefit_description": "Two free personal training sessions per month"
-}
-```
+**Endpoint:** `GET /fitness-assessments`
+
+**Query Parameters:**
+- `member_id` (optional): Filter by member ID
+- `date` (optional): Filter by assessment date
 
 **Response (200 OK):**
 ```json
-{
-  "benefit_id": 3,
-  "membership_id": 3,
-  "benefit_name": "Personal Training Sessions",
-  "benefit_description": "Two free personal training sessions per month",
-  "created_at": "2023-07-15T14:00:00Z",
-  "updated_at": "2023-07-15T14:30:00Z"
-}
+[
+  {
+    "assessment_id": 1,
+    "member_id": 1,
+    "assessment_date": "2023-07-01T10:00:00Z",
+    "weight": 75.5,
+    "height": 175.0,
+    "body_fat_percentage": 15.2,
+    "muscle_mass": 32.1,
+    "notes": "Good overall fitness level, focus on cardio improvement",
+    "created_at": "2023-07-01T10:00:00Z",
+    "updated_at": "2023-07-01T10:00:00Z"
+  }
+]
 ```
 
-### Delete Benefit
+### Create Fitness Assessment
 
-Deletes a benefit.
+Creates a new fitness assessment for a member.
 
-**Endpoint:** `DELETE /benefits/{id}`
-
-**Response (200 OK):**
-```json
-{
-  "message": "Benefit deleted successfully"
-}
-```
-
-## Assessments
-
-### Create Assessment
-
-Creates a new fitness assessment.
-
-**Endpoint:** `POST /assessments`
+**Endpoint:** `POST /fitness-assessments`
 
 **Request Body:**
 ```json
 {
   "member_id": 1,
-  "trainer_id": 2,
-  "assessment_date": "2023-07-15T10:00:00Z",
-  "height": 175,
-  "weight": 78.5,
-  "body_fat_percentage": 17.0,
-  "bmi": 25.6,
-  "notes": "Monthly checkup",
-  "goals_set": "Maintain current fitness level",
-  "next_assessment_date": "2023-08-15T10:00:00Z"
+  "assessment_date": "2025-06-04T10:00:00Z",
+  "weight": 74.2,
+  "height": 175.0,
+  "body_fat_percentage": 14.8,
+  "muscle_mass": 32.5,
+  "notes": "Improved muscle mass, continue current program"
 }
 ```
 
 **Response (201 Created):**
 ```json
 {
-  "assessment_id": 1,
+  "assessment_id": 15,
   "member_id": 1,
-  "trainer_id": 2,
-  "assessment_date": "2023-07-15T10:00:00Z",
-  "height": 175,
-  "weight": 78.5,
-  "body_fat_percentage": 17.0,
-  "bmi": 25.6,
-  "notes": "Monthly checkup",
-  "goals_set": "Maintain current fitness level",
-  "next_assessment_date": "2023-08-15T10:00:00Z",
-  "created_at": "2023-07-15T10:30:00Z",
-  "updated_at": "2023-07-15T10:30:00Z"
+  "assessment_date": "2025-06-04T10:00:00Z",
+  "weight": 74.2,
+  "height": 175.0,
+  "body_fat_percentage": 14.8,
+  "muscle_mass": 32.5,
+  "notes": "Improved muscle mass, continue current program",
+  "created_at": "2025-06-04T10:00:00Z",
+  "updated_at": "2025-06-04T10:00:00Z"
 }
 ```
 
-### Get Assessment by ID
+## Health Check Endpoint
 
-Returns a specific assessment by its ID.
+### Health Check
 
-**Endpoint:** `GET /assessments/{id}`
+Returns the health status of the Member Service.
+
+**Endpoint:** `GET /health`
 
 **Response (200 OK):**
 ```json
 {
-  "assessment_id": 1,
-  "member_id": 1,
-  "trainer_id": 2,
-  "assessment_date": "2023-07-15T10:00:00Z",
-  "height": 175,
-  "weight": 78.5,
-  "body_fat_percentage": 17.0,
-  "bmi": 25.6,
-  "notes": "Monthly checkup",
-  "goals_set": "Maintain current fitness level",
-  "next_assessment_date": "2023-08-15T10:00:00Z",
-  "created_at": "2023-07-15T10:30:00Z",
-  "updated_at": "2023-07-15T10:30:00Z"
+  "status": "healthy",
+  "service": "member-service",
+  "version": "1.0.0",
+  "database": "connected",
+  "timestamp": "2025-06-04T10:00:00Z"
 }
 ```
 
-### Update Assessment
-
-Updates an existing assessment.
-
-**Endpoint:** `PUT /assessments/{id}`
-
-**Request Body:**
+**Error Response (503 Service Unavailable):**
 ```json
 {
-  "member_id": 1,
-  "trainer_id": 2,
-  "assessment_date": "2023-07-15T10:00:00Z",
-  "height": 175,
-  "weight": 77.0,
-  "body_fat_percentage": 16.5,
-  "bmi": 25.1,
-  "notes": "Great progress",
-  "goals_set": "Continue strength training",
-  "next_assessment_date": "2023-08-15T10:00:00Z"
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "assessment_id": 1,
-  "member_id": 1,
-  "trainer_id": 2,
-  "assessment_date": "2023-07-15T10:00:00Z",
-  "height": 175,
-  "weight": 77.0,
-  "body_fat_percentage": 16.5,
-  "bmi": 25.1,
-  "notes": "Great progress",
-  "goals_set": "Continue strength training",
-  "next_assessment_date": "2023-08-15T10:00:00Z",
-  "created_at": "2023-07-15T10:30:00Z",
-  "updated_at": "2023-07-15T15:00:00Z"
-}
-```
-
-### Delete Assessment
-
-Deletes an assessment.
-
-**Endpoint:** `DELETE /assessments/{id}`
-
-**Response (200 OK):**
-```json
-{
-  "message": "Assessment deleted successfully"
-}
-```
-
-## Member-Membership
-
-### Create Member-Membership
-
-Creates a new relationship between a member and a membership.
-
-**Endpoint:** `POST /member-memberships`
-
-**Request Body:**
-```json
-{
-  "member_id": 1,
-  "membership_id": 2,
-  "start_date": "2023-07-01T00:00:00Z",
-  "end_date": "2023-10-01T00:00:00Z",
-  "payment_status": "paid",
-  "contract_signed": true
-}
-```
-
-**Response (201 Created):**
-```json
-{
-  "member_membership_id": 1,
-  "member_id": 1,
-  "membership_id": 2,
-  "start_date": "2023-07-01T00:00:00Z",
-  "end_date": "2023-10-01T00:00:00Z",
-  "payment_status": "paid",
-  "contract_signed": true,
-  "created_at": "2023-06-30T14:00:00Z",
-  "updated_at": "2023-06-30T14:00:00Z"
-}
-```
-
-### Get Member-Membership by ID
-
-Returns a specific member-membership relationship by its ID.
-
-**Endpoint:** `GET /member-memberships/{id}`
-
-**Response (200 OK):**
-```json
-{
-  "member_membership_id": 1,
-  "member_id": 1,
-  "membership_id": 2,
-  "start_date": "2023-07-01T00:00:00Z",
-  "end_date": "2023-10-01T00:00:00Z",
-  "payment_status": "paid",
-  "contract_signed": true,
-  "created_at": "2023-06-30T14:00:00Z",
-  "updated_at": "2023-06-30T14:00:00Z"
-}
-```
-
-### Update Member-Membership
-
-Updates an existing member-membership relationship.
-
-**Endpoint:** `PUT /member-memberships/{id}`
-
-**Request Body:**
-```json
-{
-  "member_id": 1,
-  "membership_id": 2,
-  "start_date": "2023-07-01T00:00:00Z",
-  "end_date": "2023-12-01T00:00:00Z",
-  "payment_status": "paid",
-  "contract_signed": true
-}
-```
-
-**Response (200 OK):**
-```json
-{
-  "member_membership_id": 1,
-  "member_id": 1,
-  "membership_id": 2,
-  "start_date": "2023-07-01T00:00:00Z",
-  "end_date": "2023-12-01T00:00:00Z",
-  "payment_status": "paid",
-  "contract_signed": true,
-  "created_at": "2023-06-30T14:00:00Z",
-  "updated_at": "2023-07-15T15:30:00Z"
-}
-```
-
-### Delete Member-Membership
-
-Deletes a member-membership relationship.
-
-**Endpoint:** `DELETE /member-memberships/{id}`
-
-**Response (200 OK):**
-```json
-{
-  "message": "Member-membership relationship deleted successfully"
+  "status": "unhealthy",
+  "service": "member-service",
+  "database": "disconnected",
+  "error": "Database connection failed"
 }
 ```

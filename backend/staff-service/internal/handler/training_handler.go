@@ -59,21 +59,21 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 	// Using both status and date for filtering
 	if status != "" && !date.IsZero() {
 		// Both status and date parameters are present, use them together
-		trainingSessions, fetchErr = h.service.GetByStatusAndDate(status, date)
+		trainingSessions, fetchErr = h.service.GetByStatusAndDate(c.Request.Context(), status, date)
 	} else if status != "" {
 		// Only status parameter is present
-		trainingSessions, fetchErr = h.service.GetByStatus(status)
+		trainingSessions, fetchErr = h.service.GetByStatus(c.Request.Context(), status)
 	} else if !date.IsZero() {
 		// Only date parameter is present
-		trainingSessions, fetchErr = h.service.GetByDateRange(date, date.AddDate(0, 0, 1))
+		trainingSessions, fetchErr = h.service.GetByDateRange(c.Request.Context(), date, date.AddDate(0, 0, 1))
 	} else if trainerID > 0 {
-		trainingSessions, fetchErr = h.service.GetByTrainerID(trainerID)
+		trainingSessions, fetchErr = h.service.GetByTrainerID(c.Request.Context(), trainerID)
 	} else if memberID > 0 {
-		trainingSessions, fetchErr = h.service.GetByMemberID(memberID)
+		trainingSessions, fetchErr = h.service.GetByMemberID(c.Request.Context(), memberID)
 	} else if params.IsPagined {
 		// Use pagination when specifically requested and no other filters applied
 		var totalCount int
-		trainingSessions, totalCount, fetchErr = h.service.GetAllPaginated(params.Offset, params.PageSize)
+		trainingSessions, totalCount, fetchErr = h.service.GetAllPaginated(c.Request.Context(), params.Offset, params.PageSize)
 
 		if fetchErr != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": fetchErr.Error()})
@@ -92,7 +92,7 @@ func (h *TrainingHandler) GetTrainingSessions(c *gin.Context) {
 		c.JSON(http.StatusOK, response)
 		return
 	} else {
-		trainingSessions, fetchErr = h.service.GetAll()
+		trainingSessions, fetchErr = h.service.GetAll(c.Request.Context())
 	}
 
 	if fetchErr != nil {
@@ -118,7 +118,7 @@ func (h *TrainingHandler) GetTrainingSessionByID(c *gin.Context) {
 		return
 	}
 
-	trainingSession, err := h.service.GetByID(id)
+	trainingSession, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
@@ -145,7 +145,7 @@ func (h *TrainingHandler) CreateTrainingSession(c *gin.Context) {
 	}
 
 	// Use ScheduleSession for appropriate business logic
-	result, err := h.service.ScheduleSession(trainingSession)
+	result, err := h.service.ScheduleSession(c.Request.Context(), trainingSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -165,7 +165,7 @@ func (h *TrainingHandler) UpdateTrainingSession(c *gin.Context) {
 	}
 
 	// Get the existing training session first to preserve member_id and trainer_id
-	existingSession, err := h.service.GetByID(id)
+	existingSession, err := h.service.GetByID(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Training session not found: " + err.Error()})
 		return
@@ -211,7 +211,7 @@ func (h *TrainingHandler) UpdateTrainingSession(c *gin.Context) {
 	updatedSession.SessionID = id
 
 	// Now update the session
-	result, err := h.service.Update(updatedSession)
+	result, err := h.service.Update(c.Request.Context(), updatedSession)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -230,7 +230,7 @@ func (h *TrainingHandler) DeleteTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.Delete(id); err != nil {
+	if err := h.service.Delete(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -246,7 +246,7 @@ func (h *TrainingHandler) CancelTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CancelSession(id); err != nil {
+	if err := h.service.CancelSession(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -262,7 +262,7 @@ func (h *TrainingHandler) CompleteTrainingSession(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.CompleteSession(id); err != nil {
+	if err := h.service.CompleteSession(c.Request.Context(), id); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -286,7 +286,7 @@ func (h *TrainingHandler) GetTrainingSessionsByDate(c *gin.Context) {
 
 	// Use next day to get all sessions on the specified date
 	nextDay := date.AddDate(0, 0, 1)
-	trainingSessions, err := h.service.GetByDateRange(date, nextDay)
+	trainingSessions, err := h.service.GetByDateRange(c.Request.Context(), date, nextDay)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

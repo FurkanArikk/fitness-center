@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // EquipmentRepository defines operations for equipment storage

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // FacilityResponse represents the response for facility data
@@ -43,13 +43,13 @@ type FacilityUpdateRequest struct {
 
 // ToModel converts FacilityCreateRequest to model.Facility
 func (r *FacilityCreateRequest) ToModel() (model.Facility, error) {
-	// Parse time strings directly to time.Time using TIME format
-	openingTime, err := time.Parse("15:04:05", r.OpeningHour)
+	// Validate time format but store as string in the model
+	_, err := time.Parse("15:04:05", r.OpeningHour)
 	if err != nil {
 		return model.Facility{}, fmt.Errorf("invalid opening hour format, expected HH:MM:SS: %w", err)
 	}
 
-	closingTime, err := time.Parse("15:04:05", r.ClosingHour)
+	_, err = time.Parse("15:04:05", r.ClosingHour)
 	if err != nil {
 		return model.Facility{}, fmt.Errorf("invalid closing hour format, expected HH:MM:SS: %w", err)
 	}
@@ -59,20 +59,20 @@ func (r *FacilityCreateRequest) ToModel() (model.Facility, error) {
 		Description: r.Description,
 		Capacity:    r.Capacity,
 		Status:      r.Status,
-		OpeningHour: openingTime,
-		ClosingHour: closingTime,
+		OpeningHour: r.OpeningHour,
+		ClosingHour: r.ClosingHour,
 	}, nil
 }
 
 // ToModel converts FacilityUpdateRequest to model.Facility
 func (r *FacilityUpdateRequest) ToModel() (model.Facility, error) {
-	// Parse time strings directly to time.Time using TIME format
-	openingTime, err := time.Parse("15:04:05", r.OpeningHour)
+	// Validate time format but store as string in the model
+	_, err := time.Parse("15:04:05", r.OpeningHour)
 	if err != nil {
 		return model.Facility{}, fmt.Errorf("invalid opening hour format, expected HH:MM:SS: %w", err)
 	}
 
-	closingTime, err := time.Parse("15:04:05", r.ClosingHour)
+	_, err = time.Parse("15:04:05", r.ClosingHour)
 	if err != nil {
 		return model.Facility{}, fmt.Errorf("invalid closing hour format, expected HH:MM:SS: %w", err)
 	}
@@ -82,21 +82,25 @@ func (r *FacilityUpdateRequest) ToModel() (model.Facility, error) {
 		Description: r.Description,
 		Capacity:    r.Capacity,
 		Status:      r.Status,
-		OpeningHour: openingTime,
-		ClosingHour: closingTime,
+		OpeningHour: r.OpeningHour,
+		ClosingHour: r.ClosingHour,
 	}, nil
 }
 
 // FromModel converts model.Facility to FacilityResponse
 func FacilityResponseFromModel(model model.Facility) FacilityResponse {
+	// Parse string times to time.Time for TimeOnly conversion
+	openingTime, _ := time.Parse("15:04:05", model.OpeningHour)
+	closingTime, _ := time.Parse("15:04:05", model.ClosingHour)
+
 	return FacilityResponse{
 		FacilityID:  model.FacilityID,
 		Name:        model.Name,
 		Description: model.Description,
 		Capacity:    model.Capacity,
 		Status:      model.Status,
-		OpeningHour: TimeOnly(model.OpeningHour),
-		ClosingHour: TimeOnly(model.ClosingHour),
+		OpeningHour: TimeOnly(openingTime),
+		ClosingHour: TimeOnly(closingTime),
 		IsDeleted:   model.IsDeleted,
 		CreatedAt:   model.CreatedAt,
 		UpdatedAt:   model.UpdatedAt,

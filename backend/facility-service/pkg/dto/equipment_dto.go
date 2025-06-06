@@ -3,7 +3,7 @@ package dto
 import (
 	"time"
 
-	"github.com/furkan/fitness-center/backend/facility-service/internal/model"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/internal/model"
 )
 
 // EquipmentResponse represents the response for equipment data

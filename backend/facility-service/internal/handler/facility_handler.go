@@ -3,8 +3,9 @@ package handler
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
-	"github.com/furkan/fitness-center/backend/facility-service/pkg/dto"
+	"github.com/FurkanArikk/fitness-center/backend/facility-service/pkg/dto"
 	"github.com/gin-gonic/gin"
 )
 
@@ -77,6 +78,14 @@ func (h *Handler) UpdateFacility(c *gin.Context) {
 
 	updatedFacility, err := h.repo.Facility().Update(c.Request.Context(), &facility)
 	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Facility not found"})
+			return
+		}
+		if strings.Contains(err.Error(), "already exists") {
+			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -95,6 +104,10 @@ func (h *Handler) DeleteFacility(c *gin.Context) {
 	}
 
 	if err := h.repo.Facility().Delete(c.Request.Context(), id); err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Facility not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

@@ -7,19 +7,24 @@ import (
 
 // Schedule represents a scheduled class session
 type Schedule struct {
-	ScheduleID int       `json:"schedule_id" db:"schedule_id"`
-	ClassID    int       `json:"class_id" db:"class_id"`
-	TrainerID  int       `json:"trainer_id" db:"trainer_id"`
-	RoomID     int       `json:"room_id" db:"room_id"`
-	StartTime  string    `json:"start_time" db:"start_time"`
-	EndTime    string    `json:"end_time" db:"end_time"`
-	DayOfWeek  string    `json:"day_of_week" db:"day_of_week"`
-	Status     string    `json:"status" db:"status"`
-	CreatedAt  time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
+	ScheduleID int       `json:"schedule_id" gorm:"column:schedule_id;primaryKey;autoIncrement"`
+	ClassID    int       `json:"class_id" gorm:"column:class_id;not null;index"`
+	TrainerID  int       `json:"trainer_id" gorm:"column:trainer_id;not null;index"`
+	RoomID     int       `json:"room_id" gorm:"column:room_id;not null;index"`
+	StartTime  string    `json:"start_time" gorm:"column:start_time;type:time;not null"`
+	EndTime    string    `json:"end_time" gorm:"column:end_time;type:time;not null"`
+	DayOfWeek  string    `json:"day_of_week" gorm:"column:day_of_week;type:varchar(10);not null"`
+	Status     string    `json:"status" gorm:"column:status;type:varchar(20);default:'active'"`
+	CreatedAt  time.Time `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt  time.Time `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 
 	// Relations (optional, for joining data)
-	Class *Class `json:"class,omitempty"`
+	Class *Class `json:"class,omitempty" gorm:"foreignKey:ClassID;references:ClassID"`
+}
+
+// TableName specifies the table name for GORM
+func (Schedule) TableName() string {
+	return "class_schedule"
 }
 
 // ScheduleRequest is used for creating or updating a schedule

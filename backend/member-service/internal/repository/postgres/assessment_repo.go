@@ -2,264 +2,89 @@ package postgres
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/model"
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/repository"
+	"gorm.io/gorm"
 )
 
-// FitnessAssessmentRepo handles fitness assessment database operations
-type FitnessAssessmentRepo struct {
-	db *sql.DB
+// AssessmentRepository implements model.FitnessAssessmentRepository interface
+type AssessmentRepository struct {
+	db *gorm.DB
 }
 
-// NewFitnessAssessmentRepo creates a new FitnessAssessmentRepo instance
-func NewFitnessAssessmentRepo(db *sql.DB) repository.FitnessAssessmentRepository {
-	return &FitnessAssessmentRepo{
-		db: db,
-	}
+// NewAssessmentRepository creates a new AssessmentRepository
+func NewAssessmentRepository(db *gorm.DB) model.FitnessAssessmentRepository {
+	return &AssessmentRepository{db: db}
 }
 
 // Create adds a new fitness assessment to the database
-func (r *FitnessAssessmentRepo) Create(ctx context.Context, assessment *model.FitnessAssessment) error {
-	query := `
-		INSERT INTO fitness_assessments (
-			member_id, trainer_id, assessment_date, height, weight, body_fat_percentage, 
-			bmi, notes, goals_set, next_assessment_date, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-		RETURNING assessment_id
-	`
-
-	now := time.Now()
-	assessment.CreatedAt = now
-	assessment.UpdatedAt = now
-
-	err := r.db.QueryRowContext(
-		ctx,
-		query,
-		assessment.MemberID,
-		assessment.TrainerID,
-		assessment.AssessmentDate,
-		assessment.Height,
-		assessment.Weight,
-		assessment.BodyFatPercentage,
-		assessment.BMI,
-		assessment.Notes,
-		assessment.GoalsSet,
-		assessment.NextAssessmentDate,
-		assessment.CreatedAt,
-		assessment.UpdatedAt,
-	).Scan(&assessment.ID)
-
-	if err != nil {
-		return fmt.Errorf("failed to create fitness assessment: %v", err)
+func (r *AssessmentRepository) Create(ctx context.Context, assessment *model.FitnessAssessment) error {
+	if err := r.db.WithContext(ctx).Create(assessment).Error; err != nil {
+		return fmt.Errorf("creating fitness assessment: %w", err)
 	}
-
 	return nil
 }
 
-// GetByID retrieves a fitness assessment by its ID
-func (r *FitnessAssessmentRepo) GetByID(ctx context.Context, id int64) (*model.FitnessAssessment, error) {
-	query := `
-		SELECT 
-			assessment_id, member_id, trainer_id, assessment_date, height, weight, 
-			body_fat_percentage, bmi, notes, goals_set, next_assessment_date, created_at, updated_at
-		FROM fitness_assessments
-		WHERE assessment_id = $1
-	`
-
+// GetByID retrieves a fitness assessment by their ID
+func (r *AssessmentRepository) GetByID(ctx context.Context, id int64) (*model.FitnessAssessment, error) {
 	var assessment model.FitnessAssessment
-	err := r.db.QueryRowContext(ctx, query, id).Scan(
-		&assessment.ID,
-		&assessment.MemberID,
-		&assessment.TrainerID,
-		&assessment.AssessmentDate,
-		&assessment.Height,
-		&assessment.Weight,
-		&assessment.BodyFatPercentage,
-		&assessment.BMI,
-		&assessment.Notes,
-		&assessment.GoalsSet,
-		&assessment.NextAssessmentDate,
-		&assessment.CreatedAt,
-		&assessment.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("fitness assessment not found: %v", err)
+	if err := r.db.WithContext(ctx).Where("assessment_id = ?", id).First(&assessment).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("fitness assessment not found")
 		}
-		return nil, fmt.Errorf("failed to get fitness assessment: %v", err)
+		return nil, fmt.Errorf("getting fitness assessment by ID: %w", err)
 	}
-
 	return &assessment, nil
 }
 
-// Update updates a fitness assessment's information
-func (r *FitnessAssessmentRepo) Update(ctx context.Context, assessment *model.FitnessAssessment) error {
-	query := `
-		UPDATE fitness_assessments
-		SET 
-			member_id = $1,
-			trainer_id = $2,
-			assessment_date = $3,
-			height = $4,
-			weight = $5,
-			body_fat_percentage = $6,
-			bmi = $7,
-			notes = $8,
-			goals_set = $9,
-			next_assessment_date = $10,
-			updated_at = $11
-		WHERE assessment_id = $12
-	`
-
-	assessment.UpdatedAt = time.Now()
-
-	result, err := r.db.ExecContext(
-		ctx,
-		query,
-		assessment.MemberID,
-		assessment.TrainerID,
-		assessment.AssessmentDate,
-		assessment.Height,
-		assessment.Weight,
-		assessment.BodyFatPercentage,
-		assessment.BMI,
-		assessment.Notes,
-		assessment.GoalsSet,
-		assessment.NextAssessmentDate,
-		assessment.UpdatedAt,
-		assessment.ID,
-	)
-
-	if err != nil {
-		return fmt.Errorf("failed to update fitness assessment: %v", err)
+// Update updates fitness assessment information
+func (r *AssessmentRepository) Update(ctx context.Context, assessment *model.FitnessAssessment) error {
+	result := r.db.WithContext(ctx).Model(assessment).Where("assessment_id = ?", assessment.ID).Updates(assessment)
+	if result.Error != nil {
+		return fmt.Errorf("updating fitness assessment: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("fitness assessment not found")
 	}
-
 	return nil
 }
 
-// Delete removes a fitness assessment by its ID
-func (r *FitnessAssessmentRepo) Delete(ctx context.Context, id int64) error {
-	query := `DELETE FROM fitness_assessments WHERE assessment_id = $1`
-
-	result, err := r.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete fitness assessment: %v", err)
+// Delete removes a fitness assessment by their ID
+func (r *AssessmentRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Where("assessment_id = ?", id).Delete(&model.FitnessAssessment{})
+	if result.Error != nil {
+		return fmt.Errorf("deleting fitness assessment: %w", result.Error)
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %v", err)
-	}
-
-	if rowsAffected == 0 {
+	if result.RowsAffected == 0 {
 		return fmt.Errorf("fitness assessment not found")
 	}
-
 	return nil
 }
 
 // ListByMemberID retrieves all fitness assessments for a specific member
-func (r *FitnessAssessmentRepo) ListByMemberID(ctx context.Context, memberID int64) ([]*model.FitnessAssessment, error) {
-	query := `
-		SELECT 
-			assessment_id, member_id, trainer_id, assessment_date, height, weight, 
-			body_fat_percentage, bmi, notes, goals_set, next_assessment_date, created_at, updated_at
-		FROM fitness_assessments
-		WHERE member_id = $1
-		ORDER BY assessment_date DESC
-	`
-
-	rows, err := r.db.QueryContext(ctx, query, memberID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list fitness assessments: %v", err)
-	}
-	defer rows.Close()
-
+func (r *AssessmentRepository) ListByMemberID(ctx context.Context, memberID int64) ([]*model.FitnessAssessment, error) {
 	var assessments []*model.FitnessAssessment
-	for rows.Next() {
-		var assessment model.FitnessAssessment
-		if err := rows.Scan(
-			&assessment.ID,
-			&assessment.MemberID,
-			&assessment.TrainerID,
-			&assessment.AssessmentDate,
-			&assessment.Height,
-			&assessment.Weight,
-			&assessment.BodyFatPercentage,
-			&assessment.BMI,
-			&assessment.Notes,
-			&assessment.GoalsSet,
-			&assessment.NextAssessmentDate,
-			&assessment.CreatedAt,
-			&assessment.UpdatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("failed to scan fitness assessment: %v", err)
-		}
-		assessments = append(assessments, &assessment)
+	if err := r.db.WithContext(ctx).Where("member_id = ?", memberID).Order("assessment_date DESC").Find(&assessments).Error; err != nil {
+		return nil, fmt.Errorf("listing fitness assessments by member ID: %w", err)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows error: %v", err)
-	}
-
 	return assessments, nil
 }
 
-// GetLatestByMemberID retrieves the most recent fitness assessment for a member
-func (r *FitnessAssessmentRepo) GetLatestByMemberID(ctx context.Context, memberID int64) (*model.FitnessAssessment, error) {
-	query := `
-		SELECT 
-			assessment_id, member_id, trainer_id, assessment_date, height, weight, 
-			body_fat_percentage, bmi, notes, goals_set, next_assessment_date, created_at, updated_at
-		FROM fitness_assessments
-		WHERE member_id = $1
-		ORDER BY assessment_date DESC
-		LIMIT 1
-	`
-
+// GetLatestByMemberID retrieves the latest fitness assessment for a specific member
+func (r *AssessmentRepository) GetLatestByMemberID(ctx context.Context, memberID int64) (*model.FitnessAssessment, error) {
 	var assessment model.FitnessAssessment
-	err := r.db.QueryRowContext(ctx, query, memberID).Scan(
-		&assessment.ID,
-		&assessment.MemberID,
-		&assessment.TrainerID,
-		&assessment.AssessmentDate,
-		&assessment.Height,
-		&assessment.Weight,
-		&assessment.BodyFatPercentage,
-		&assessment.BMI,
-		&assessment.Notes,
-		&assessment.GoalsSet,
-		&assessment.NextAssessmentDate,
-		&assessment.CreatedAt,
-		&assessment.UpdatedAt,
-	)
-
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("no fitness assessment found for member: %v", err)
+	if err := r.db.WithContext(ctx).Where("member_id = ?", memberID).Order("assessment_date DESC").First(&assessment).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fmt.Errorf("fitness assessment not found")
 		}
-		return nil, fmt.Errorf("failed to get latest fitness assessment: %v", err)
+		return nil, fmt.Errorf("getting latest fitness assessment: %w", err)
 	}
-
 	return &assessment, nil
 }
 
-// GetByMemberID is an alias for ListByMemberID to satisfy the interface
-func (r *FitnessAssessmentRepo) GetByMemberID(ctx context.Context, memberID int64) ([]*model.FitnessAssessment, error) {
+// GetByMemberID retrieves all fitness assessments for a specific member (alias for ListByMemberID)
+func (r *AssessmentRepository) GetByMemberID(ctx context.Context, memberID int64) ([]*model.FitnessAssessment, error) {
 	return r.ListByMemberID(ctx, memberID)
 }

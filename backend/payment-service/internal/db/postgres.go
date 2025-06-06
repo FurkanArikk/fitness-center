@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/FurkanArikk/fitness-center/backend/member-service/internal/config"
+	"github.com/FurkanArikk/fitness-center/backend/payment-service/internal/config"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -16,8 +16,8 @@ type PostgresDB struct {
 }
 
 // NewPostgresDB creates a new PostgreSQL database connection
-func NewPostgresDB(cfg config.DatabaseConfig) (*PostgresDB, error) {
-	dsn := cfg.GetDSN()
+func NewPostgresDB(cfg config.PostgresConfig) (*PostgresDB, error) {
+	dsn := cfg.GetConnectionString()
 
 	// Configure GORM to disable automatic foreign key constraints
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
@@ -41,6 +41,7 @@ func NewPostgresDB(cfg config.DatabaseConfig) (*PostgresDB, error) {
 	// The migrations folder contains the proper SQL migrations for this service
 
 	log.Println("Connected to PostgreSQL database with GORM")
+
 	return &PostgresDB{DB: db}, nil
 }
 

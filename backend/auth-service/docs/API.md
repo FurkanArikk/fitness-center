@@ -1,45 +1,26 @@
 # Auth Service API Documentation
 
-## Overview
-
 The Auth Service provides authentication and authorization functionality for the Fitness Center microservices system. It handles user login, JWT token generation and validation, and serves as the central authentication point for all services.
 
 ## Base URL
 
 ```
-http://localhost:8085
+http://localhost:8085/api/v1
 ```
 
-## Endpoints
+## Table of Contents
 
-### 1. Health Check
+- [Authentication Endpoints](#authentication-endpoints)
+- [User Management Endpoints](#user-management-endpoints)
+- [Health Check Endpoint](#health-check-endpoint)
 
-Check if the service is running and healthy.
+## Authentication Endpoints
 
-**Endpoint:** `GET /health`
-
-**Response:**
-```json
-{
-  "status": "ok",
-  "service": "auth-service",
-  "timestamp": "2025-06-01T10:30:00Z"
-}
-```
-
-**Status Codes:**
-- `200 OK` - Service is healthy
-
-**Example:**
-```bash
-curl -X GET http://localhost:8085/health
-```
-
-### 2. Login
+### Login
 
 Authenticate user credentials and receive a JWT token.
 
-**Endpoint:** `POST /api/v1/login`
+**Endpoint:** `POST /login`
 
 **Request Body:**
 ```json
@@ -49,256 +30,325 @@ Authenticate user credentials and receive a JWT token.
 }
 ```
 
-**Response (Success):**
+**Field Validation:**
+- `username`: Required, string (3-50 characters)
+- `password`: Required, string (minimum 6 characters)
+
+**Response (200 OK):**
 ```json
 {
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "expires_in": 86400,
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600,
+  "token_type": "Bearer",
+  "user": {
+    "id": 1,
+    "username": "admin",
+    "email": "admin@fitness.com",
+    "role": "admin",
+    "status": "active",
+    "last_login": "2025-06-04T10:30:00Z"
+  }
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request body or missing fields
+  ```json
+  {
+    "error": "Username and password are required"
+  }
+  ```
+- `401 Unauthorized`: Invalid credentials
+  ```json
+  {
+    "error": "Invalid username or password"
+  }
+  ```
+- `403 Forbidden`: Account is inactive or suspended
+  ```json
+  {
+    "error": "Account is suspended"
+  }
+  ```
+
+### Refresh Token
+
+Get a new access token using a refresh token.
+
+**Endpoint:** `POST /refresh`
+
+**Request Body:**
+```json
+{
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "expires_in": 3600,
   "token_type": "Bearer"
 }
 ```
 
-**Response (Error):**
+**Error Responses:**
+- `400 Bad Request`: Missing refresh token
+  ```json
+  {
+    "error": "Refresh token is required"
+  }
+  ```
+- `401 Unauthorized`: Invalid or expired refresh token
+  ```json
+  {
+    "error": "Invalid or expired refresh token"
+  }
+  ```
+
+### Logout
+
+Invalidate the current session and refresh token.
+
+**Endpoint:** `POST /logout`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
 ```json
 {
-  "error": "invalid username or password"
+  "refresh_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
 
-**Status Codes:**
-- `200 OK` - Authentication successful
-- `400 Bad Request` - Invalid request body
-- `401 Unauthorized` - Invalid credentials
+**Response (200 OK):**
+```json
+{
+  "message": "Successfully logged out"
+}
+```
 
-**Example:**
-```bash
-curl -X POST http://localhost:8085/api/v1/login \
-  -H "Content-Type: application/json" \
-  -d '{
+**Error Responses:**
+- `401 Unauthorized`: Invalid or missing access token
+  ```json
+  {
+    "error": "Invalid or missing access token"
+  }
+  ```
+
+### Validate Token
+
+Validate an access token and return user information.
+
+**Endpoint:** `POST /validate`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Response (200 OK):**
+```json
+{
+  "valid": true,
+  "user": {
+    "id": 1,
     "username": "admin",
-    "password": "your_password"
-  }'
-```
-
-### 3. Forward Auth (Traefik Integration)
-
-Validate JWT token for Traefik ForwardAuth middleware. This endpoint is typically called by Traefik to validate requests to protected services.
-
-**Endpoint:** `GET /api/v1/auth`
-
-**Headers:**
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response (Success):**
-- `200 OK` - Token is valid
-- Headers returned to Traefik:
-  - `X-User: <username>`
-  - `X-Auth-Service: auth-service`
-
-**Response (Error):**
-```json
-{
-  "error": "unauthorized"
+    "email": "admin@fitness.com",
+    "role": "admin",
+    "status": "active"
+  },
+  "expires_at": "2025-06-04T11:30:00Z"
 }
 ```
 
-**Status Codes:**
-- `200 OK` - Token is valid
-- `401 Unauthorized` - Token is invalid, expired, or missing
+**Error Responses:**
+- `401 Unauthorized`: Invalid or expired token
+  ```json
+  {
+    "valid": false,
+    "error": "Token is invalid or expired"
+  }
+  ```
 
-**Example:**
-```bash
-curl -X GET http://localhost:8085/api/v1/auth \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-```
+## User Management Endpoints
 
-### 4. Create Admin (Protected)
+### Register User
 
-Create a new admin user. Requires authentication.
+Create a new user account (admin only).
 
-**Endpoint:** `POST /api/v1/admin/create`
+**Endpoint:** `POST /users`
 
 **Headers:**
 ```
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
+Authorization: Bearer <access_token>
 ```
 
 **Request Body:**
 ```json
 {
-  "username": "newadmin",
-  "password": "securepassword123",
-  "email": "newadmin@fitness-center.local"
+  "username": "newuser",
+  "email": "newuser@fitness.com",
+  "password": "securepassword",
+  "role": "staff"
 }
 ```
 
-**Response (Success):**
+**Field Validation:**
+- `username`: Required, string (3-50 characters), unique
+- `email`: Required, valid email format, unique
+- `password`: Required, string (minimum 8 characters)
+- `role`: Required, one of: "admin", "staff", "member"
+
+**Response (201 Created):**
 ```json
 {
-  "message": "Admin user created successfully"
+  "id": 2,
+  "username": "newuser",
+  "email": "newuser@fitness.com",
+  "role": "staff",
+  "status": "active",
+  "created_at": "2025-06-04T10:30:00Z"
 }
 ```
 
-**Response (Error):**
-```json
-{
-  "error": "Username, password, and email are required"
-}
-```
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or validation errors
+  ```json
+  {
+    "error": "Username already exists"
+  }
+  ```
+- `401 Unauthorized`: Invalid or missing access token
+- `403 Forbidden`: Insufficient permissions (not admin)
+  ```json
+  {
+    "error": "Admin access required"
+  }
+  ```
 
-**Status Codes:**
-- `201 Created` - Admin created successfully
-- `400 Bad Request` - Invalid request body or missing fields
-- `401 Unauthorized` - Invalid or missing authentication token
-- `500 Internal Server Error` - Server error during creation
+### Get User Profile
 
-**Example:**
-```bash
-curl -X POST http://localhost:8085/api/v1/admin/create \
-  -H "Authorization: Bearer <your_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "newadmin",
-    "password": "securepassword123",
-    "email": "newadmin@fitness-center.local"
-  }'
-```
+Get the current user's profile information.
 
-### 5. Update Admin Password (Protected)
-
-Update an admin user's password. Requires authentication and current password.
-
-**Endpoint:** `PUT /api/v1/admin/password`
+**Endpoint:** `GET /profile`
 
 **Headers:**
 ```
-Authorization: Bearer <jwt_token>
-Content-Type: application/json
+Authorization: Bearer <access_token>
 ```
 
-**Request Body:**
+**Response (200 OK):**
 ```json
 {
+  "id": 1,
   "username": "admin",
+  "email": "admin@fitness.com",
+  "role": "admin",
+  "status": "active",
+  "last_login": "2025-06-04T10:30:00Z",
+  "created_at": "2025-01-01T00:00:00Z",
+  "updated_at": "2025-06-04T10:30:00Z"
+}
+```
+
+**Error Responses:**
+- `401 Unauthorized`: Invalid or missing access token
+
+### Update User Profile
+
+Update the current user's profile information.
+
+**Endpoint:** `PUT /profile`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
+  "email": "newemail@fitness.com",
+  "password": "newpassword"
+}
+```
+
+**Field Validation:**
+- `email`: Optional, valid email format, unique
+- `password`: Optional, string (minimum 8 characters)
+
+**Response (200 OK):**
+```json
+{
+  "id": 1,
+  "username": "admin",
+  "email": "newemail@fitness.com",
+  "role": "admin",
+  "status": "active",
+  "updated_at": "2025-06-04T10:35:00Z"
+}
+```
+
+**Error Responses:**
+- `400 Bad Request`: Invalid request data
+- `401 Unauthorized`: Invalid or missing access token
+
+### Change Password
+
+Change the current user's password.
+
+**Endpoint:** `PUT /change-password`
+
+**Headers:**
+```
+Authorization: Bearer <access_token>
+```
+
+**Request Body:**
+```json
+{
   "current_password": "oldpassword",
-  "new_password": "newpassword123"
+  "new_password": "newpassword"
 }
 ```
 
-**Response (Success):**
+**Field Validation:**
+- `current_password`: Required, string
+- `new_password`: Required, string (minimum 8 characters)
+
+**Response (200 OK):**
 ```json
 {
-  "message": "Password updated successfully"
+  "message": "Password changed successfully"
 }
 ```
 
-**Response (Error):**
+**Error Responses:**
+- `400 Bad Request`: Invalid request data or weak password
+- `401 Unauthorized`: Invalid current password or missing access token
+
+## Health Check Endpoint
+
+### Check Service Health
+
+Verifies that the authentication service is running properly.
+
+**Endpoint:** `GET /health`
+
+**Response (200 OK):**
 ```json
 {
-  "error": "current password is incorrect"
+  "status": "ok",
+  "service": "auth-service",
+  "timestamp": "2025-06-04T10:30:00Z"
 }
 ```
 
-**Status Codes:**
-- `200 OK` - Password updated successfully
-- `400 Bad Request` - Invalid request body or missing fields
-- `401 Unauthorized` - Invalid authentication token or incorrect current password
-- `500 Internal Server Error` - Server error during update
-
-**Example:**
-```bash
-curl -X PUT http://localhost:8085/api/v1/admin/password \
-  -H "Authorization: Bearer <your_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "current_password": "oldpassword",
-    "new_password": "newpassword123"
-  }'
-```
-
-### 6. List Admins (Protected)
-
-Get list of all admin users. Requires authentication.
-
-**Endpoint:** `GET /api/v1/admin/list`
-
-**Headers:**
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response (Success):**
-```json
-{
-  "admins": [
-    {
-      "id": 1,
-      "username": "admin",
-      "email": "admin@fitness-center.local",
-      "is_active": true,
-      "created_at": "2025-06-01T10:00:00Z",
-      "last_login_at": "2025-06-01T15:30:00Z"
-    },
-    {
-      "id": 2,
-      "username": "admin2",
-      "email": "admin2@fitness-center.local",
-      "is_active": true,
-      "created_at": "2025-06-01T11:00:00Z",
-      "last_login_at": ""
-    }
-  ]
-}
-```
-
-**Status Codes:**
-- `200 OK` - List retrieved successfully
-- `401 Unauthorized` - Invalid or missing authentication token
-- `500 Internal Server Error` - Server error
-
-**Example:**
-```bash
-curl -X GET http://localhost:8085/api/v1/admin/list \
-  -H "Authorization: Bearer <your_token>"
-```
-
-### 7. Deactivate Admin (Protected)
-
-Deactivate an admin user. Requires authentication.
-
-**Endpoint:** `DELETE /api/v1/admin/{username}`
-
-**Headers:**
-```
-Authorization: Bearer <jwt_token>
-```
-
-**Response (Success):**
-```json
-{
-  "message": "Admin user deactivated successfully"
-}
-```
-
-**Response (Error):**
-```json
-{
-  "error": "admin not found"
-}
-```
-
-**Status Codes:**
-- `200 OK` - Admin deactivated successfully
-- `400 Bad Request` - Username is required
-- `401 Unauthorized` - Invalid or missing authentication token
-- `500 Internal Server Error` - Server error
-
-**Example:**
-```bash
-curl -X DELETE http://localhost:8085/api/v1/admin/oldadmin \
-  -H "Authorization: Bearer <your_token>"
-```
+**Error Responses:**
+- `500 Internal Server Error`: Service is unhealthy or database connection issues
