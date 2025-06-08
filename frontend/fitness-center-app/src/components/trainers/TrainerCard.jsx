@@ -199,6 +199,8 @@ const TrainerCard = ({
       "staff",
       "rating",
       "specialization",
+      "certification", // Already displayed in highlighted section
+      "experience", // Already displayed in highlighted section
       "profileImage",
       "created_at", // Database timestamp - exclude
       "updated_at", // Database timestamp - exclude
@@ -221,10 +223,6 @@ const TrainerCard = ({
         // Custom formatting for specific fields
         if (key === "is_active") {
           formattedKey = "Status";
-        } else if (key === "experience") {
-          formattedKey = "Experience";
-        } else if (key === "certification") {
-          formattedKey = "Certification";
         } else if (key === "hourly_rate") {
           formattedKey = "Hourly Rate";
         } else if (key === "phone_number") {
@@ -237,8 +235,6 @@ const TrainerCard = ({
         let formattedValue = value;
         if (key === "is_active") {
           formattedValue = value ? "Active" : "Inactive";
-        } else if (key === "experience") {
-          formattedValue = `${value} years`;
         } else if (key === "hourly_rate") {
           formattedValue = `$${value}/hour`;
         } else if (typeof value === "boolean") {
