@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "env:check": "node -e \"console.log('API Base URL:', process.env.NEXT_PUBLIC_API_BASE_URL || 'NOT SET'); console.log('Health Check URL:', process.env.NEXT_PUBLIC_HEALTH_CHECK_BASE_URL || 'NOT SET');\""
   },
   "dependencies": {
     "@headlessui/react": "^2.2.4",

@@ -1,4 +1,4 @@
-import { SERVICE_PORTS } from "./endpoints";
+import { SERVICE_PORTS, HEALTH_CHECK_BASE_URL } from "./endpoints";
 
 const healthService = {
   // Health check methods for each service
@@ -9,7 +9,7 @@ const healthService = {
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
       const response = await fetch(
-        `http://localhost:${SERVICE_PORTS[service]}/health`,
+        `${HEALTH_CHECK_BASE_URL}:${SERVICE_PORTS[service]}/health`,
         {
           method: "GET",
           signal: controller.signal,

@@ -1,14 +1,17 @@
-// API temel URL'si (baseURL değişkeni zaten apiClient.js'de tanımlı, burada sadece path'i belirtiyoruz)
+// API temel URL'si environment variable'dan alınır
 export const API_BASE_URL = "/api/v1";
 
-// Service ports for health checks
+// Health check base URL - environment variable'dan alınır
+export const HEALTH_CHECK_BASE_URL = process.env.NEXT_PUBLIC_HEALTH_CHECK_BASE_URL || "http://localhost";
+
+// Service ports for health checks - environment variable'lardan alınır
 export const SERVICE_PORTS = {
-  member: "8001",
-  staff: "8002",
-  payment: "8003",
-  facility: "8004",
-  class: "8005",
-  auth: "8085"
+  member: process.env.NEXT_PUBLIC_MEMBER_SERVICE_PORT || "8001",
+  staff: process.env.NEXT_PUBLIC_STAFF_SERVICE_PORT || "8002",
+  payment: process.env.NEXT_PUBLIC_PAYMENT_SERVICE_PORT || "8003",
+  facility: process.env.NEXT_PUBLIC_FACILITY_SERVICE_PORT || "8004",
+  class: process.env.NEXT_PUBLIC_CLASS_SERVICE_PORT || "8005",
+  auth: process.env.NEXT_PUBLIC_AUTH_SERVICE_PORT || "8085"
 };
 
 // Service endpoints
