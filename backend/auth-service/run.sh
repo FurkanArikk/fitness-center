@@ -11,7 +11,7 @@ fi
 
 # Build and run auth service
 echo "Starting Auth service Docker container..."
-docker-compose up --build -d
+docker compose up --build -d
 
 echo "Auth service started successfully!"
 echo ""
