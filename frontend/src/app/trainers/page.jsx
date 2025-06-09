@@ -35,9 +35,6 @@ const Trainers = () => {
   const [selectedFilter, setSelectedFilter] = useState("All");
   const [hasActiveSearch, setHasActiveSearch] = useState(false);
 
-  // Single state to track expanded section per trainer: { trainerId: 'profile' | 'classes' | null }
-  const [expandedSections, setExpandedSections] = useState({});
-
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 6;
@@ -182,8 +179,6 @@ const Trainers = () => {
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Reset expanded trainer when changing pages
-    setExpandedSections({});
   };
 
   // Filter classes for a specific trainer
@@ -303,7 +298,7 @@ const Trainers = () => {
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" style={{ overflow: 'visible' }}>
             {currentTrainers.map((trainer, index) => {
               // Get consistent trainer ID
               const trainerId = trainer.trainer_id || trainer.id;
@@ -317,13 +312,6 @@ const Trainers = () => {
                   }
                   trainer={trainer}
                   index={startIndex + index}
-                  expanded={expandedSections[trainerId]}
-                  setExpanded={(section) =>
-                    setExpandedSections({
-                      ...expandedSections,
-                      [trainerId]: section,
-                    })
-                  }
                   trainerClasses={getTrainerClasses(trainerId)}
                 />
               );
