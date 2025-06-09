@@ -1,5 +1,5 @@
 import React from "react";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   X,
   User,
@@ -15,6 +15,7 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
   if (!member) return null;
 
   const [errors, setErrors] = useState({});
+  const formRef = useRef(null);
 
   // Convert ISO date to American format (mm/dd/yyyy)
   const formatDateToAmerican = (isoDate) => {
@@ -126,10 +127,17 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     
-    // Validate date before submission
-    const dateValue = e.target.dateOfBirth.value;
+    // Get the form element
+    const form = formRef.current;
+    if (!form) return;
+    
+    // Get form data using FormData for safer access
+    const formData = new FormData(form);
+    const dateValue = formData.get('dateOfBirth');
+    
+    // Validate date before submission if it exists
     if (dateValue && dateValue.trim()) {
       const validation = validateDate(dateValue);
       if (!validation.isValid) {
@@ -138,18 +146,18 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
       }
     }
     
-    const formData = {
-      firstName: e.target.firstName.value,
-      lastName: e.target.lastName.value,
-      email: e.target.email.value,
-      phone: e.target.phone.value,
-      address: e.target.address.value,
-      dateOfBirth: convertAmericanDateToISO(e.target.dateOfBirth.value),
-      emergencyContactName: e.target.emergencyContactName.value,
-      emergencyContactPhone: e.target.emergencyContactPhone.value,
-      status: e.target.status.value,
+    const submitData = {
+      firstName: formData.get('firstName') || '',
+      lastName: formData.get('lastName') || '',
+      email: formData.get('email') || '',
+      phone: formData.get('phone') || '',
+      address: formData.get('address') || '',
+      dateOfBirth: convertAmericanDateToISO(dateValue),
+      emergencyContactName: formData.get('emergencyContactName') || '',
+      emergencyContactPhone: formData.get('emergencyContactPhone') || '',
+      status: formData.get('status') || 'active',
     };
-    onSave(formData);
+    onSave(submitData);
   };
 
   // Generate avatar for member
@@ -215,7 +223,7 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
 
         {/* Content */}
         <div className="p-8 max-h-[70vh] overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
             {/* Personal Information Section */}
             <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-100">
               <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center">

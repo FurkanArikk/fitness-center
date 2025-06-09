@@ -586,10 +586,17 @@ const Members = () => {
       );
       console.log("[Members] Member updated:", updatedMember);
 
+      // Preserve existing membership data when updating member
+      const memberWithMembership = {
+        ...updatedMember,
+        // Keep the original membership data if it exists
+        activeMembership: editMember.activeMembership || updatedMember.activeMembership,
+      };
+
       // Update state
       setMembers(
         members.map((member) =>
-          member.id === updatedMember.id ? updatedMember : member
+          member.id === updatedMember.id ? memberWithMembership : member
         )
       );
 
