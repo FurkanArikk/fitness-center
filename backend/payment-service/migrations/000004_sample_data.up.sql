@@ -12,11 +12,11 @@ INSERT INTO payments (
     description, payment_type_id, created_at, updated_at
 )
 VALUES
-    (101, 99.99, '2023-07-01T10:00:00Z', 'credit_card', 'completed', 'Monthly membership fee', 1, '2023-07-01T10:00:00Z', '2023-07-01T10:00:00Z'),
-    (102, 149.99, '2023-07-02T11:30:00Z', 'debit_card', 'completed', 'Premium membership fee', 1, '2023-07-02T11:30:00Z', '2023-07-02T11:30:00Z'),
-    (103, 50.00, '2023-07-03T09:15:00Z', 'cash', 'completed', 'Personal training session', 2, '2023-07-03T09:15:00Z', '2023-07-03T09:15:00Z'),
-    (104, 25.99, '2023-07-04T14:45:00Z', 'credit_card', 'completed', 'Yoga class', 3, '2023-07-04T14:45:00Z', '2023-07-04T14:45:00Z'),
-    (105, 35.50, '2023-07-05T16:30:00Z', 'credit_card', 'completed', 'Protein powder purchase', 4, '2023-07-05T16:30:00Z', '2023-07-05T16:30:00Z');
+    (1, 99.99, '2023-07-01T10:00:00Z', 'credit_card', 'completed', 'Monthly membership fee', 1, '2023-07-01T10:00:00Z', '2023-07-01T10:00:00Z'),
+    (2, 149.99, '2023-07-02T11:30:00Z', 'debit_card', 'completed', 'Premium membership fee', 1, '2023-07-02T11:30:00Z', '2023-07-02T11:30:00Z'),
+    (3, 50.00, '2023-07-03T09:15:00Z', 'cash', 'completed', 'Personal training session', 2, '2023-07-03T09:15:00Z', '2023-07-03T09:15:00Z'),
+    (4, 25.99, '2023-07-04T14:45:00Z', 'credit_card', 'completed', 'Yoga class', 3, '2023-07-04T14:45:00Z', '2023-07-04T14:45:00Z'),
+    (5, 35.50, '2023-07-05T16:30:00Z', 'credit_card', 'completed', 'Protein powder purchase', 4, '2023-07-05T16:30:00Z', '2023-07-05T16:30:00Z');
 
 -- Sample data for payment_transactions (insert only after payments are created)
 INSERT INTO payment_transactions (
