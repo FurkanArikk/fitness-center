@@ -205,12 +205,12 @@ curl -X POST http://localhost/api/v1/classes/bookings \
 ```
 
 ### 🏢 Facility Service (Facility Management Service)
-**Port:** 5436 | **Endpoint:** `/api/v1/facilities`
+**Port:** 5435 | **Endpoint:** `/api/v1/facilities`
 
 **Functions:**
 - Facility and equipment management
 - Maintenance scheduling
-- Equipment reservations
+- Member attendance tracking
 - Facility usage reports
 
 **Technologies:**
@@ -221,10 +221,8 @@ curl -X POST http://localhost/api/v1/classes/bookings \
 
 **Database Tables:**
 - `facilities`: Facility areas and features
-- `equipment`: Equipment inventory
-- `facility_equipment`: Facility-equipment relationships
-- `equipment_maintenance`: Maintenance records
-- `facility_reservations`: Facility reservations
+- `equipment`: Equipment inventory and maintenance
+- `attendance`: Member check-in/check-out records
 
 **API Examples:**
 ```bash
