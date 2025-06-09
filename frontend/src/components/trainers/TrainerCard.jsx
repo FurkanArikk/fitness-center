@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useRef, useEffect } from "react";
 import {
   Award,
   ChevronDown,
@@ -6,8 +6,14 @@ import {
   Calendar,
   Star,
   User,
+  Info,
+  Clock,
+  Phone,
+  Mail,
+  Shield,
+  Eye,
+  X,
 } from "lucide-react";
-import Button from "../common/Button";
 import { formatFullName } from "../../utils/formatters";
 
 // Modern vibrant color schemes inspired by the class cards
@@ -137,11 +143,54 @@ const colorThemes = [
 const TrainerCard = ({
   trainer,
   index = 0,
-  expanded,
-  setExpanded,
   trainerClasses = [],
 }) => {
+  const [showProfilePopover, setShowProfilePopover] = useState(false);
+  const [showClassesPopover, setShowClassesPopover] = useState(false);
+  const profileButtonRef = useRef(null);
+  const classesButtonRef = useRef(null);
+  const profilePopoverRef = useRef(null);
+  const classesPopoverRef = useRef(null);
+
   if (!trainer) return null;
+
+  // Click outside handler to close popovers
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        profilePopoverRef.current &&
+        !profilePopoverRef.current.contains(event.target) &&
+        !profileButtonRef.current?.contains(event.target)
+      ) {
+        setShowProfilePopover(false);
+      }
+      if (
+        classesPopoverRef.current &&
+        !classesPopoverRef.current.contains(event.target) &&
+        !classesButtonRef.current?.contains(event.target)
+      ) {
+        setShowClassesPopover(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
+  // Close other popover when opening one
+  const toggleProfilePopover = () => {
+    console.log("Profile button clicked, current state:", showProfilePopover);
+    setShowClassesPopover(false);
+    setShowProfilePopover(!showProfilePopover);
+  };
+
+  const toggleClassesPopover = () => {
+    console.log("Classes button clicked, current state:", showClassesPopover);
+    setShowProfilePopover(false);
+    setShowClassesPopover(!showClassesPopover);
+  };
 
   // Dynamic color theme selection based on trainer ID for consistency
   const colorTheme = useMemo(() => {
@@ -165,30 +214,6 @@ const TrainerCard = ({
 
   const getTrainerDisplayId = () => {
     return `T${trainerId.toString().padStart(2, "0")}`;
-  };
-
-  // Check if this card's profile is currently expanded
-  const isProfileExpanded = expanded === "profile";
-
-  // Check if this card's classes are currently expanded
-  const isClassesExpanded = expanded === "classes";
-
-  // Toggle expansion state for profile
-  const toggleProfile = () => {
-    if (isProfileExpanded) {
-      setExpanded(null); // Close if already open
-    } else {
-      setExpanded("profile"); // Open profile, close classes
-    }
-  };
-
-  // Toggle expansion state for classes
-  const toggleClasses = () => {
-    if (isClassesExpanded) {
-      setExpanded(null); // Close if already open
-    } else {
-      setExpanded("classes"); // Open classes, close profile
-    }
   };
 
   // Dynamically get all valid trainer fields (non-empty/non-undefined)
@@ -274,15 +299,23 @@ const TrainerCard = ({
   const trainerFields = getTrainerFields();
   const groupedClasses = groupClassesByDay();
 
+  // Debug: Log states
+  console.log(`Trainer ${trainerName} - Profile: ${showProfilePopover}, Classes: ${showClassesPopover}`);
+
   return (
     <div
-      className={`group bg-gradient-to-br ${colorTheme.card} ${colorTheme.border} border-2 rounded-3xl ${colorTheme.shadow} shadow-2xl hover:shadow-3xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-3 overflow-hidden backdrop-blur-sm relative`}
+      className={`group bg-gradient-to-br ${colorTheme.card} ${colorTheme.border} border-2 rounded-3xl ${colorTheme.shadow} shadow-2xl hover:shadow-3xl transition-all duration-300 ease-out backdrop-blur-sm relative ${
+        showProfilePopover || showClassesPopover ? '' : 'hover:scale-[1.02] hover:-translate-y-3'
+      }`}
       style={{
         boxShadow: `
           0 25px 50px -12px rgba(0, 0, 0, 0.15),
           0 0 0 1px rgba(255, 255, 255, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.3)
         `,
+        // Ensure popover visibility
+        zIndex: showProfilePopover || showClassesPopover ? 1000 : 'auto',
+        transform: showProfilePopover || showClassesPopover ? 'none' : undefined,
       }}
     >
       {/* Decorative gradient orbs */}
@@ -290,12 +323,14 @@ const TrainerCard = ({
       <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-gradient-to-tr from-white/20 to-white/5 rounded-full blur-xl"></div>
 
       {/* Card Header */}
-      <div className="relative p-8">
+      <div className="relative p-8 overflow-visible">
         <div className="flex items-center gap-6">
           {/* Modern Avatar with Dynamic Gradient Background */}
           <div className="relative">
             <div
-              className={`w-28 h-28 bg-gradient-to-br ${colorTheme.avatar} rounded-3xl flex flex-col items-center justify-center text-white font-black shadow-2xl ring-4 ring-white/40 backdrop-blur-sm group-hover:scale-110 transition-all duration-300 group-hover:rotate-2`}
+              className={`w-28 h-28 bg-gradient-to-br ${colorTheme.avatar} rounded-3xl flex flex-col items-center justify-center text-white font-black shadow-2xl ring-4 ring-white/40 backdrop-blur-sm transition-all duration-200 ease-out ${
+                showProfilePopover || showClassesPopover ? '' : 'group-hover:scale-110 group-hover:rotate-2'
+              }`}
               style={{
                 boxShadow: `
                   0 20px 25px -5px rgba(0, 0, 0, 0.2),
@@ -372,273 +407,272 @@ const TrainerCard = ({
         </div>
       </div>
 
-      {/* Enhanced Action Buttons */}
-      <div className="relative px-8 pb-8">
-        <div className="flex gap-5">
+      {/* Compact Action Buttons */}
+      <div className="relative px-8 pb-8 overflow-visible">
+        <div className="flex gap-4">
           <button
-            onClick={toggleProfile}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] ${
-              isProfileExpanded
-                ? "bg-white/95 text-gray-700 border-2 border-white/80 shadow-inner"
-                : `bg-gradient-to-r ${colorTheme.primaryButton} text-white border-0`
+            ref={profileButtonRef}
+            onClick={toggleProfilePopover}
+            className={`flex-1 flex items-center justify-center gap-3 py-3 px-5 rounded-xl font-bold shadow-lg transition-all duration-200 ease-out hover:shadow-xl active:scale-[0.98] ${
+              showProfilePopover
+                ? 'bg-white text-gray-700 border-2 border-gray-300'
+                : `bg-gradient-to-r ${colorTheme.primaryButton} text-white border-0 hover:scale-[1.02]`
             }`}
             style={{
-              boxShadow: isProfileExpanded
-                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
-                : "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+              boxShadow: showProfilePopover 
+                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)" 
+                : "0 8px 20px -5px rgba(0, 0, 0, 0.2)",
             }}
           >
-            <User size={18} className="drop-shadow-lg" />
-            <span className="font-black">Profile</span>
-            <div
-              className={`transition-transform duration-300 ${
-                isProfileExpanded ? "rotate-180" : ""
-              }`}
-            >
-              <ChevronDown size={18} />
-            </div>
+            <Eye size={16} className="drop-shadow-lg" />
+            <span className="font-bold text-sm">View Profile</span>
+            <ChevronDown 
+              size={14} 
+              className={`transition-transform duration-200 ease-out ${
+                showProfilePopover ? 'rotate-180' : ''
+              }`} 
+            />
           </button>
 
           <button
-            onClick={toggleClasses}
-            className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-bold shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] active:scale-[0.98] ${
-              isClassesExpanded
-                ? "bg-white/95 text-gray-700 border-2 border-white/80 shadow-inner"
-                : `bg-gradient-to-r ${colorTheme.secondaryButton} text-white border-0`
+            ref={classesButtonRef}
+            onClick={toggleClassesPopover}
+            className={`flex-1 flex items-center justify-center gap-3 py-3 px-5 rounded-xl font-bold shadow-lg transition-all duration-200 ease-out hover:shadow-xl active:scale-[0.98] ${
+              showClassesPopover
+                ? 'bg-white text-gray-700 border-2 border-gray-300'
+                : `bg-gradient-to-r ${colorTheme.secondaryButton} text-white border-0 hover:scale-[1.02]`
             }`}
             style={{
-              boxShadow: isClassesExpanded
-                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)"
-                : "0 10px 25px -5px rgba(0, 0, 0, 0.2)",
+              boxShadow: showClassesPopover 
+                ? "inset 0 2px 4px rgba(0, 0, 0, 0.1)" 
+                : "0 8px 20px -5px rgba(0, 0, 0, 0.2)",
             }}
           >
-            <Calendar size={18} className="drop-shadow-lg" />
-            <span className="font-black">Classes</span>
-            {trainerClasses.length > 0 && (
-              <div className="bg-white/40 backdrop-blur-sm rounded-xl px-3 py-1 text-sm font-black shadow-lg border border-white/30">
-                {trainerClasses.length}
-              </div>
-            )}
-            <div
-              className={`transition-transform duration-300 ${
-                isClassesExpanded ? "rotate-180" : ""
-              }`}
-            >
-              <ChevronDown size={18} />
-            </div>
+            <Calendar size={16} className="drop-shadow-lg" />
+            <span className="font-bold text-sm">
+              Classes {trainerClasses.length > 0 && `(${trainerClasses.length})`}
+            </span>
+            <ChevronDown 
+              size={14} 
+              className={`transition-transform duration-200 ease-out ${
+                showClassesPopover ? 'rotate-180' : ''
+              }`} 
+            />
           </button>
         </div>
-      </div>
 
-      {/* Expandable Profile Details Section */}
-      <div
-        className={`overflow-hidden transition-all duration-700 ease-out bg-white/95 backdrop-blur-xl border-t-2 border-white/80 shadow-inner
-          ${
-            isProfileExpanded ? "max-h-[500px] py-6 px-8" : "max-h-0 py-0 px-8"
-          }`}
-      >
-        {isProfileExpanded && (
-          <div className="h-full max-h-[450px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500 pr-2">
-            <div className="space-y-6">
-              <div className="flex items-center gap-4 mb-6">
+        {/* Profile Popover */}
+        {showProfilePopover && (
+          <div
+            ref={profilePopoverRef}
+            className="absolute top-full left-8 right-8 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 max-h-96 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+              zIndex: 9999,
+              position: 'absolute',
+            }}
+          >
+            {console.log("Profile popover is rendering")}
+            <div className="p-6">
+              {/* Trainer Header in Popover */}
+              <div className="flex items-center gap-4 mb-6 pb-4 border-b border-gray-100">
                 <div
-                  className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-2xl flex items-center justify-center shadow-lg`}
+                  className={`w-16 h-16 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex flex-col items-center justify-center text-white font-black shadow-lg`}
                 >
-                  <Award size={24} className="text-white drop-shadow-lg" />
+                  <div className="text-sm leading-none font-black">
+                    {getTrainerInitials()}
+                  </div>
+                  <div className="text-xs font-bold opacity-90 mt-1">
+                    {getTrainerDisplayId()}
+                  </div>
                 </div>
-                <h4 className="font-black text-2xl text-gray-900">
-                  Trainer Details
-                </h4>
+                
+                <div className="flex-1">
+                  <h3 className="font-black text-lg text-gray-800 mb-1">
+                    {trainerName}
+                  </h3>
+                  {trainer.specialization && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-bold text-gray-700 bg-gray-100 rounded-lg">
+                        <Award size={10} className={`mr-1 text-${colorTheme.accent}-600`} />
+                        {trainer.specialization}
+                      </span>
+                    </div>
+                  )}
+                  {trainer.is_active !== undefined && (
+                    <div className="flex items-center gap-1">
+                      <div
+                        className={`w-2 h-2 rounded-full ${
+                          trainer.is_active
+                            ? "bg-emerald-500"
+                            : "bg-gray-400"
+                        }`}
+                      />
+                      <span className="text-xs font-semibold text-gray-600">
+                        {trainer.is_active ? "Active" : "Inactive"}
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              <div className="grid gap-5">
-                {trainer.certification && (
-                  <div
-                    className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border border-${colorTheme.accent}-200 shadow-lg hover:shadow-xl transition-all duration-300`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-10 h-10 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg`}
-                      >
-                        <Award size={18} className="text-white" />
+              {/* Quick Stats Grid */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {/* Rating */}
+                {trainer.rating && (
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-3 border border-amber-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg flex items-center justify-center">
+                        <Star size={14} className="text-white" fill="currentColor" />
                       </div>
                       <div>
-                        <span className="font-black text-gray-800 block text-lg">
-                          Certification
-                        </span>
-                        <span className="text-gray-700 font-semibold">
-                          {trainer.certification}
-                        </span>
+                        <p className="text-xs font-semibold text-gray-600">Rating</p>
+                        <p className="text-lg font-black text-amber-600">{trainer.rating}/5</p>
                       </div>
                     </div>
                   </div>
                 )}
 
+                {/* Experience */}
                 {trainer.experience && (
-                  <div
-                    className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border border-${colorTheme.accent}-200 shadow-lg hover:shadow-xl transition-all duration-300`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`w-10 h-10 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg`}
-                      >
-                        <Star size={18} className="text-white" />
+                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl p-3 border border-blue-100">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                        <Clock size={14} className="text-white" />
                       </div>
                       <div>
-                        <span className="font-black text-gray-800 block text-lg">
-                          Experience
-                        </span>
-                        <span className="text-gray-700 font-semibold">
-                          {trainer.experience} years
-                        </span>
+                        <p className="text-xs font-semibold text-gray-600">Experience</p>
+                        <p className="text-sm font-bold text-blue-600">{trainer.experience}y</p>
                       </div>
                     </div>
                   </div>
                 )}
+              </div>
 
-                {/* Display all other valid trainer fields dynamically */}
-                {trainerFields.map(({ key, value }) => (
-                  <div
-                    key={key}
-                    className="bg-gradient-to-r from-gray-50 via-slate-50 to-gray-100 rounded-2xl p-5 border border-gray-200 shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="w-8 h-8 bg-gradient-to-br from-gray-500 to-gray-700 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg">
-                        <div className="w-3 h-3 bg-white rounded-full"></div>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="font-black text-gray-800 block text-lg">
-                          {key}
-                        </span>
-                        <span className="text-gray-600 font-medium break-words">
-                          {typeof value === "object"
-                            ? JSON.stringify(value)
-                            : value}
-                        </span>
-                      </div>
+              {/* Certification */}
+              {trainer.certification && (
+                <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl p-3 border border-emerald-100 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-gradient-to-br from-emerald-500 to-green-600 rounded-lg flex items-center justify-center">
+                      <Shield size={14} className="text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-gray-600">Certification</p>
+                      <p className="text-sm font-bold text-emerald-600">{trainer.certification}</p>
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
+
+              {/* Contact Information */}
+              {(trainer.staff?.email || trainer.staff?.phone) && (
+                <div className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <h4 className="text-xs font-bold text-gray-700 mb-2 flex items-center gap-1">
+                    <Info size={12} />
+                    Contact
+                  </h4>
+                  <div className="space-y-2">
+                    {trainer.staff?.email && (
+                      <div className="flex items-center gap-2">
+                        <Mail size={12} className="text-blue-600" />
+                        <span className="text-xs text-gray-700 truncate">{trainer.staff.email}</span>
+                      </div>
+                    )}
+                    {trainer.staff?.phone && (
+                      <div className="flex items-center gap-2">
+                        <Phone size={12} className="text-green-600" />
+                        <span className="text-xs text-gray-700">{trainer.staff.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
-      </div>
 
-      {/* Expandable Classes Section */}
-      <div
-        className={`overflow-hidden transition-all duration-700 ease-out bg-white/95 backdrop-blur-xl border-t-2 border-white/80 shadow-inner
-          ${
-            isClassesExpanded ? "max-h-[700px] py-8 px-8" : "max-h-0 py-0 px-8"
-          }`}
-      >
-        {isClassesExpanded && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div
-                className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-2xl flex items-center justify-center shadow-lg`}
-              >
-                <Calendar size={24} className="text-white drop-shadow-lg" />
-              </div>
-              <h4 className="font-black text-2xl text-gray-900">
-                Classes Schedule
-              </h4>
-              <div
-                className={`bg-gradient-to-r from-${colorTheme.accent}-100 via-${colorTheme.accent}-200 to-${colorTheme.accent}-100 text-${colorTheme.accent}-800 px-5 py-2 rounded-2xl text-sm font-black shadow-lg border border-${colorTheme.accent}-300`}
-              >
-                {trainerClasses.length}{" "}
-                {trainerClasses.length === 1 ? "class" : "classes"}
-              </div>
-            </div>
-
-            {trainerClasses.length === 0 ? (
-              <div className="text-center py-16">
-                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-                  <Calendar size={36} className="text-gray-400" />
+        {/* Classes Popover */}
+        {showClassesPopover && (
+          <div
+            ref={classesPopoverRef}
+            className="absolute top-full left-8 right-8 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 max-h-96 overflow-y-auto animate-in fade-in slide-in-from-top-2 duration-200"
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05)",
+              zIndex: 9999,
+              position: 'absolute',
+            }}
+          >
+            {console.log("Classes popover is rendering")}
+            <div className="p-6">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                <div
+                  className={`w-12 h-12 bg-gradient-to-br ${colorTheme.avatar} rounded-xl flex items-center justify-center shadow-lg`}
+                >
+                  <Calendar size={18} className="text-white" />
                 </div>
-                <p className="text-gray-500 font-semibold text-xl">
-                  No classes assigned to this trainer
-                </p>
+                <div>
+                  <h3 className="font-black text-lg text-gray-800">Classes</h3>
+                  <p className="text-xs text-gray-600 font-semibold">
+                    {trainerClasses.length} {trainerClasses.length === 1 ? "class" : "classes"} assigned
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedClasses)
-                  .sort(([a], [b]) => {
-                    const days = [
-                      "Monday",
-                      "Tuesday",
-                      "Wednesday",
-                      "Thursday",
-                      "Friday",
-                      "Saturday",
-                      "Sunday",
-                    ];
-                    return days.indexOf(a) - days.indexOf(b);
-                  })
-                  .map(([day, classes]) => (
-                    <div
-                      key={day}
-                      className={`bg-gradient-to-r from-${colorTheme.accent}-50 via-${colorTheme.accent}-100 to-${colorTheme.accent}-50 rounded-2xl p-6 border-l-4 border-${colorTheme.accent}-500 shadow-lg hover:shadow-xl transition-all duration-300`}
-                    >
-                      <h5 className="font-black text-gray-800 mb-4 flex items-center gap-3 text-xl">
-                        <div
-                          className={`w-5 h-5 bg-gradient-to-br ${colorTheme.avatar} rounded-full shadow-lg`}
-                        ></div>
+
+              {trainerClasses.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <Calendar size={24} className="text-gray-400" />
+                  </div>
+                  <p className="text-sm font-bold text-gray-500 mb-1">No Classes</p>
+                  <p className="text-xs text-gray-400">No classes assigned yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {Object.entries(groupClassesByDay()).map(([day, classes]) => (
+                    <div key={day} className="bg-gray-50 rounded-xl p-3">
+                      <h4 className="text-sm font-black text-gray-800 mb-2 flex items-center gap-2">
+                        <div className={`w-2 h-2 bg-gradient-to-r ${colorTheme.primaryButton} rounded-full`}></div>
                         {day}
-                      </h5>
-                      <div className="space-y-4">
-                        {classes.map((classSchedule) => (
+                      </h4>
+                      <div className="space-y-2">
+                        {classes.map((schedule, index) => (
                           <div
-                            key={classSchedule.schedule_id}
-                            className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/80 hover:shadow-xl hover:scale-[1.01] transition-all duration-300"
+                            key={index}
+                            className="flex items-center justify-between p-2 bg-white rounded-lg border border-gray-100"
                           >
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="font-black text-gray-900 text-lg">
-                                {classSchedule.class_name ||
-                                  `Class #${classSchedule.class_id}`}
+                            <div className="flex items-center gap-2">
+                              <div className={`w-6 h-6 bg-gradient-to-br ${colorTheme.secondaryButton} rounded-md flex items-center justify-center`}>
+                                <Clock size={10} className="text-white" />
                               </div>
-                              {classSchedule.status && (
-                                <div
-                                  className={`inline-flex items-center px-4 py-2 rounded-xl text-sm font-black shadow-lg ${
-                                    classSchedule.status === "active"
-                                      ? "bg-gradient-to-r from-emerald-100 to-emerald-200 text-emerald-800 border border-emerald-300"
-                                      : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 border border-red-300"
-                                  }`}
-                                >
-                                  <div
-                                    className={`w-2.5 h-2.5 rounded-full mr-2 shadow-sm ${
-                                      classSchedule.status === "active"
-                                        ? "bg-emerald-500"
-                                        : "bg-red-500"
-                                    }`}
-                                  ></div>
-                                  {classSchedule.status}
-                                </div>
-                              )}
+                              <div>
+                                <h5 className="text-xs font-bold text-gray-800">
+                                  {schedule.class_name || schedule.class?.name || "Class"}
+                                </h5>
+                                <p className="text-xs text-gray-600">
+                                  {formatTime(schedule.start_time)} - {formatTime(schedule.end_time)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-gray-600">
-                              <div
-                                className={`w-6 h-6 bg-gradient-to-br from-${colorTheme.accent}-100 to-${colorTheme.accent}-200 rounded-lg flex items-center justify-center shadow-sm`}
-                              >
-                                <div
-                                  className={`w-3 h-3 bg-${colorTheme.accent}-500 rounded-full`}
-                                ></div>
-                              </div>
-                              <span className="font-bold text-lg">
-                                {formatTime(classSchedule.start_time)} -{" "}
-                                {formatTime(classSchedule.end_time)}
-                              </span>
+                            <div className={`text-xs px-2 py-1 rounded-md font-bold ${
+                              schedule.status === "active" 
+                                ? "bg-green-100 text-green-700" 
+                                : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {schedule.status || "active"}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   ))}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
+
     </div>
   );
 };
