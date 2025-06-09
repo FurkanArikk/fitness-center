@@ -15,7 +15,7 @@ echo -e "${MAGENTA}==========================================\033[0m"
 
 # Stop Traefik (assuming it's in the main docker compose.yml)
 echo -e "${BLUE}===\033[0m ${CYAN}Stopping Traefik API Gateway\033[0m ${BLUE}===\033[0m"
-if docker compose -f docker compose.yml down &> /dev/null; then
+if docker compose -f docker-compose.yml down &> /dev/null; then
     echo -e "${GREEN}✓ Traefik API Gateway stopped successfully\033[0m"
 else
     echo -e "${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker compose.yml\033[0m"
