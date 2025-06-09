@@ -19,7 +19,7 @@ import {
 } from "lucide-react";
 import { memberService } from "@/api";
 
-const AddMemberModal = ({ onClose, onSave, isLoading }) => {
+const AddMemberModal = ({ onClose, onSave, isLoading, error }) => {
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -280,7 +280,7 @@ const AddMemberModal = ({ onClose, onSave, isLoading }) => {
       membership: assignMembership && selectedMembership ? {
         membershipId: selectedMembership,
         startDate: startDate,
-        paymentMethod: paymentMethod,
+        paymentStatus: paymentMethod === 'cash' ? 'paid' : 'pending',
         contractSigned: contractSigned,
       } : null,
     };
@@ -525,6 +525,19 @@ const AddMemberModal = ({ onClose, onSave, isLoading }) => {
               </div>
               <p className="text-red-700 mt-2 text-sm">
                 {errors.general}
+              </p>
+            </div>
+          )}
+
+          {/* Server Error Message */}
+          {error && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-xl p-4">
+              <div className="flex items-center space-x-2 text-red-800">
+                <AlertTriangle className="w-5 h-5" />
+                <span className="font-medium">Error</span>
+              </div>
+              <p className="text-red-700 mt-2 text-sm">
+                {error}
               </p>
             </div>
           )}

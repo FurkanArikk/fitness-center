@@ -506,29 +506,38 @@ const Members = () => {
       // If membership assignment is requested, assign it
       if (membership && membership.membershipId) {
         try {
+          // Get membership details to calculate end date
+          const membershipDetails = await memberService.getMembership(membership.membershipId);
+          
+          // Calculate end date based on membership duration
+          const startDate = new Date(membership.startDate);
+          const durationInDays = membershipDetails.duration * 30; // Assuming duration is in months
+          const endDate = new Date(startDate.getTime() + (durationInDays * 24 * 60 * 60 * 1000));
+          
           const membershipData = {
             memberId: newMember.id,
             membershipId: membership.membershipId,
             startDate: membership.startDate,
-            paymentMethod: membership.paymentMethod,
+            endDate: endDate.toISOString().split('T')[0], // Format as YYYY-MM-DD
+            paymentStatus: membership.paymentStatus,
             contractSigned: membership.contractSigned,
           };
 
           console.log("[Members] Assigning membership:", membershipData);
-          await memberService.assignMembership(membershipData);
+          await memberService.assignMembershipToMember(membershipData);
 
           // Fetch updated member details with membership
           const updatedMemberDetails = await memberService.getMember(newMember.id);
-          const membershipDetails = await memberService.getMembership(membership.membershipId);
+          const membershipDetailsForDisplay = await memberService.getMembership(membership.membershipId);
 
-          if (updatedMemberDetails && membershipDetails) {
+          if (updatedMemberDetails && membershipDetailsForDisplay) {
             const activeMembership = {
               membershipId: membership.membershipId,
               startDate: membership.startDate,
-              endDate: new Date(new Date(membership.startDate).getTime() + (membershipDetails.duration * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
-              membershipName: membershipDetails.membershipName || "Unknown",
-              description: membershipDetails.description || "",
-              price: membershipDetails.price || 0,
+              endDate: new Date(new Date(membership.startDate).getTime() + (membershipDetailsForDisplay.duration * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+              membershipName: membershipDetailsForDisplay.membershipName || "Unknown",
+              description: membershipDetailsForDisplay.description || "",
+              price: membershipDetailsForDisplay.price || 0,
             };
 
             newMember.activeMembership = activeMembership;
@@ -551,7 +560,15 @@ const Members = () => {
       setShowAddModal(false);
     } catch (err) {
       console.error("Error adding member:", err);
-      setError("An error occurred while adding the member");
+      
+      // Check if it's an email already exists error
+      if (err.message && err.message.includes("email already exists")) {
+        setError("A member with this email address already exists. Please use a different email address.");
+      } else if (err.response && err.response.data && err.response.data.error === "email already exists") {
+        setError("A member with this email address already exists. Please use a different email address.");
+      } else {
+        setError("An error occurred while adding the member");
+      }
     } finally {
       setActionLoading(false);
     }
@@ -846,7 +863,10 @@ const Members = () => {
           <div className="flex gap-3">
             {/* Enhanced Add New Member Button */}
             <button
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                setShowAddModal(true);
+                setError(null); // Clear any previous errors when opening modal
+              }}
               className="group relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white px-8 py-4 rounded-2xl font-semibold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 flex items-center space-x-3"
             >
               {/* Background Animation */}
@@ -1677,9 +1697,13 @@ const Members = () => {
       {/* Using AddMemberModal component */}
       {showAddModal && (
         <AddMemberModal
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            setShowAddModal(false);
+            setError(null); // Clear error when modal closes
+          }}
           onSave={handleAddMember}
           isLoading={actionLoading}
+          error={error}
         />
       )}
 
