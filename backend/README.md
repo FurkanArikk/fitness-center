@@ -79,21 +79,18 @@ cd auth-service && docker-compose down
 
 **Functions:**
 - User authentication and authorization
-- JWT token management (access & refresh tokens)
-- User session management
-- Role-based access control (admin, staff, member)
+- JWT token management
+- Admin user management
+- Session management
 
 **Technologies:**
-- Go/Gin Framework
+- Node.js/Express
 - PostgreSQL (fitness_auth_db)
-- GORM ORM
-- JWT Authentication
-- bcrypt Password Hashing
+- JWT (jsonwebtoken)
+- bcrypt for password encryption
 
 **Database Tables:**
-- `users`: User information and authentication
-- `refresh_tokens`: JWT refresh token management
-- `user_sessions`: Active user sessions
+- `users`: Admin users and authentication data
 
 **API Examples:**
 ```bash
@@ -143,13 +140,13 @@ curl -X POST http://localhost/api/v1/members \
 ```
 
 ### 👨‍💼 Staff Service (Staff Management Service)
-**Port:** 5435 | **Endpoint:** `/api/v1/staff`
+**Port:** 5433 | **Endpoint:** `/api/v1/staff`
 
 **Functions:**
 - Staff and trainer management
-- Shift scheduling
-- Employee performance tracking
-- Department and role management
+- Personal training session scheduling
+- Staff qualifications and certifications tracking
+- Trainer specializations and performance tracking
 
 **Technologies:**
 - Go/Gin Framework
@@ -159,10 +156,9 @@ curl -X POST http://localhost/api/v1/members \
 
 **Database Tables:**
 - `staff`: Staff information and job details
-- `departments`: Department information
-- `positions`: Position and job descriptions
-- `staff_schedules`: Shift schedules
-- `staff_performance`: Performance evaluations
+- `staff_qualifications`: Staff certifications and qualifications
+- `trainers`: Trainer-specific information and specializations
+- `personal_training`: Personal training session records
 
 **API Examples:**
 ```bash
@@ -176,7 +172,7 @@ curl -X GET http://localhost/api/v1/staff/schedules \
 ```
 
 ### 🏃‍♀️ Class Service (Class Management Service)
-**Port:** 5439 | **Endpoint:** `/api/v1/classes`
+**Port:** 5436 | **Endpoint:** `/api/v1/classes`
 
 **Functions:**
 - Group classes and programs
@@ -192,9 +188,8 @@ curl -X GET http://localhost/api/v1/staff/schedules \
 
 **Database Tables:**
 - `classes`: Class types and descriptions
-- `schedules`: Class schedules and timing
-- `bookings`: Class reservations
-- `class_instructors`: Instructor assignments
+- `class_schedule`: Class schedules and timing
+- `class_bookings`: Class reservations
 
 **API Examples:**
 ```bash
