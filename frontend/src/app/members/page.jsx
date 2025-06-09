@@ -496,8 +496,50 @@ const Members = () => {
   const handleAddMember = async (formData) => {
     setActionLoading(true);
     try {
-      const newMember = await memberService.createMember(formData);
+      // Extract membership data from formData
+      const { membership, ...memberData } = formData;
+      
+      // Create the member first
+      const newMember = await memberService.createMember(memberData);
       console.log("[Members] Member added:", newMember);
+
+      // If membership assignment is requested, assign it
+      if (membership && membership.membershipId) {
+        try {
+          const membershipData = {
+            memberId: newMember.id,
+            membershipId: membership.membershipId,
+            startDate: membership.startDate,
+            paymentMethod: membership.paymentMethod,
+            contractSigned: membership.contractSigned,
+          };
+
+          console.log("[Members] Assigning membership:", membershipData);
+          await memberService.assignMembership(membershipData);
+
+          // Fetch updated member details with membership
+          const updatedMemberDetails = await memberService.getMember(newMember.id);
+          const membershipDetails = await memberService.getMembership(membership.membershipId);
+
+          if (updatedMemberDetails && membershipDetails) {
+            const activeMembership = {
+              membershipId: membership.membershipId,
+              startDate: membership.startDate,
+              endDate: new Date(new Date(membership.startDate).getTime() + (membershipDetails.duration * 30 * 24 * 60 * 60 * 1000)).toISOString().split('T')[0],
+              membershipName: membershipDetails.membershipName || "Unknown",
+              description: membershipDetails.description || "",
+              price: membershipDetails.price || 0,
+            };
+
+            newMember.activeMembership = activeMembership;
+          }
+
+          console.log("[Members] Membership assigned successfully");
+        } catch (membershipErr) {
+          console.error("Error assigning membership:", membershipErr);
+          // Continue anyway - member was created successfully
+        }
+      }
 
       // Update state - add the new member to the list
       setMembers([newMember, ...members]);
