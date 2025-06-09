@@ -29,7 +29,7 @@ services:
     env_file:
       - .env
     environment:
-      DB_HOST: postgres
+      DB_HOST: fitness-payment-db
       PAYMENT_SERVICE_DB_PORT: 5432
       DB_USER: ${DB_USER:-fitness_user}
       DB_PASSWORD: ${DB_PASSWORD:-admin}
