@@ -108,7 +108,7 @@ check_docker() {
     print_success "Docker is available"
     
     # Check for Docker Compose
-    if command -v docker-compose &> /dev/null; then
+    if command -v docker compose &> /dev/null; then
         print_success "Docker Compose is available"
     elif docker compose version &> /dev/null; then
         print_success "Docker Compose plugin is available"
@@ -273,7 +273,7 @@ ensure_database_running() {
     # Check if postgres container is running
     if ! docker ps | grep -q "${MEMBER_SERVICE_CONTAINER_NAME:-fitness-member-db}"; then
         print_info "Starting database container..."
-        if ! docker-compose up -d postgres; then
+        if ! docker compose up -d postgres; then
             print_error "Failed to start database container"
             exit 1
         fi
@@ -303,7 +303,7 @@ wait_for_database() {
         attempts=$((attempts + 1))
         if [ $attempts -eq $max_attempts ]; then
             print_error "Database did not become ready in time"
-            print_info "Try running: docker-compose logs postgres"
+            print_info "Try running: docker compose logs postgres"
             exit 1
         fi
         
@@ -319,14 +319,14 @@ reset_database_with_sample_data() {
     print_info "Resetting database and loading sample data..."
     
     # Stop containers if running
-    docker-compose down postgres &> /dev/null || true
+    docker compose down postgres &> /dev/null || true
     
     # Remove volume to ensure clean slate
     docker volume rm ${PWD##*/}_postgres_data &> /dev/null || true
     
     # Start postgres container
     print_info "Starting fresh database container..."
-    if ! docker-compose up -d postgres; then
+    if ! docker compose up -d postgres; then
         print_error "Failed to start database container"
         exit 1
     fi
@@ -347,14 +347,14 @@ reset_database_without_sample_data() {
     print_info "Resetting database without sample data..."
     
     # Stop containers if running
-    docker-compose down postgres &> /dev/null || true
+    docker compose down postgres &> /dev/null || true
     
     # Remove volume to ensure clean slate
     docker volume rm ${PWD##*/}_postgres_data &> /dev/null || true
     
     # Start postgres container
     print_info "Starting fresh database container..."
-    if ! docker-compose up -d postgres; then
+    if ! docker compose up -d postgres; then
         print_error "Failed to start database container"
         exit 1
     fi
@@ -400,17 +400,17 @@ start_service() {
     print_info "Preparing Docker build..."
     print_success "Dependencies will be managed by Docker build process"
 
-    # Build and start the service using docker-compose with --build flag
+    # Build and start the service using docker compose with --build flag
     print_info "Building Docker image for member service..."
     print_info "Note: Inside Docker, the service will connect to postgres using internal port 5432"
-    if docker-compose up -d --build member-service; then
+    if docker compose up -d --build member-service; then
         print_success "Member service container started successfully"
         print_info "The service is running at http://${MEMBER_SERVICE_HOST:-0.0.0.0}:${MEMBER_SERVICE_PORT:-8001}"
-        print_info "To view logs, run: docker-compose logs -f member-service"
+        print_info "To view logs, run: docker compose logs -f member-service"
         
         # Show container status
         print_header "Container Status"
-        docker-compose ps
+        docker compose ps
     else
         print_error "Failed to start member service container"
         exit 1
@@ -424,13 +424,13 @@ display_usage_instructions() {
     echo -e "${YELLOW}Your service is running in Docker. Here are some helpful commands:${NC}"
     echo -e ""
     echo -e "${CYAN}View service logs:${NC}"
-    echo -e "   ${YELLOW}docker-compose logs -f member-service${NC}"
+    echo -e "   ${YELLOW}docker compose logs -f member-service${NC}"
     echo -e ""
     echo -e "${CYAN}Stop the service:${NC}"
-    echo -e "   ${YELLOW}docker-compose down${NC}"
+    echo -e "   ${YELLOW}docker compose down${NC}"
     echo -e ""
     echo -e "${CYAN}Restart the service:${NC}"
-    echo -e "   ${YELLOW}docker-compose restart member-service${NC}"
+    echo -e "   ${YELLOW}docker compose restart member-service${NC}"
     echo -e ""
     echo -e "${CYAN}Access the API at:${NC}"
     echo -e "   ${YELLOW}http://localhost:${MEMBER_SERVICE_PORT:-8001}/health${NC}"

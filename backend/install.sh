@@ -99,7 +99,7 @@ check_docker() {
     print_success "Docker is available"
     
     # Check for Docker Compose
-    if command -v docker-compose &> /dev/null; then
+    if command -v docker compose &> /dev/null; then
         print_success "Docker Compose is available"
     elif docker compose version &> /dev/null; then
         print_success "Docker Compose plugin is available"
@@ -220,7 +220,7 @@ show_access_instructions() {
     echo -e "  ${YELLOW}Run ./stop.sh script${NC}"
     echo
     echo -e "${CYAN}To stop individual service (if needed):${NC}"
-    echo -e "  ${YELLOW}cd <service-directory> && docker-compose down${NC}"
+    echo -e "  ${YELLOW}cd <service-directory> && docker compose down${NC}"
 }
 
 # Function to calculate and display elapsed time
@@ -250,12 +250,12 @@ echo -e "\${MAGENTA}==========================================${NC}"
 echo -e "\${MAGENTA}      STOPPING ALL SERVICES & TRAEFIK      ${NC}"
 echo -e "\${MAGENTA}==========================================${NC}"
 
-# Stop Traefik (assuming it's in the main docker-compose.yml)
+# Stop Traefik (assuming it's in the main docker compose.yml)
 echo -e "\${BLUE}===${NC} \${CYAN}Stopping Traefik API Gateway${NC} \${BLUE}===${NC}"
-if docker-compose -f docker-compose.yml down &> /dev/null; then
+if docker compose -f docker-compose.yml down &> /dev/null; then
     echo -e "\${GREEN}✓ Traefik API Gateway stopped successfully${NC}"
 else
-    echo -e "\${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker-compose.yml${NC}"
+    echo -e "\${YELLOW}→ Traefik API Gateway might already be stopped or not found in the main docker compose.yml${NC}"
 fi
 
 services=("member-service" "staff-service" "payment-service" "facility-service" "class-service")
@@ -264,7 +264,7 @@ for service in "\${services[@]}"; do
     echo -e "\${BLUE}===${NC} \${CYAN}Stopping \$service${NC} \${BLUE}===${NC}"
     if [ -d "\$service" ]; then
         cd "\$service"
-        if docker-compose down &> /dev/null; then
+        if docker compose down &> /dev/null; then
             echo -e "\${GREEN}✓ \$service stopped successfully${NC}"
         else
             echo -e "\${YELLOW}→ \$service might already be stopped${NC}"
@@ -303,10 +303,10 @@ ensure_docker_network
 if start_services; then
     # Start Traefik separately
     print_header "Starting Traefik API Gateway"
-    if docker-compose -f docker-compose.yml up -d traefik &> /dev/null; then
+    if docker compose -f docker-compose.yml up -d traefik &> /dev/null; then
         print_success "Traefik API Gateway started successfully"
     else
-        print_error "Failed to start Traefik API Gateway. Check docker-compose.yml in the main directory."
+        print_error "Failed to start Traefik API Gateway. Check docker compose.yml in the main directory."
         # Optionally, decide if you want to exit if Traefik fails
         # exit 1 
     fi

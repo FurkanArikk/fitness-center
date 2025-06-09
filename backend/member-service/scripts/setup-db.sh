@@ -35,7 +35,7 @@ if [ "$USE_DOCKER" = "true" ]; then
     # Check if container exists and is running
     if ! docker ps | grep -q "$CONTAINER_NAME"; then
         echo -e "${YELLOW}PostgreSQL container not running. Starting it...${NC}"
-        if ! docker-compose up -d postgres; then
+        if ! docker compose up -d postgres; then
             echo -e "${RED}Failed to start database container.${NC}"
             exit 1
         fi
