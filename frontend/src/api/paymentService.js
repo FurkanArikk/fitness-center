@@ -25,9 +25,7 @@ const paymentService = {
   
   updatePayment: async (id, paymentData) => {
     try {
-      console.log(`Updating payment ${id} with data:`, paymentData); // Debug log
       const response = await apiClient.put(`${ENDPOINTS.payments}/${id}`, paymentData);
-      console.log('Update payment response:', response.data); // Debug log
       return response.data;
     } catch (error) {
       console.error(`Failed to update payment ${id}:`, error);
@@ -271,9 +269,7 @@ const paymentService = {
   
   updateTransaction: async (id, transactionData) => {
     try {
-      console.log(`Updating transaction ${id} with data:`, transactionData); // Debug log
       const response = await apiClient.put(`${ENDPOINTS.transactions}/${id}`, transactionData);
-      console.log('Update transaction response:', response.data); // Debug log
       return response.data;
     } catch (error) {
       console.error(`Failed to update transaction ${id}:`, error);

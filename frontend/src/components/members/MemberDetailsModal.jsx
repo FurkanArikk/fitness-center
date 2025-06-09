@@ -56,7 +56,6 @@ const MemberDetailsModal = ({ member, onClose }) => {
         const membershipList = await memberService.getMemberMemberships(
           member.id
         );
-        console.log("[MemberDetails] Member memberships:", membershipList);
 
         if (Array.isArray(membershipList) && membershipList.length > 0) {
           setMemberships(membershipList);

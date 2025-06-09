@@ -90,7 +90,6 @@ const Members = () => {
   // Function to update statistics
   const fetchAndUpdateStats = async () => {
     try {
-      console.log("[Members Page] Fetching all members for statistics");
       const data = await memberService.getAllMembers();
 
       if (data) {
@@ -150,9 +149,7 @@ const Members = () => {
     setLoadingMemberships(true);
     setError(null); // Clear previous errors
     try {
-      console.log("[Members Page] Fetching memberships...");
       const data = await memberService.getMemberships();
-      console.log("[Members Page] Memberships fetched:", data?.length || 0);
 
       // Fetch benefits for all memberships
       if (Array.isArray(data) && data.length > 0) {
@@ -194,9 +191,7 @@ const Members = () => {
     setLoadingBenefits(true);
     setError(null); // Clear previous errors
     try {
-      console.log("[Members Page] Fetching benefits...");
       const data = await memberService.getBenefits();
-      console.log("[Members Page] Benefits fetched:", data?.length || 0);
       setBenefitsData(data || []);
     } catch (err) {
       console.error("Error fetching benefits:", err);
@@ -259,7 +254,6 @@ const Members = () => {
     setActionLoading(true);
     try {
       await memberService.updateAssessment(formData.id, formData);
-      console.log("[Members] Assessment updated:", formData.id);
 
       // Reload assessments to reflect changes
       await fetchMemberAssessments(formData.memberId);
@@ -283,7 +277,6 @@ const Members = () => {
       const success = await memberService.deleteAssessment(id);
 
       if (success) {
-        console.log("[Members] Assessment deleted:", id);
 
         // Reload assessments to reflect changes
         await fetchMemberAssessments(viewAssessmentsMember.id);
@@ -312,7 +305,6 @@ const Members = () => {
         );
         const data = await memberService.getMembers(currentPage, pageSize);
 
-        console.log("[Members Page] API Response:", data);
 
         if (data) {
           let membersData = [];
@@ -501,7 +493,6 @@ const Members = () => {
       
       // Create the member first
       const newMember = await memberService.createMember(memberData);
-      console.log("[Members] Member added:", newMember);
 
       // If membership assignment is requested, assign it
       if (membership && membership.membershipId) {
@@ -523,7 +514,6 @@ const Members = () => {
             contractSigned: membership.contractSigned,
           };
 
-          console.log("[Members] Assigning membership:", membershipData);
           await memberService.assignMembershipToMember(membershipData);
 
           // Fetch updated member details with membership
@@ -543,7 +533,6 @@ const Members = () => {
             newMember.activeMembership = activeMembership;
           }
 
-          console.log("[Members] Membership assigned successfully");
         } catch (membershipErr) {
           console.error("Error assigning membership:", membershipErr);
           // Continue anyway - member was created successfully
@@ -584,7 +573,6 @@ const Members = () => {
         editMember.id,
         formData
       );
-      console.log("[Members] Member updated:", updatedMember);
 
       // Preserve existing membership data when updating member
       const memberWithMembership = {
@@ -619,7 +607,6 @@ const Members = () => {
     try {
       const success = await memberService.deleteMember(id);
       if (success) {
-        console.log("[Members] Member deleted:", id);
 
         // Remove deleted member from the list
         setMembers(members.filter((member) => member.id !== id));
@@ -646,7 +633,6 @@ const Members = () => {
       const result = await memberService.assignMembershipToMember(
         membershipData
       );
-      console.log("[Members] Membership assigned:", result);
 
       // Fetch updated member details
       try {
@@ -703,7 +689,6 @@ const Members = () => {
       const result = await memberService.deleteMembershipWithBenefits(id);
 
       if (result.success) {
-        console.log("[Members] Membership deleted:", id);
 
         // Update both membership types and benefit types
         await fetchMemberships();
@@ -735,10 +720,8 @@ const Members = () => {
     try {
       if (id) {
         await memberService.updateMembership(id, data);
-        console.log("[Members] Membership updated:", id);
       } else {
         const newMembership = await memberService.createMembership(data);
-        console.log("[Members] New membership created:", newMembership);
       }
 
       await fetchMemberships();
@@ -779,7 +762,6 @@ const Members = () => {
     try {
       const success = await memberService.deleteBenefit(id);
       if (success) {
-        console.log("[Members] Benefit deleted:", id);
 
         await fetchBenefits();
       } else {
@@ -800,10 +782,8 @@ const Members = () => {
     try {
       if (id) {
         await memberService.updateBenefit(id, data);
-        console.log("[Members] Benefit updated:", id);
       } else {
         const newBenefit = await memberService.createBenefit(data);
-        console.log("[Members] New benefit created:", newBenefit);
       }
 
       // Fetch updated benefits
@@ -828,7 +808,6 @@ const Members = () => {
   // Only filter by status and search term
   const filteredMembers = members.filter((member) => {
     // Debug: Log member structure
-    console.log("[Members Page] Filtering member:", member);
 
     const firstName = member.firstName || member.first_name || "";
     const lastName = member.lastName || member.last_name || "";

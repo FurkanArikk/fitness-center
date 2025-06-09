@@ -101,9 +101,7 @@ const Payments = () => {
 
   const fetchMembers = useCallback(async () => {
     try {
-      console.log("[Payments] Fetching members for payment modal...");
       const response = await memberService.getAllMembers();
-      console.log("[Payments] Members response:", response);
 
       let membersList = [];
       if (response && Array.isArray(response.data)) {
@@ -112,7 +110,6 @@ const Payments = () => {
         membersList = response;
       }
 
-      console.log("[Payments] Members list:", membersList);
       setMembers(membersList);
     } catch (err) {
       console.error("Error fetching members:", err);
@@ -122,9 +119,7 @@ const Payments = () => {
   const fetchPaymentTypes = useCallback(async () => {
     setPaymentTypesLoading(true);
     try {
-      console.log("[Payments] Fetching payment types...");
       const response = await paymentService.getAllPaymentTypes();
-      console.log("[Payments] Payment types response:", response);
 
       let typesList = [];
       if (response && Array.isArray(response.data)) {
@@ -133,7 +128,6 @@ const Payments = () => {
         typesList = response;
       }
 
-      console.log("[Payments] Payment types list:", typesList);
       setPaymentTypes(typesList);
     } catch (err) {
       console.error("Error fetching payment types:", err);
@@ -145,12 +139,10 @@ const Payments = () => {
   const fetchTransactions = useCallback(async () => {
     setTransactionsLoading(true);
     try {
-      console.log("[Payments] Fetching transactions...");
       const response = await paymentService.getTransactions({
         page: transactionPage,
         pageSize,
       });
-      console.log("[Payments] Transactions response:", response);
 
       setTransactions(response.data || []);
       setTransactionTotalPages(response.totalPages || 1);

@@ -54,16 +54,12 @@ const memberService = {
   getMembers: async (page = 1, pageSize = 10) => {
     try {
       const url = `${ENDPOINTS.members}?page=${page}&pageSize=${pageSize}`;
-      console.log('[Members Service] Request:', url);
       
       // Make API request
       const response = await apiClient.get(url);
-      console.log('[Members Service] Response received:', response.status);
-      console.log('[Members Service] Response data:', response.data);
       
       // Convert response data from snake_case to camelCase
       const convertedData = convertSnakeToCamel(response.data);
-      console.log('[Members Service] Converted data:', convertedData);
       return convertedData;
     } catch (error) {
       console.error("[Members Service] Error:", error.message);
@@ -75,9 +71,7 @@ const memberService = {
   
   getAllMembers: async () => {
     try {
-      console.log('[Members Service] Fetching all members');
       const response = await apiClient.get(ENDPOINTS.members);
-      console.log('[Members Service] All members received:', response.status);
       
       // Convert response data from snake_case to camelCase
       const convertedData = convertSnakeToCamel(response.data);
@@ -106,7 +100,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(memberData);
       
-      console.log('[Member Service] Creating member with data:', apiData);
       const response = await apiClient.post(ENDPOINTS.members, apiData);
       
       // Convert response back to camelCase
@@ -123,7 +116,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(memberData);
       
-      console.log(`[Member Service] Updating member ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.members}/${id}`, apiData);
       
       // Convert response back to camelCase
@@ -150,15 +142,11 @@ const memberService = {
     return retryOperation(async () => {
       try {
         const url = active !== null ? `${ENDPOINTS.memberships}?active=${active}` : ENDPOINTS.memberships;
-        console.log('[Memberships Service] Request:', url);
         
         const response = await apiClient.get(url);
-        console.log('[Memberships Service] Response received:', response.status);
-        console.log('[Memberships Service] Response data:', response.data);
         
         // Convert response from snake_case to camelCase
         const convertedData = convertSnakeToCamel(response.data);
-        console.log('[Memberships Service] Converted data:', convertedData);
         return convertedData;
       } catch (error) {
         console.error("Failed to fetch memberships:", error.message);
@@ -190,7 +178,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(membershipData);
       
-      console.log('[Membership Service] Creating membership with data:', apiData);
       const response = await apiClient.post(ENDPOINTS.memberships, apiData);
       
       // Convert response back to camelCase
@@ -212,7 +199,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(membershipData);
       
-      console.log(`[Membership Service] Updating membership ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.memberships}/${id}`, apiData);
       
       // Convert response back to camelCase
@@ -268,7 +254,6 @@ const memberService = {
       // Convert response from snake_case to camelCase
       const convertedBenefits = convertSnakeToCamel(benefits);
       
-      console.log(`[Membership Service] Got ${convertedBenefits.length} benefits for membership ${membershipId}`);
       return convertedBenefits;
     } catch (error) {
       console.error(`Failed to fetch benefits for membership ${membershipId}:`, error);
@@ -280,9 +265,7 @@ const memberService = {
   getMemberMemberships: async (memberId) => {
     return retryOperation(async () => {
       try {
-        console.log(`[Member Service] Fetching memberships for member ${memberId}`);
         const response = await apiClient.get(`${ENDPOINTS.members}/${memberId}/memberships`);
-        console.log(`[Member Service] Retrieved ${response.data.length || 0} memberships for member ${memberId}`);
         
         // Convert response from snake_case to camelCase
         const convertedData = convertSnakeToCamel(response.data);
@@ -334,14 +317,10 @@ const memberService = {
   getBenefits: async () => {
     return retryOperation(async () => {
       try {
-        console.log('[Benefits Service] Fetching all benefits');
         const response = await apiClient.get(ENDPOINTS.benefits);
-        console.log('[Benefits Service] Response received:', response.status);
-        console.log('[Benefits Service] Response data:', response.data);
         
         // Convert response from snake_case to camelCase
         const convertedData = convertSnakeToCamel(response.data);
-        console.log('[Benefits Service] Converted data:', convertedData);
         return convertedData;
       } catch (error) {
         console.error("Failed to fetch benefits:", error.message);
@@ -373,7 +352,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(benefitData);
       
-      console.log('[Benefit Service] Creating benefit with data:', apiData);
       const response = await apiClient.post(ENDPOINTS.benefits, apiData);
       
       // Convert response back to camelCase
@@ -390,7 +368,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(benefitData);
       
-      console.log(`[Benefit Service] Updating benefit ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.benefits}/${id}`, apiData);
       
       // Convert response back to camelCase
@@ -415,11 +392,9 @@ const memberService = {
   // Function to delete a membership type and its associated benefits
   deleteMembershipWithBenefits: async (membershipId) => {
     try {
-      console.log(`[Membership Service] Deleting membership ${membershipId} with its benefits`);
       
       // First get all benefits of this membership type
       const benefits = await memberService.getMembershipBenefits(membershipId);
-      console.log(`[Membership Service] Found ${benefits.length} benefits to delete for membership ${membershipId}`);
       
       // Delete all benefits
       const benefitDeleteResults = await Promise.all(
@@ -430,7 +405,6 @@ const memberService = {
             return false;
           }
           
-          console.log(`[Membership Service] Deleting benefit ${benefitId}`);
           return await memberService.deleteBenefit(benefitId);
         })
       );
@@ -442,7 +416,6 @@ const memberService = {
       }
       
       // Now delete the membership type
-      console.log(`[Membership Service] Now deleting membership ${membershipId}`);
       await apiClient.delete(`${ENDPOINTS.memberships}/${membershipId}`);
       
       return { 
@@ -485,7 +458,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(assessmentData);
       
-      console.log('[Assessment Service] Creating assessment with data:', apiData);
       const response = await apiClient.post(ENDPOINTS.assessments, apiData);
       
       // Convert response back to camelCase
@@ -507,7 +479,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(assessmentData);
       
-      console.log(`[Assessment Service] Updating assessment ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.assessments}/${id}`, apiData);
       
       // Convert response back to camelCase
@@ -533,7 +504,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(membershipData);
       
-      console.log("[Member Membership] Sending data:", apiData);
       
       const response = await apiClient.post(`${ENDPOINTS.memberMemberships}`, apiData);
       
@@ -564,7 +534,6 @@ const memberService = {
       // Convert to snake_case format for API
       const apiData = convertCamelToSnake(data);
       
-      console.log(`[Member Membership] Updating member-membership ${id} with data:`, apiData);
       const response = await apiClient.put(`${ENDPOINTS.memberMemberships}/${id}`, apiData);
       
       // Convert response back to camelCase

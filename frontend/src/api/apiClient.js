@@ -47,7 +47,6 @@ const retryInterceptor = async (error) => {
   config._retryCount = config._retryCount || 0;
   config._retryCount += 1;
 
-  console.log(`[API Retry] Attempt ${config._retryCount} for ${config.url}`);
 
   // Create a delay promise for exponential backoff
   const delay = new Promise((resolve) => {

@@ -103,7 +103,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
       isActive: formData.active, // Backend expects 'isActive' not 'active'
     };
 
-    console.log("[EditMembershipModal] Sending data to API:", apiData);
     onSave(apiData);
   };
 

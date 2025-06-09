@@ -80,9 +80,7 @@ const PaymentModal = ({
   const fetchCurrentMember = async (memberId) => {
     setLoadingMember(true);
     try {
-      console.log("[PaymentModal] Fetching member details for ID:", memberId);
       const memberData = await memberService.getMember(memberId);
-      console.log("[PaymentModal] Member data received:", memberData);
       setCurrentMember(memberData);
     } catch (error) {
       console.error("[PaymentModal] Error fetching member:", error);
@@ -132,7 +130,6 @@ const PaymentModal = ({
       payment_type_id: parseInt(formData.payment_type_id),
     };
 
-    console.log("Sending payment data:", paymentData); // Debug log
 
     onSave(paymentData);
   };

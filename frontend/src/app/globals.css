@@ -3,7 +3,7 @@
 /* Source Sans Pro */
 @font-face {
   font-family: "Source Sans Pro";
-  src: url("/assets/fonts/source-sans-pro/SourceSansPro-Regular.ttf")
+  src: url("/assets/fonts/SourceSansPro-Regular.ttf")
     format("truetype");
   font-weight: 400;
   font-style: normal;
@@ -12,7 +12,7 @@
 
 @font-face {
   font-family: "Source Sans Pro";
-  src: url("/assets/fonts/source-sans-pro/SourceSansPro-SemiBold.ttf")
+  src: url("/assets/fonts/SourceSansPro-Semibold-1.ttf")
     format("truetype");
   font-weight: 600;
   font-style: normal;
@@ -21,7 +21,7 @@
 
 @font-face {
   font-family: "Source Sans Pro";
-  src: url("/assets/fonts/source-sans-pro/SourceSansPro-Bold.ttf")
+  src: url("/assets/fonts/SourceSansPro-Bold-1.ttf")
     format("truetype");
   font-weight: 700;
   font-style: normal;

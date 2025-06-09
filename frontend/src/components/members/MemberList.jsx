@@ -18,8 +18,6 @@ const MemberList = ({
   onViewDetails,
   onViewAssessments,
 }) => {
-  console.log("[MemberList] Received members:", members);
-  console.log("[MemberList] Members length:", members.length);
 
   if (!members.length) {
     return (
