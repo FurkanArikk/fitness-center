@@ -15,7 +15,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
     description: "",
     durationMonths: 1,
     price: 0,
-    active: true,
   });
 
   const [errors, setErrors] = useState({});
@@ -29,7 +28,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
         description: membership.description || "",
         durationMonths: membership.duration || 1,
         price: membership.price || 0,
-        active: membership.isActive ?? true,
       });
     } else {
       // Default values for new creation
@@ -38,7 +36,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
         description: "",
         durationMonths: 1,
         price: 0,
-        active: true,
       });
     }
     setErrors({});
@@ -100,7 +97,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
       description: formData.description,
       duration: formData.durationMonths, // Backend expects 'duration' not 'durationMonths'
       price: formData.price,
-      isActive: formData.active, // Backend expects 'isActive' not 'active'
     };
 
     console.log("[EditMembershipModal] Sending data to API:", apiData);
@@ -259,39 +255,6 @@ const EditMembershipModal = ({ membership, onClose, onSave, isLoading }) => {
                 </p>
               )}
             </div>
-          </div>
-
-          {/* Active Toggle */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center">
-                <Sparkles className="w-5 h-5 text-emerald-500 mr-2" />
-                <div>
-                  <label
-                    htmlFor="active"
-                    className="text-sm font-semibold text-gray-700 cursor-pointer"
-                  >
-                    Active Status
-                  </label>
-                  <p className="text-xs text-gray-500">
-                    {formData.active
-                      ? "This membership will be available for purchase"
-                      : "This membership will be hidden from customers"}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                id="active"
-                name="active"
-                checked={formData.active}
-                onChange={handleChange}
-                className="sr-only peer"
-              />
-              <div className="relative w-12 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gradient-to-r peer-checked:from-emerald-500 peer-checked:to-green-500"></div>
-            </label>
           </div>
 
           {/* Action Buttons */}

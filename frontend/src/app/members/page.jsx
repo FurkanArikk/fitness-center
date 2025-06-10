@@ -742,6 +742,27 @@ const Members = () => {
   // Membership update function
   const handleUpdateMembership = async (id, data) => {
     setActionLoading(true);
+    
+    // Optimistic update for editing existing membership
+    if (id) {
+      // Map the incoming data to match our state structure
+      const mappedData = {
+        membershipName: data.membershipName,
+        description: data.description,
+        duration: data.duration,
+        price: data.price,
+        // Don't update isActive from edit modal - only use dedicated status buttons
+      };
+      
+      setMembershipsData(prevMemberships => 
+        prevMemberships.map(membership => 
+          membership.id === id 
+            ? { ...membership, ...mappedData }
+            : membership
+        )
+      );
+    }
+
     try {
       if (id) {
         await memberService.updateMembership(id, data);
@@ -749,13 +770,28 @@ const Members = () => {
       } else {
         const newMembership = await memberService.createMembership(data);
         console.log("[Members] New membership created:", newMembership);
+        
+        // For new membership, add to the list immediately
+        if (newMembership) {
+          setMembershipsData(prevMemberships => [
+            ...prevMemberships,
+            { ...newMembership, benefits: [] }
+          ]);
+        }
       }
 
+      // Only fetch memberships to ensure data consistency (but UI is already updated)
       await fetchMemberships();
 
       setEditMembership(null);
     } catch (err) {
       console.error("Error updating/creating membership:", err);
+      
+      // Revert optimistic update on error for editing
+      if (id) {
+        await fetchMemberships(); // Restore original data
+      }
+      
       setError("An error occurred while updating/creating the membership");
     } finally {
       setActionLoading(false);
@@ -764,22 +800,46 @@ const Members = () => {
 
   // Update membership status function
   const handleUpdateMembershipStatus = async (id, isActive) => {
-    setActionLoading(true);
+    // Optimistic update - immediately show change in UI
+    setMembershipsData(prevMemberships => 
+      prevMemberships.map(membership => 
+        membership.id === id 
+          ? { ...membership, isActive: !isActive }
+          : membership
+      )
+    );
+
     try {
       const result = await memberService.updateMembershipStatus(id, {
         isActive: !isActive,
       });
 
-      if (result.success) {
+      if (result) {
+        // If successful, refetch memberships list (for security)
         await fetchMemberships();
+        console.log(`[Members] Membership status updated: ${id}, new status: ${!isActive}`);
       } else {
-        setError(result.error || "Failed to update membership status");
+        // If failed, revert to previous state
+        setMembershipsData(prevMemberships => 
+          prevMemberships.map(membership => 
+            membership.id === id 
+              ? { ...membership, isActive: isActive }
+              : membership
+          )
+        );
+        setError("Failed to update membership status");
       }
     } catch (err) {
       console.error("Error updating membership status:", err);
+      // If failed, revert to previous state
+      setMembershipsData(prevMemberships => 
+        prevMemberships.map(membership => 
+          membership.id === id 
+            ? { ...membership, isActive: isActive }
+            : membership
+        )
+      );
       setError("An error occurred while updating membership status");
-    } finally {
-      setActionLoading(false);
     }
   };
 
