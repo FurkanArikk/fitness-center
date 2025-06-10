@@ -137,11 +137,61 @@ const memberService = {
 
   deleteMember: async (id) => {
     try {
-      await apiClient.delete(`${ENDPOINTS.members}/${id}`);
-      return true;
+      console.log(`[Member Service] Starting deletion process for member ${id}`);
+      
+      // First, get all member-membership relationships for this member
+      let memberMemberships = [];
+      try {
+        memberMemberships = await memberService.getMemberMemberships(id);
+        console.log(`[Member Service] Found ${memberMemberships.length} membership relationships for member ${id}`);
+      } catch (membershipError) {
+        console.warn(`[Member Service] Could not fetch memberships for member ${id}:`, membershipError);
+        // Continue with deletion even if we can't fetch memberships
+      }
+
+      // Delete all member-membership relationships first
+      const membershipDeletionResults = [];
+      for (const membership of memberMemberships) {
+        try {
+          const membershipId = membership.id || membership.memberMembershipId;
+          if (membershipId) {
+            console.log(`[Member Service] Deleting member-membership ${membershipId}`);
+            const deleteResult = await memberService.deleteMemberMembership(membershipId);
+            membershipDeletionResults.push(deleteResult);
+          }
+        } catch (membershipDeleteError) {
+          console.error(`[Member Service] Failed to delete membership relationship:`, membershipDeleteError);
+          membershipDeletionResults.push(false);
+        }
+      }
+
+      // Log membership deletion results
+      const successfulDeletions = membershipDeletionResults.filter(result => result === true).length;
+      console.log(`[Member Service] Deleted ${successfulDeletions}/${memberMemberships.length} membership relationships`);
+
+      // Now delete the member
+      const response = await apiClient.delete(`${ENDPOINTS.members}/${id}`);
+      console.log(`[Member Service] Member ${id} deleted successfully:`, response.data);
+      
+      return { 
+        success: true, 
+        message: `Member and ${successfulDeletions} associated membership(s) deleted successfully`,
+        deletedMemberships: successfulDeletions
+      };
     } catch (error) {
       console.error(`Failed to delete member ${id}:`, error);
-      return false;
+      
+      if (error.response?.status === 404) {
+        return { 
+          success: false, 
+          error: "Member not found" 
+        };
+      }
+      
+      return { 
+        success: false, 
+        error: error.response?.data?.error || "Failed to delete member" 
+      };
     }
   },
   

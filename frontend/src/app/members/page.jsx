@@ -617,17 +617,27 @@ const Members = () => {
   const handleDeleteMember = async (id) => {
     setActionLoading(true);
     try {
-      const success = await memberService.deleteMember(id);
-      if (success) {
+      const result = await memberService.deleteMember(id);
+      if (result.success) {
         console.log("[Members] Member deleted:", id);
 
+        // Show success message with details
+        setError(null); // Clear any previous errors
+        
         // Remove deleted member from the list
         setMembers(members.filter((member) => member.id !== id));
 
         // Update statistics after deleting a member
         fetchAndUpdateStats();
+
+        // Show success message
+        console.log("[Members] Success:", result.message);
+        if (result.deletedMemberships > 0) {
+          console.log(`[Members] Also deleted ${result.deletedMemberships} membership relationship(s)`);
+        }
       } else {
-        setError("Failed to delete member");
+        console.error("[Members] Delete failed:", result.error);
+        setError(result.error || "Failed to delete member");
       }
     } catch (err) {
       console.error("Error deleting member:", err);
@@ -732,6 +742,27 @@ const Members = () => {
   // Membership update function
   const handleUpdateMembership = async (id, data) => {
     setActionLoading(true);
+    
+    // Optimistic update for editing existing membership
+    if (id) {
+      // Map the incoming data to match our state structure
+      const mappedData = {
+        membershipName: data.membershipName,
+        description: data.description,
+        duration: data.duration,
+        price: data.price,
+        // Don't update isActive from edit modal - only use dedicated status buttons
+      };
+      
+      setMembershipsData(prevMemberships => 
+        prevMemberships.map(membership => 
+          membership.id === id 
+            ? { ...membership, ...mappedData }
+            : membership
+        )
+      );
+    }
+
     try {
       if (id) {
         await memberService.updateMembership(id, data);
@@ -739,13 +770,28 @@ const Members = () => {
       } else {
         const newMembership = await memberService.createMembership(data);
         console.log("[Members] New membership created:", newMembership);
+        
+        // For new membership, add to the list immediately
+        if (newMembership) {
+          setMembershipsData(prevMemberships => [
+            ...prevMemberships,
+            { ...newMembership, benefits: [] }
+          ]);
+        }
       }
 
+      // Only fetch memberships to ensure data consistency (but UI is already updated)
       await fetchMemberships();
 
       setEditMembership(null);
     } catch (err) {
       console.error("Error updating/creating membership:", err);
+      
+      // Revert optimistic update on error for editing
+      if (id) {
+        await fetchMemberships(); // Restore original data
+      }
+      
       setError("An error occurred while updating/creating the membership");
     } finally {
       setActionLoading(false);
@@ -754,22 +800,46 @@ const Members = () => {
 
   // Update membership status function
   const handleUpdateMembershipStatus = async (id, isActive) => {
-    setActionLoading(true);
+    // Optimistic update - immediately show change in UI
+    setMembershipsData(prevMemberships => 
+      prevMemberships.map(membership => 
+        membership.id === id 
+          ? { ...membership, isActive: !isActive }
+          : membership
+      )
+    );
+
     try {
       const result = await memberService.updateMembershipStatus(id, {
         isActive: !isActive,
       });
 
-      if (result.success) {
+      if (result) {
+        // If successful, refetch memberships list (for security)
         await fetchMemberships();
+        console.log(`[Members] Membership status updated: ${id}, new status: ${!isActive}`);
       } else {
-        setError(result.error || "Failed to update membership status");
+        // If failed, revert to previous state
+        setMembershipsData(prevMemberships => 
+          prevMemberships.map(membership => 
+            membership.id === id 
+              ? { ...membership, isActive: isActive }
+              : membership
+          )
+        );
+        setError("Failed to update membership status");
       }
     } catch (err) {
       console.error("Error updating membership status:", err);
+      // If failed, revert to previous state
+      setMembershipsData(prevMemberships => 
+        prevMemberships.map(membership => 
+          membership.id === id 
+            ? { ...membership, isActive: isActive }
+            : membership
+        )
+      );
       setError("An error occurred while updating membership status");
-    } finally {
-      setActionLoading(false);
     }
   };
 
