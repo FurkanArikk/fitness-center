@@ -617,17 +617,27 @@ const Members = () => {
   const handleDeleteMember = async (id) => {
     setActionLoading(true);
     try {
-      const success = await memberService.deleteMember(id);
-      if (success) {
+      const result = await memberService.deleteMember(id);
+      if (result.success) {
         console.log("[Members] Member deleted:", id);
 
+        // Show success message with details
+        setError(null); // Clear any previous errors
+        
         // Remove deleted member from the list
         setMembers(members.filter((member) => member.id !== id));
 
         // Update statistics after deleting a member
         fetchAndUpdateStats();
+
+        // Show success message
+        console.log("[Members] Success:", result.message);
+        if (result.deletedMemberships > 0) {
+          console.log(`[Members] Also deleted ${result.deletedMemberships} membership relationship(s)`);
+        }
       } else {
-        setError("Failed to delete member");
+        console.error("[Members] Delete failed:", result.error);
+        setError(result.error || "Failed to delete member");
       }
     } catch (err) {
       console.error("Error deleting member:", err);
