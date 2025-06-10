@@ -49,6 +49,7 @@ const DeleteMemberConfirm = ({ member, onClose, onConfirm, isLoading }) => {
             <ul className="list-disc pl-5 space-y-1">
               <li>This action cannot be undone.</li>
               <li>All member data will be permanently removed from the system.</li>
+              <li>All membership relationships for this member will also be deleted.</li>
               {member.activeMembership && (
                 <li>Active membership information will also be deleted.</li>
               )}
