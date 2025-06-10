@@ -1,4 +1,5 @@
 import React from "react";
+import { useState, useRef } from "react";
 import {
   X,
   User,
@@ -13,20 +14,150 @@ import {
 const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
   if (!member) return null;
 
+  const [errors, setErrors] = useState({});
+  const formRef = useRef(null);
+
+  // Convert ISO date to American format (mm/dd/yyyy)
+  const formatDateToAmerican = (isoDate) => {
+    if (!isoDate) return "";
+    const date = new Date(isoDate);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
+
+  // Convert American date format (mm/dd/yyyy) to ISO format
+  const convertAmericanDateToISO = (americanDate) => {
+    if (!americanDate) return null;
+    const dateMatch = americanDate.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (dateMatch) {
+      const [, month, day, year] = dateMatch;
+      return new Date(`${year}-${month}-${day}`).toISOString();
+    }
+    return null;
+  };
+
+  // Date validation function - validates American format (mm/dd/yyyy)
+  const validateDate = (dateString) => {
+    // Check if the date matches mm/dd/yyyy format
+    const dateMatch = dateString.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!dateMatch) return { isValid: false, error: "Date format must be mm/dd/yyyy" };
+    
+    const [, month, day, year] = dateMatch;
+    const monthNum = parseInt(month, 10);
+    const dayNum = parseInt(day, 10);
+    const yearNum = parseInt(year, 10);
+    
+    // Check month range (01-12)
+    if (monthNum < 1 || monthNum > 12) {
+      return { isValid: false, error: `Invalid month: ${month}. Month must be between 01-12` };
+    }
+    
+    // Check day range (01-31)
+    if (dayNum < 1 || dayNum > 31) {
+      return { isValid: false, error: `Invalid day: ${day}. Day must be between 01-31` };
+    }
+    
+    // Check year range
+    const currentYear = new Date().getFullYear();
+    if (yearNum < 1900 || yearNum > currentYear) {
+      return { isValid: false, error: `Invalid year: ${year}. Year must be between 1900-${currentYear}` };
+    }
+    
+    // Create a date object and verify it's a valid date
+    const dateObj = new Date(yearNum, monthNum - 1, dayNum);
+    const isValidDate = dateObj.getFullYear() === yearNum && 
+                        dateObj.getMonth() === monthNum - 1 && 
+                        dateObj.getDate() === dayNum;
+    
+    if (!isValidDate) {
+      return { isValid: false, error: `${month}/${day}/${year} is not a valid date` };
+    }
+    
+    return { isValid: true, error: null };
+  };
+
+  // Handle date input change with formatting and validation
+  const handleDateChange = (e) => {
+    const { value } = e.target;
+    
+    // Remove all non-numeric characters
+    let cleanValue = value.replace(/\D/g, '');
+    
+    // Format the value as mm/dd/yyyy
+    if (cleanValue.length >= 2) {
+      cleanValue = cleanValue.substring(0, 2) + '/' + cleanValue.substring(2);
+    }
+    if (cleanValue.length >= 5) {
+      cleanValue = cleanValue.substring(0, 5) + '/' + cleanValue.substring(5, 9);
+    }
+    
+    // Update the input value
+    e.target.value = cleanValue;
+    
+    // Validate the date if it's complete (10 characters: mm/dd/yyyy)
+    if (cleanValue.length === 10) {
+      const validation = validateDate(cleanValue);
+      if (!validation.isValid) {
+        setErrors((prev) => ({
+          ...prev,
+          dateOfBirth: validation.error
+        }));
+      } else {
+        // Clear error if date is valid
+        setErrors((prev) => ({
+          ...prev,
+          dateOfBirth: ""
+        }));
+      }
+    } else if (cleanValue.length > 0 && cleanValue.length < 10) {
+      // Show format hint for incomplete dates
+      setErrors((prev) => ({
+        ...prev,
+        dateOfBirth: "Date format: mm/dd/yyyy (example: 01/15/1990)"
+      }));
+    } else {
+      // Clear error for empty input
+      setErrors((prev) => ({
+        ...prev,
+        dateOfBirth: ""
+      }));
+    }
+  };
+
   const handleSubmit = (e) => {
-    e.preventDefault();
-    const formData = {
-      firstName: e.target.firstName.value,
-      lastName: e.target.lastName.value,
-      email: e.target.email.value,
-      phone: e.target.phone.value,
-      address: e.target.address.value,
-      dateOfBirth: e.target.dateOfBirth.value,
-      emergencyContactName: e.target.emergencyContactName.value,
-      emergencyContactPhone: e.target.emergencyContactPhone.value,
-      status: e.target.status.value,
+    if (e) e.preventDefault();
+    
+    // Get the form element
+    const form = formRef.current;
+    if (!form) return;
+    
+    // Get form data using FormData for safer access
+    const formData = new FormData(form);
+    const dateValue = formData.get('dateOfBirth');
+    
+    // Validate date before submission if it exists
+    if (dateValue && dateValue.trim()) {
+      const validation = validateDate(dateValue);
+      if (!validation.isValid) {
+        setErrors({ dateOfBirth: validation.error });
+        return;
+      }
+    }
+    
+    const submitData = {
+      firstName: formData.get('firstName') || '',
+      lastName: formData.get('lastName') || '',
+      email: formData.get('email') || '',
+      phone: formData.get('phone') || '',
+      address: formData.get('address') || '',
+      dateOfBirth: convertAmericanDateToISO(dateValue),
+      emergencyContactName: formData.get('emergencyContactName') || '',
+      emergencyContactPhone: formData.get('emergencyContactPhone') || '',
+      status: formData.get('status') || 'active',
     };
-    onSave(formData);
+    onSave(submitData);
   };
 
   // Generate avatar for member
@@ -92,7 +223,7 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
 
         {/* Content */}
         <div className="p-8 max-h-[70vh] overflow-y-auto">
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-8">
             {/* Personal Information Section */}
             <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl p-6 border border-gray-100">
               <h4 className="text-xl font-bold text-gray-800 mb-6 flex items-center">
@@ -133,15 +264,17 @@ const EditMemberModal = ({ member, onClose, onSave, isLoading }) => {
                   <div className="relative">
                     <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                     <input
-                      type="date"
+                      type="text"
                       name="dateOfBirth"
-                      defaultValue={
-                        member.dateOfBirth
-                          ? member.dateOfBirth.split("T")[0]
-                          : ""
-                      }
-                      className="w-full border-2 border-gray-200 rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md"
+                      defaultValue={formatDateToAmerican(member.dateOfBirth)}
+                      placeholder="mm/dd/yyyy"
+                      pattern="^(0[1-9]|1[0-2])/(0[1-9]|[12]\d|3[01])/\d{4}$"
+                      onInput={handleDateChange}
+                      className={`w-full border-2 ${errors.dateOfBirth ? 'border-red-300' : 'border-gray-200'} rounded-xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white shadow-sm hover:shadow-md`}
                     />
+                    {errors.dateOfBirth && (
+                      <p className="text-red-500 text-sm mt-1">{errors.dateOfBirth}</p>
+                    )}
                   </div>
                 </div>
                 <div>
